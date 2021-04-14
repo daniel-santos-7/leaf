@@ -19,48 +19,42 @@ architecture alu_ctrl_arch of alu_ctrl is
     
 begin
 
-    process(opcode, func3, func7)
+    alu_src0 <= '1' when opcode = JALR_OPCODE or opcode = BRANCH_OPCODE or opcode = JAL_OPCODE else '0'; 
+
+    alu_src1 <= '0' when opcode = LOGIC_ARITH_OPCODE else '0';
+
+    alu_op <= 
     
-    begin
-
-        if (opcode = "0110011" and func7 = "0000000") or (opcode = "0010011") then
-
-            case func3 is
-                
-                when "000" => alu_op <= ALU_ADD;
-
-                when "001" => alu_op <= ALU_SLL;
-
-                when "010" => alu_op <= ALU_SLT;
-
-                when "011" => alu_op <= ALU_SLTU;
-
-                when "100" => alu_op <= ALU_XOR;
-
-                when "101" => alu_op <= ALU_SRL;
-
-                when "110" => alu_op <= ALU_OR;
-
-                when "111" => alu_op <= ALU_AND;
-
-                when others => null;
-                    
-            end case;
+        ALU_ADD when (opcode = LOGIC_ARITH_OPCODE and func3 = b"000" and func7 = b"0000000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"000") else
         
-        elsif (opcode = "0110011" and func7 = "0100000") then
+        ALU_SLL when (opcode = LOGIC_ARITH_OPCODE and func3 = b"001" and func7 = b"0000000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"001") else
 
-            case func3 is
-                    
-                when "000" => alu_op <= ALU_SUB;
-
-                when "101" => alu_op <= ALU_SRA;
-
-                when others => null;
-                    
-            end case;
-
-        end if;
-        
-    end process;
+        ALU_SLT when (opcode = LOGIC_ARITH_OPCODE and func3 = b"010" and func7 = b"0000000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"010") else
     
+        ALU_SLTU when (opcode = LOGIC_ARITH_OPCODE and func3 = b"011" and func7 = b"0000000") or
+                      (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"011") else
+        
+        ALU_XOR when (opcode = LOGIC_ARITH_OPCODE and func3 = b"100" and func7 = b"0000000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"100") else
+
+        ALU_SRL when (opcode = LOGIC_ARITH_OPCODE and func3 = b"101" and func7 = b"0000000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"101") else
+
+        ALU_OR when  (opcode = LOGIC_ARITH_OPCODE and func3 = b"110" and func7 = b"0000000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"110") else
+
+        ALU_AND when (opcode = LOGIC_ARITH_OPCODE and func3 = b"111" and func7 = b"0000000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"111") else
+
+        ALU_SUB when (opcode = LOGIC_ARITH_OPCODE and func3 = b"000" and func7 = b"0100000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"000") else
+
+        ALU_SRA when (opcode = LOGIC_ARITH_OPCODE and func3 = b"101" and func7 = b"0100000") or
+                     (opcode = LOGIC_ARITH_IMM_OPCODE and func3 = b"101") else
+
+        ALU_ADD;
+        
 end architecture alu_ctrl_arch;
