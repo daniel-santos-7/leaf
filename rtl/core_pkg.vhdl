@@ -133,5 +133,19 @@ package core_pkg is
         );
 
     end component if_stage;
+
+    component core is
+    
+        port (
+            clk: std_logic;
+            instr_mem_addr: out std_logic_vector(31 downto 0);
+            instr_mem_data: in std_logic_vector(31 downto 0);
+            rd_mem_data: in std_logic_vector(31 downto 0);
+            rd_mem_en: out std_logic;
+            wr_mem_data: out std_logic_vector(31 downto 0);
+            wr_mem_en: out std_logic
+        );
+    
+    end component core;
     
 end package core_pkg;
