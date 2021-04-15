@@ -33,7 +33,7 @@ package core_pkg is
             branch, jal, jalr: out std_logic
         );
     
-    end component;
+    end component main_ctrl;
 
     component imm_gen is
     
@@ -44,6 +44,19 @@ package core_pkg is
     
     end component imm_gen;
 
+    component alu_ctrl is
+
+        port (
+            opcode: in std_logic_vector(6 downto 0);
+            func3: in std_logic_vector(2 downto 0);
+            func7: in std_logic_vector(6 downto 0);
+            alu_src0, alu_src1: out std_logic;
+            alu_op: out std_logic_vector(3 downto 0)
+        );
+    
+    end component alu_ctrl;
+    
+
     component alu is
 
         port (
@@ -52,7 +65,7 @@ package core_pkg is
             rslt: out std_logic_vector(31 downto 0)
         );
 
-    end component;
+    end component alu;
 
     component reg_file is
 
@@ -64,7 +77,7 @@ package core_pkg is
             rd_reg_data0, rd_reg_data1: out std_logic_vector(31 downto 0)
         );
 
-    end component;
+    end component reg_file;
 
     component branch_dtct is
     
@@ -88,7 +101,24 @@ package core_pkg is
             rd_data: out std_logic_vector(31 downto 0)
         );
 
-    end component;
+    end component lsu;
+
+    component id_ex_stage is
+    
+        port (
+            clk: in std_logic;
+            pc: in std_logic_vector(31 downto 0);
+            next_pc: in std_logic_vector(31 downto 0);
+            instr: in std_logic_vector(31 downto 0);
+            rd_mem_data: in std_logic_vector(31 downto 0);
+            rd_mem_en: out std_logic;
+            wr_mem_data: out std_logic_vector(31 downto 0);
+            wr_mem_en: out std_logic;
+            branch, jal, jalr: out std_logic;
+            target: out std_logic_vector(31 downto 0)
+        );
+    
+    end component id_ex_stage;
     
     component if_stage is
 
@@ -102,6 +132,6 @@ package core_pkg is
             instr: out std_logic_vector(31 downto 0)
         );
 
-    end component;
+    end component if_stage;
     
 end package core_pkg;

@@ -9,7 +9,7 @@ entity alu_ctrl is
         opcode: in std_logic_vector(6 downto 0);
         func3: in std_logic_vector(2 downto 0);
         func7: in std_logic_vector(6 downto 0);
-        alu_src0, alu_src1: in std_logic;
+        alu_src0, alu_src1: out std_logic;
         alu_op: out std_logic_vector(3 downto 0)
     );
 
@@ -21,7 +21,7 @@ begin
 
     alu_src0 <= '1' when opcode = JALR_OPCODE or opcode = BRANCH_OPCODE or opcode = JAL_OPCODE else '0'; 
 
-    alu_src1 <= '0' when opcode = LOGIC_ARITH_OPCODE else '0';
+    alu_src1 <= '0' when opcode = LOGIC_ARITH_OPCODE else '1';
 
     alu_op <= 
     
