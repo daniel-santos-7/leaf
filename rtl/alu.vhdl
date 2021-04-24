@@ -64,7 +64,7 @@ begin
 
             when ALU_SRA => rslt <= std_logic_vector(shift_right(signed(opd0), to_integer(unsigned(opd1(4 downto 0)))));
 			
-            when others => rslt <= (others => '0');
+            when others => rslt <= (others => '-');
 		
         end case;
 

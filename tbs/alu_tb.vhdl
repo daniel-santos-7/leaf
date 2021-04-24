@@ -21,36 +21,60 @@ begin
 
         begin
 
-            opd0 <= x"0001_2CD7";
-            opd1 <= x"0000_04EC";
+            opd0 <= x"00000226";
+            opd1 <= x"0000015e";
+            
             op <= ALU_ADD;
             wait for period;
-            assert (rslt = x"0001_31C3") ;
+            assert rslt = x"00000384" report "sum operation failed" severity failure;
 
-            opd0 <= x"0A05_1AB1";
-            opd1 <= x"010B_A1D0";
             op <= ALU_SUB;
             wait for period;
-            assert (rslt = x"08F9_78E1");
+            assert rslt = x"000000c8" report "sub operation failed" severity failure;
 
-            opd0 <= x"AF15_AAC1";
-            opd1 <= x"F1FC_B1C1";
+            opd0 <= x"fffffdbd";
+            opd1 <= x"000004bd";
+
             op <= ALU_AND;
             wait for period;
-            assert (rslt = x"A114_A0C1") ;
+            assert rslt = x"000004bd" report "and operation failed" severity failure;
 
-            opd0 <= x"A765_15C1";
-            opd1 <= x"F10C_C121";
             op <= ALU_OR;
             wait for period;
-            assert (rslt = x"F76D_D5E1");
+            assert rslt = x"fffffdbd" report "or operation failed" severity failure;
 
-
-            opd0 <= x"B165_9001";
-            opd1 <= x"F75C_1101";
             op <= ALU_XOR;
             wait for period;
-            assert (rslt = x"4639_8100"); 
+            assert rslt = x"fffff900" report "xor operation failed" severity failure;
+
+            opd0 <= x"000000c8";
+            opd1 <= x"fffffe0c";
+
+            op <= ALU_SLT;
+            wait for period;
+            assert rslt = x"00000000" report "slt operation failed" severity failure;
+
+            op <= ALU_SLTU;
+            wait for period;
+            assert rslt = x"00000001" report "sltu operation failed" severity failure;
+
+            opd0 <= x"00000005";
+            opd1 <= x"00000021";
+
+            op <= ALU_SLL;
+            wait for period;
+            assert rslt = x"0000000A" report "sll operation failed" severity failure;
+
+            op <= ALU_SRL;
+            wait for period;
+            assert rslt = x"00000002" report "srl operation failed" severity failure;
+
+            opd0 <= x"00000006";
+            opd1 <= x"00000003";
+            
+            op <= ALU_SRA;
+            wait for period;
+            assert rslt = x"00000000" report "sra operation failed" severity failure;
 
             wait;
 
