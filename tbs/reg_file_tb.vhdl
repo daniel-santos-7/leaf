@@ -9,7 +9,7 @@ end entity reg_file_tb;
 architecture reg_file_tb_arch of reg_file_tb is
     
     signal clk, wr_reg_en: std_logic;
-    signal rd_reg_addr0, rd_reg_addr1, wr_reg_addr: std_logic_vector(4 downto 0);
+    signal rd_reg_addr0, rd_reg_addr1, wr_reg_addr: std_logic_vector(4 downto 0) := b"00000";
     signal wr_reg_data, rd_reg_data0, rd_reg_data1: std_logic_vector(31 downto 0);
 
     procedure tick(signal clk: out std_logic) is
