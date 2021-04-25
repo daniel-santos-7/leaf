@@ -7,32 +7,37 @@ use work.core_pkg.all;
 entity imm_gen is
     
     port (
-        instr: in std_logic_vector(31 downto 0);
-        imm: out std_logic_vector(31 downto 0)   
+        instr_payload: in std_logic_vector(24 downto 0);
+        imm_type: in std_logic_vector(2 downto 0);
+        imm: out std_logic_vector(31 downto 0)
     );
 
 end entity imm_gen;
 
 architecture imm_gen_arch of imm_gen is
     
-    signal opcode: std_logic_vector(6 downto 0);
+    function resize_signed(value: in std_logic_vector) return std_logic_vector is
+
+    begin
+
+        return std_logic_vector(resize(signed(value), 32));
+
+    end function resize_signed;
 
 begin
     
-    opcode <= instr(6 downto 0);
+    with imm_type select imm <=
 
-    with opcode select imm <=
+        resize_signed(instr_payload(24 downto 13))                                                                              when IMM_I_TYPE,
 
-        std_logic_vector(resize(signed(instr(31 downto 20)), 32))                                           when LOGIC_ARITH_IMM_OPCODE | JALR_OPCODE | LOAD_OPCODE,
+        resize_signed(instr_payload(24 downto 18) & instr_payload(4 downto 0))                                                  when IMM_S_TYPE,
 
-        std_logic_vector(resize(signed(instr(31 downto 25) & instr(11 downto 7)), 32))                      when STORE_OPCODE,
+        resize_signed(instr_payload(24) & instr_payload(0) & instr_payload(23 downto 18) & instr_payload(4 downto 1) & '0')     when IMM_B_TYPE,
 
-        std_logic_vector(resize(signed(instr(7) & instr(30 downto 25) & instr(11 downto 8) & '0'), 32))     when BRANCH_OPCODE,
+        instr_payload(24 downto 5) & (11 downto 0 => '0')                                                                       when IMM_U_TYPE,
 
-        std_logic_vector(resize(signed(instr(31 downto 12) & (11 downto 0 => '0')), 32))                    when LOAD_UPPER_IMM_OPCODE | ADD_UPPER_IMM_PC_OPCODE,
-
-        std_logic_vector(resize(signed(instr(19 downto 12) & instr(20) & instr(30 downto 21) & '0'), 32))   when JAL_OPCODE,
+        resize_signed(instr_payload(24) & instr_payload(12 downto 5) & instr_payload(13) & instr_payload(23 downto 14) & '0')   when IMM_J_TYPE,
         
-        (31 downto 0 => '0')                                                                                when others;
+        (31 downto 0 => '-')                                                                                                    when others;
     
 end architecture imm_gen_arch;
