@@ -10,107 +10,96 @@ entity id_ex_stage is
         pc: in std_logic_vector(31 downto 0);
         next_pc: in std_logic_vector(31 downto 0);
         instr: in std_logic_vector(31 downto 0);
+        no_op: in std_logic;
         rd_mem_data: in std_logic_vector(31 downto 0);
         rd_mem_en: out std_logic;
-        wr_mem_data: out std_logic_vector(31 downto 0);
         wr_mem_en: out std_logic;
-        branch, jal, jalr: out std_logic;
+        rd_wr_mem_addr: out std_logic_vector(31 downto 0);
+        wr_mem_data: out std_logic_vector(31 downto 0);
+        branch, jmp, target_shift: out std_logic;
         target: out std_logic_vector(31 downto 0)
     );
 
 end entity id_ex_stage;
 
 architecture id_ex_stage_arch of id_ex_stage is
-
-    signal opcode: std_logic_vector(6 downto 0);
-    signal func3: std_logic_vector(2 downto 0);
-    signal func7: std_logic_vector(6 downto 0);
     
+    signal ig_imm_type: std_logic_vector(2 downto 0);
     signal imm: std_logic_vector(31 downto 0);
 
-    signal rf_rd_reg_addr0, rf_rd_reg_addr1, rf_wr_reg_addr: std_logic_vector(4 downto 0);
+    signal rf_wr_reg_src: std_logic_vector(1 downto 0);
     signal rf_wr_reg_data: std_logic_vector(31 downto 0);
     signal rf_wr_reg_en: std_logic;
     signal rf_rd_reg_data0, rf_rd_reg_data1: std_logic_vector(31 downto 0);
-    
-    signal rf_write_src: std_logic;
 
-    signal branch_en, jal_i, jalr_i: std_logic;
-
-    signal branch_mode: std_logic_vector(2 downto 0);
-    signal branch_i: std_logic;
-
-    signal alu_src0, alu_src1: std_logic;
-
+    signal alu_src0, alu_src1, alu_src0_pass: std_logic;
+    signal alu_la_op, alu_imm_op: std_logic;
+    signal alu_func: std_logic_vector(9 downto 0);
     signal alu_opd0, alu_opd1: std_logic_vector(31 downto 0);
     signal alu_op: std_logic_vector(3 downto 0);
     signal alu_rslt: std_logic_vector(31 downto 0);
 
-    signal lsu_mode, lsu_en: std_logic;
-    signal lsu_data_type: std_logic_vector(2 downto 0);
     signal lsu_rd_data: std_logic_vector(31 downto 0);
 
-    signal wb_data: std_logic_vector(31 downto 0);
+    signal lsu_mode, lsu_en: std_logic;
+
+    signal br_detector_en: std_logic;
 
 begin
 
-    opcode <= instr(6 downto 0);
-    func3 <= instr(14 downto 12);
-    func7 <= instr(31 downto 25);
+    with rf_wr_reg_src select rf_wr_reg_data <= alu_rslt when b"00", lsu_rd_data when b"01", next_pc when b"10", (31 downto 0 => '-') when others;
 
-    rf_rd_reg_addr0 <= instr(19 downto 15);
-    rf_rd_reg_addr1 <= instr(24 downto 20);
-    rf_wr_reg_addr <= instr(11 downto 7);
-
-    rf_wr_reg_data <= next_pc when jal_i = '1' or jalr_i = '1' else wb_data;
-
-    alu_opd0 <= pc when alu_src0 = '1' else rf_rd_reg_data0;
+    alu_opd0 <= pc when alu_src0 = '1' and alu_src0_pass = '1' else rf_rd_reg_data0 when alu_src1 = '1' and alu_src0_pass = '1' else (31 downto 0 => '0');
+    
     alu_opd1 <= imm when alu_src1 = '1' else rf_rd_reg_data1;
 
-    branch_mode <= instr(14 downto 12);
+    stage_mc: main_ctrl port map (
+        opcode => instr(6 downto 0),
+        no_op => no_op,
+        rf_write_src => rf_wr_reg_src,
+        rf_write_en => rf_wr_reg_en,
+        ig_imm_type => ig_imm_type,
+        alu_src0 => alu_src0, 
+        alu_src1 => alu_src1, 
+        alu_src0_pass => alu_src0_pass,
+        alu_la_op => alu_la_op, 
+        alu_imm_op => alu_imm_op,
+        lsu_mode => lsu_mode, 
+        lsu_en => lsu_en,
+        br_detector_en => br_detector_en,
+        if_jmp => jmp, 
+        if_target_shift => target_shift
+    );
 
-    wb_data <= lsu_rd_data when rf_write_src = '1' else alu_rslt;
-
-    stage_imm_gen: imm_gen port map (
-        instr => instr,
+    stage_ig: imm_gen port map (
+        instr_payload => instr(31 downto 7),
+        imm_type => ig_imm_type,
         imm => imm
     );
 
-    stage_reg_file: reg_file port map (
+    stage_rf: reg_file port map (
         clk => clk,
-        rd_reg_addr0 => rf_rd_reg_addr0,
-        rd_reg_addr1 => rf_rd_reg_addr1,
-        wr_reg_addr => rf_wr_reg_addr,
+        rd_reg_addr0 => instr(19 downto 15),
+        rd_reg_addr1 => instr(24 downto 20),
+        wr_reg_addr => instr(11 downto 7),
         wr_reg_data => rf_wr_reg_data,
         wr_reg_en => rf_wr_reg_en,
         rd_reg_data0 => rf_rd_reg_data0, 
         rd_reg_data1 => rf_rd_reg_data1
     );
 
-    stage_main_ctrl: main_ctrl port map (
-        opcode => opcode,
-        rf_write_en => rf_wr_reg_en, 
-        rf_write_src => rf_write_src,
-        lsu_mode => lsu_mode, 
-        lsu_en => lsu_en,
-        branch => branch_en, 
-        jal => jal_i,
-        jalr => jalr_i
-    );
-
-    stage_branch_dtct: branch_dtct port map (
+    stage_br_detector: branch_detector port map (
         reg0 => rf_rd_reg_data0, 
         reg1 => rf_rd_reg_data1,
-        mode => branch_mode,
-        branch => branch_i
+        mode => instr(14 downto 12),
+        en => br_detector_en,
+        branch => branch
     );
 
     stage_alu_ctrl: alu_ctrl port map (
-        opcode => opcode,
-        func3 => func3,
-        func7 => func7,
-        alu_src0 => alu_src0,
-        alu_src1 => alu_src1,
+        la_op => alu_la_op,
+        imm_op => alu_imm_op,
+        func => alu_func,
         alu_op => alu_op
     );
 
@@ -123,21 +112,17 @@ begin
 
     stage_lsu: lsu port map (
         rd_mem_data => rd_mem_data,
+        rd_wr_addr => alu_rslt,
         wr_data => rf_rd_reg_data1,
-        data_type => lsu_data_type,
-        mode => lsu_mode,
+        data_type => instr(14 downto 12),
+        mode => lsu_mode, 
         en => lsu_en,
-        rd_mem_en => rd_mem_en,
+        rd_mem_en => rd_mem_en, 
         wr_mem_en => wr_mem_en,
+        rd_wr_mem_addr => rd_wr_mem_addr, 
         wr_mem_data => wr_mem_data,
         rd_data => lsu_rd_data
     );
-
-    branch <= branch_i and branch_en;
-
-    jal <= jal_i;
-
-    jalr <= jalr_i;
 
     target <= alu_rslt;
 
