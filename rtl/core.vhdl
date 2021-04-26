@@ -7,23 +7,28 @@ entity core is
     
     port (
         clk: in std_logic;
-        instr_mem_addr: out std_logic_vector(31 downto 0);
-        instr_mem_data: in std_logic_vector(31 downto 0);
+        rd_instr_mem_data: in std_logic_vector(31 downto 0);
+        rd_instr_mem_addr: out std_logic_vector(31 downto 0);
         rd_mem_data: in std_logic_vector(31 downto 0);
         rd_mem_en: out std_logic;
         wr_mem_data: out std_logic_vector(31 downto 0);
-        wr_mem_en: out std_logic
+        wr_mem_en: out std_logic;
+        rd_wr_mem_addr: out std_logic_vector(31 downto 0)
     );
 
 end entity core;
 
 architecture core_arch of core is
     
-    signal branch, jal, jalr: std_logic;
+    signal jmp, branch, target_shift: std_logic;
 
-    signal target, pc, next_pc, instr: std_logic_vector(31 downto 0);
+    signal no_op: std_logic;
 
-    signal pc_reg, next_pc_reg, instr_reg: std_logic_vector(31 downto 0) := x"0000_0000";
+    signal pc, next_pc, instr, target: std_logic_vector(31 downto 0);
+
+    signal pc_reg, next_pc_reg, instr_reg: std_logic_vector(31 downto 0) := x"00000000";
+
+    signal no_op_reg: std_logic := '0';
 
 begin
 
@@ -36,6 +41,7 @@ begin
             pc_reg <= pc;
             next_pc_reg <= next_pc;
             instr_reg <= instr;
+            no_op_reg <= no_op;
 
         end if;
 
@@ -43,15 +49,16 @@ begin
     
     core_if_stage: if_stage port map (
         clk => clk,
+        jmp => jmp, 
         branch => branch, 
-        jal => jal, 
-        jalr => jalr,
+        target_shift => target_shift,
         target => target,
-        instr_mem_addr => instr_mem_addr,
-        instr_mem_data => instr_mem_data,
+        rd_instr_mem_data => rd_instr_mem_data,
+        rd_instr_mem_addr => rd_instr_mem_addr,
         pc => pc, 
         next_pc => next_pc,
-        instr => instr
+        instr => instr,
+        no_op => no_op
     );
 
     core_id_ex_stage: id_ex_stage port map (
@@ -59,13 +66,15 @@ begin
         pc => pc_reg,
         next_pc => next_pc_reg,
         instr => instr_reg,
+        no_op => no_op_reg,
         rd_mem_data => rd_mem_data,
         rd_mem_en => rd_mem_en,
-        wr_mem_data => wr_mem_data,
         wr_mem_en => wr_mem_en,
+        rd_wr_mem_addr => rd_wr_mem_addr,
+        wr_mem_data => wr_mem_data,
         branch => branch, 
-        jal => jal, 
-        jalr => jalr,
+        jmp => jmp, 
+        target_shift => target_shift,
         target => target
     );
     

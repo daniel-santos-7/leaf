@@ -49,9 +49,11 @@ begin
 
     with rf_wr_reg_src select rf_wr_reg_data <= alu_rslt when b"00", lsu_rd_data when b"01", next_pc when b"10", (31 downto 0 => '-') when others;
 
-    alu_opd0 <= pc when alu_src0 = '1' and alu_src0_pass = '1' else rf_rd_reg_data0 when alu_src1 = '1' and alu_src0_pass = '1' else (31 downto 0 => '0');
+    alu_opd0 <= pc when (alu_src0 = '1' and alu_src0_pass = '1') else rf_rd_reg_data0 when (alu_src0 = '0' and alu_src0_pass = '1') else (31 downto 0 => '0');
     
     alu_opd1 <= imm when alu_src1 = '1' else rf_rd_reg_data1;
+
+    alu_func <= instr(31 downto 25) & instr(14 downto 12);
 
     stage_mc: main_ctrl port map (
         opcode => instr(6 downto 0),
