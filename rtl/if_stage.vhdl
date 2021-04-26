@@ -6,12 +6,13 @@ entity if_stage is
     
     port (
         clk: std_logic;
-        branch, jal, jalr: in std_logic;
+        jmp, branch, target_shift: in std_logic;
         target: in std_logic_vector(31 downto 0);
-        instr_mem_addr: out std_logic_vector(31 downto 0);
-        instr_mem_data: in std_logic_vector(31 downto 0);
+        rd_instr_mem_data: in std_logic_vector(31 downto 0);
+        rd_instr_mem_addr: out std_logic_vector(31 downto 0);
         pc, next_pc: out std_logic_vector(31 downto 0);
-        instr: out std_logic_vector(31 downto 0)
+        instr: out std_logic_vector(31 downto 0);
+        no_op: out std_logic
     );
 
 end entity if_stage;
@@ -19,20 +20,19 @@ end entity if_stage;
 architecture if_stage_arch of if_stage is
 
     constant PC_INC: unsigned := x"4";
-    constant NO_OP_INSTR: std_logic_vector(31 downto 0) := x"0000_0000";
 
-    signal branch_or_jump: std_logic;
+    signal take: std_logic;
     signal target_i: std_logic_vector(31 downto 0);
-    signal pc_i: std_logic_vector(31 downto 0) := x"0000_0000";
+    signal pc_reg: std_logic_vector(31 downto 0) := x"0000_0000";
     signal next_pc_i: std_logic_vector(31 downto 0);
     
 begin
     
-    branch_or_jump <= branch or jal or jalr;
+    take <= branch or jmp;
 
-    target_i <= target(30 downto 0) & '0' when jalr = '1' else target;
+    target_i <= target(30 downto 0) & '0' when target_shift = '1' else target;
 
-    next_pc_i <= std_logic_vector(unsigned(pc_i) + PC_INC);
+    next_pc_i <= std_logic_vector(unsigned(pc_reg) + PC_INC);
 
     process(clk)
     
@@ -40,13 +40,13 @@ begin
         
         if rising_edge(clk) then
             
-            if branch_or_jump = '1' then
+            if take = '1' then
                 
-                pc_i <= target_i;
+                pc_reg <= target_i;
 
             else
 
-                pc_i <= next_pc_i;
+                pc_reg <= next_pc_i;
                 
             end if;
 
@@ -54,12 +54,14 @@ begin
     
     end process;
 
-    instr_mem_addr <= pc_i;
+    rd_instr_mem_addr <= pc_reg;
 
-    pc <= pc_i;
+    pc <= pc_reg;
 
     next_pc <= next_pc_i;
 
-    instr <= NO_OP_INSTR when branch_or_jump = '1' else instr_mem_data;
+    instr <= rd_instr_mem_data;
+
+    no_op <= take;
 
 end architecture if_stage_arch;
