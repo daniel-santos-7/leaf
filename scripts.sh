@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
 
+set -e
+
 core_tbs=$(basename -s .vhdl ./core/tbs/*_tb.vhdl);
 
 testbench() {
 
-    make -C ./core
-    test -d ./core/waves || mkdir ./core/waves
+    make -s -C ./core testbenchs;
 
     for tb in $core_tbs; do
 
         echo -n $tb;
-        ghdl -m --workdir=./core/work $tb;
-        ghdl -r --workdir=./core/work $tb --wave=./core/waves/$tb.ghw --ieee-asserts=disable-at-0;
-        echo -e " [ok]";
+        ghdl -e --workdir=./core/work $tb;
+        ghdl -r --workdir=./core/work $tb --ieee-asserts=disable-at-0;
+        echo -e " \e[1;92m[ok]\e[0m";
 
     done
-
-    make -C ./core clean
 
     exit 0;
 
@@ -27,16 +26,13 @@ wave() {
     if [ -z "$1" ] 
         then
 
-        echo "testbenchs:";
-        
-        for tb in $core_tbs; do
-            echo $tb;
-        done
+        echo "testbenchs:" $core_tbs;
+        exit 1;
 
     fi
 
+    make -s -C ./core waves;
     gtkwave ./core/waves/$1.ghw;
-
     exit 0;
 
 }
@@ -46,7 +42,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
 
         testbench | -tb)
-            testbench $2;;
+            testbench;;
 
         wave | -w)
             wave $2;;
@@ -54,8 +50,8 @@ while [ $# -gt 0 ]; do
         *)  
             echo "";
             echo "Comandos válidos:";
-            echo "testbench [tb]: executar testbench (GHDL necessário)";
-            echo "wave [tb]: visualizar formas de ondas (GTKWAVE necessário)"; 
+            echo "testbench | -tb: executar testbenchs (GHDL necessário)";
+            echo "wave | -w [tb]: visualizar formas de ondas (GTKWave necessário)"; 
             echo "";
             exit 1;;
 

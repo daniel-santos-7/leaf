@@ -21,11 +21,7 @@ waves: testbenchs
 		ghdl -r --workdir=work $$tb --wave=./waves/$$tb.ghw; \
 	done
 
-clean: clean-work clean-waves
-
-clean-work: ./work
+clean: ./work
 	ghdl --remove --workdir=work
-	rmdir ./work
-
-clean-waves: ./waves
+	rm -rf ./work
 	rm -rf ./waves
