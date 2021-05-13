@@ -37,6 +37,20 @@ wave() {
 
 }
 
+arch_test() {
+
+    test -d $1 || exit 1;
+    make -s -C ./core testbenchs;
+    at_dir=$(pwd)/arch-test
+    make -s -C $1 TARGETDIR=$at_dir XLEN=32 RISCV_TARGET=leaf clean build compile simulate
+    # make -s -C $1 TARGETDIR=$at_dir XLEN=32 RISCV_TARGET=leaf RISCV_TEST=add-01 clean build compile simulate
+
+    # make -s -C ./core testbenchs;
+    # ghdl -e --ieee=synopsys --workdir=./core/work core_tb;
+    # ghdl -r --ieee=synopsys --workdir=./core/work core_tb -gBIN_FILE=$1/work/rv32i_m/I/add-01.elf.bin --wave=./core/waves/core_tb.ghw;
+
+}
+
 while [ $# -gt 0 ]; do
     
     case "$1" in
@@ -47,12 +61,15 @@ while [ $# -gt 0 ]; do
         wave | -w)
             wave $2;;
 
+        arch-test | -at)
+            arch_test $2;
+            exit 0;;
+
         *)  
-            echo "";
             echo "Comandos válidos:";
-            echo "testbench | -tb: executar testbenchs (GHDL necessário)";
-            echo "wave | -w [tb]: visualizar formas de ondas (GTKWave necessário)"; 
-            echo "";
+            echo "testbench | -tb: executar testbenchs";
+            echo "wave | -w [tb]: visualizar formas de ondas"; 
+            echo "arch-test | -at [path]: realizar teste de conformidade"; 
             exit 1;;
 
     esac

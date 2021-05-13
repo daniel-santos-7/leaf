@@ -12,13 +12,13 @@ design-sim: $(RTL_SRC)
 
 testbenchs: design-sim $(TBS)
 	test -d ./work || mkdir ./work
-	ghdl -a --workdir=work $(TBS_PKG)
-	ghdl -a --workdir=work $(TBS)
+	ghdl -a --ieee=synopsys --workdir=work $(TBS_PKG)
+	ghdl -a --ieee=synopsys --workdir=work $(TBS)
 
 waves: testbenchs
 	test -d ./waves || mkdir ./waves
 	for tb in $(basename $(notdir $(TBS))); do \
-		ghdl -r --workdir=work $$tb --wave=./waves/$$tb.ghw; \
+		[ $$tb != core_tb ] && { ghdl -r --workdir=work $$tb --wave=./waves/$$tb.ghw; }; \
 	done
 
 clean: ./work
