@@ -1,48 +1,53 @@
 #!/usr/bin/env bash
 
-test() {
+set -e
 
-ghdl -i --workdir=work ./rtl/*.vhdl 
+core_tbs=$(basename -s .vhdl ./core/tbs/*_tb.vhdl);
 
-ghdl -i --workdir=work ./tbs/*.vhdl
+testbench() {
 
-for tb in $(basename -s .vhdl ./tbs/*_tb.vhdl); do
-    
-    echo -n $tb;
+    make -s -C ./core testbenchs;
 
-    ghdl -m --workdir=work $tb;
+    for tb in $core_tbs; do
 
-    ghdl -r --workdir=work $tb --wave=./waves/$tb.ghw --ieee-asserts=disable-at-0;
+        echo -n $tb;
+        ghdl -e --workdir=./core/work $tb;
+        ghdl -r --workdir=./core/work $tb --ieee-asserts=disable-at-0;
+        echo -e " \e[1;92m[ok]\e[0m";
 
-    echo -e " [ok]";
+    done
 
-done
-
-ghdl --remove --workdir=work
-
-exit 0;
+    exit 0;
 
 }
 
 wave() {
 
-if [ -z "$1" ] 
+    if [ -z "$1" ] 
+        then
 
-    then
-    
-    echo "testbenchs:"
+        echo "testbenchs:" $core_tbs;
+        exit 1;
 
-    for tb in $(basename -s .vhdl ./tbs/*_tb.vhdl); do
-    
-    echo $tb;
+    fi
 
-    done
+    make -s -C ./core waves;
+    gtkwave ./core/waves/$1.ghw;
+    exit 0;
 
-fi
+}
 
-gtkwave ./waves/$1.ghw;
+arch_test() {
 
-exit 0;
+    test -d $1 || exit 1;
+    make -s -C ./core testbenchs;
+    at_dir=$(pwd)/arch-test
+    make -s -C $1 TARGETDIR=$at_dir XLEN=32 RISCV_TARGET=leaf clean build compile simulate
+    # make -s -C $1 TARGETDIR=$at_dir XLEN=32 RISCV_TARGET=leaf RISCV_TEST=add-01 clean build compile simulate
+
+    # make -s -C ./core testbenchs;
+    # ghdl -e --ieee=synopsys --workdir=./core/work core_tb;
+    # ghdl -r --ieee=synopsys --workdir=./core/work core_tb -gBIN_FILE=$1/work/rv32i_m/I/add-01.elf.bin --wave=./core/waves/core_tb.ghw;
 
 }
 
@@ -50,18 +55,21 @@ while [ $# -gt 0 ]; do
     
     case "$1" in
 
-        test | -t)
-            test;;
+        testbench | -tb)
+            testbench;;
 
         wave | -w)
             wave $2;;
 
+        arch-test | -at)
+            arch_test $2;
+            exit 0;;
+
         *)  
-            echo "";
             echo "Comandos válidos:";
-            echo "test | -t: executar testbenchs (GHDL necessário)";
-            echo "wave [tb] | -w [tb]: visualizar formas de ondas (GTKWAVE necessário)"; 
-            echo ""; 
+            echo "testbench | -tb: executar testbenchs";
+            echo "wave | -w [tb]: visualizar formas de ondas"; 
+            echo "arch-test | -at [path]: realizar teste de conformidade"; 
             exit 1;;
 
     esac
