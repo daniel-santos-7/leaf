@@ -1,0 +1,45 @@
+CAPI=2:
+name: opensrc:leaf:core:0.0.1
+description: a simple RISC-V 32-bit core
+
+filesets:
+  
+  rtl:
+    files:
+      - rtl/core_pkg.vhdl
+      - rtl/core.vhdl
+      - rtl/if_stage.vhdl
+      - rtl/id_ex_stage.vhdl
+      - rtl/main_ctrl.vhdl
+      - rtl/imm_gen.vhdl
+      - rtl/reg_file.vhdl
+      - rtl/branch_detector.vhdl
+      - rtl/alu_ctrl.vhdl
+      - rtl/alu.vhdl
+      - rtl/lsu.vhdl
+    file_type: vhdlSource
+
+  tbs:
+    files:
+      - tbs/tbs_pkg.vhdl
+      - tbs/core_tb.vhdl
+    file_type: vhdlSource
+
+targets:
+  
+  default: &default
+    filesets:
+      - rtl
+    toplevel: core
+
+  arch-test:
+    <<: *default
+    description: run the RISC-V compliance test
+    default_tool: ghdl
+    filesets_append:
+      - tbs
+    toplevel: core_tb
+    tools:
+      ghdl:
+        analyze_options: 
+          - --ieee=synopsys
