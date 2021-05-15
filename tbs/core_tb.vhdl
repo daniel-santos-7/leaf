@@ -1,8 +1,8 @@
 library IEEE;
+library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use IEEE.std_logic_textio.all;
-library work;
 use work.core_pkg.all;
 use work.tbs_pkg.all;
 use std.textio.all;
@@ -10,10 +10,9 @@ use std.textio.all;
 entity core_tb is
     
     generic (
-        BIN_FILE: string;
-        MEM_SIZE: integer := 32768;
-        TESTUTIL_BASE: integer := 32755;
-        DUMP_FILE: string := "output.txt"
+        PROGRAM_FILE: string;
+        DUMP_FILE: string;
+        MEM_SIZE: integer
     );
 
 end entity core_tb;
@@ -24,16 +23,16 @@ architecture core_tb_arch of core_tb is
 
     signal rd_instr_mem_data: std_logic_vector(31 downto 0);
     signal rd_instr_mem_addr: std_logic_vector(31 downto 0);
-    
-    signal rd_mem_data: std_logic_vector(31 downto 0);
-    signal rd_mem_en: std_logic;
-    signal wr_mem_data: std_logic_vector(31 downto 0);
-    signal wr_mem_en: std_logic;
+
     signal rd_wr_mem_addr: std_logic_vector(31 downto 0);
+    signal rd_mem_data: std_logic_vector(31 downto 0);
+    signal wr_mem_data: std_logic_vector(31 downto 0);
+    signal rd_mem_en: std_logic;
+    signal wr_mem_en: std_logic;
 
     type ram_array is array (0 to MEM_SIZE-1) of std_logic_vector(7 downto 0);
     
-    signal ram: ram_array := (others => x"00");
+    shared variable ram: ram_array := (others => x"00");
 
     function read_ram(constant ram_mem: ram_array; constant addr: integer) return std_logic_vector is
         
@@ -45,7 +44,7 @@ architecture core_tb_arch of core_tb is
         word(15 downto 8) := ram_mem(addr + 1);
         word(23 downto 16) := ram_mem(addr + 2);
         word(31 downto 24) := ram_mem(addr + 3);
-
+        
         return word;
 
     end function read_ram;
@@ -66,7 +65,7 @@ begin
         rd_wr_mem_addr
     );
 
-    clk <= not clk after 5 ns when sim_started and (not sim_finished) else '0';
+    clk <= not clk after 5 ns when sim_started and not sim_finished else '0';
 
     mem_wr: process (sim_started, clk)
 
@@ -82,7 +81,7 @@ begin
 
         if not sim_started then
             
-            file_open(bin, BIN_FILE);
+            file_open(bin, PROGRAM_FILE);
 
             addr := 0;
 
@@ -90,7 +89,7 @@ begin
             
                 read(bin, byte);
 
-                ram(addr) <= std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
+                ram(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
 
                 addr := addr + 1;
             
@@ -98,19 +97,16 @@ begin
 
             file_close(bin);
 
-            report "the program was loaded!" severity note;
-            report "program size (bytes): " & integer'image(addr) severity note;
-
             sim_started <= true;
 
         elsif rising_edge(clk) and wr_mem_en = '1' then
 
             addr := to_integer(unsigned(rd_wr_mem_addr));
 
-            ram(addr) <= wr_mem_data(7 downto 0);
-            ram(addr + 1) <= wr_mem_data(15 downto 8);
-            ram(addr + 2) <= wr_mem_data(23 downto 16);
-            ram(addr + 3) <= wr_mem_data(31 downto 24);
+            ram(addr) := wr_mem_data(7 downto 0);
+            ram(addr + 1) := wr_mem_data(15 downto 8);
+            ram(addr + 2) := wr_mem_data(23 downto 16);
+            ram(addr + 3) := wr_mem_data(31 downto 24);
 
         end if;
 
@@ -131,13 +127,13 @@ begin
     data_mem_rd: process (rd_mem_en, rd_wr_mem_addr)
     
         variable addr: integer;
-
+    
     begin
         
+        addr := to_integer(unsigned(rd_instr_mem_addr));
+
         if rd_mem_en = '1' then
             
-            addr := to_integer(unsigned(rd_wr_mem_addr));
-
             rd_mem_data <= read_ram(ram, addr);
 
         end if;
@@ -150,7 +146,7 @@ begin
 
     begin
 
-        testutil_addr_halt_data := read_ram(ram, TESTUTIL_BASE);
+        testutil_addr_halt_data := read_ram(ram, MEM_SIZE - 13);
     
         if rising_edge(clk) then
             
@@ -162,6 +158,7 @@ begin
 
     dump_wr: process(sim_finished)
     
+        constant TESTUTIL_BASE: integer := MEM_SIZE - 13;
         constant TESTUTIL_ADDR_BEGIN_SIGNATURE: integer := TESTUTIL_BASE + 4;
         constant TESTUTIL_ADDR_END_SIGNATURE: integer := TESTUTIL_BASE + 8;
 
@@ -198,8 +195,6 @@ begin
             end loop;
 
             file_close(dump);
-
-            report "dump file created!" severity note;
 
         end if;
 
