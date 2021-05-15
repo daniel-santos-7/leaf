@@ -2,74 +2,66 @@
 
 set -e
 
-core_tbs=$(basename -s .vhdl ./core/tbs/*_tb.vhdl);
+RTL_SRC=./rtl/*.vhdl;
+RTL_TOP=core;
 
-testbench() {
-
-    make -s -C ./core testbenchs;
-
-    for tb in $core_tbs; do
-
-        echo -n $tb;
-        ghdl -e --workdir=./core/work $tb;
-        ghdl -r --workdir=./core/work $tb --ieee-asserts=disable-at-0;
-        echo -e " \e[1;92m[ok]\e[0m";
-
-    done
-
-    exit 0;
-
-}
-
-wave() {
-
-    if [ -z "$1" ] 
-        then
-
-        echo "testbenchs:" $core_tbs;
-        exit 1;
-
-    fi
-
-    make -s -C ./core waves;
-    gtkwave ./core/waves/$1.ghw;
-    exit 0;
-
-}
+TBS_PKG_SRC=./tbs/tbs_pkg.vhdl;
+TBS_SRC=./tbs/*_tb.vhdl;
+TBS_TOP=core_tb;
 
 arch_test() {
 
-    test -d $1 || exit 1;
-    make -s -C ./core testbenchs;
-    at_dir=$(pwd)/arch-test
-    make -s -C $1 TARGETDIR=$at_dir XLEN=32 RISCV_TARGET=leaf clean build compile simulate
-    # make -s -C $1 TARGETDIR=$at_dir XLEN=32 RISCV_TARGET=leaf RISCV_TEST=add-01 clean build compile simulate
+    ARCH_TEST_DIR=$1;
+    LOCAL_TARGETDIR=$(pwd)/arch-test/;
 
-    # make -s -C ./core testbenchs;
-    # ghdl -e --ieee=synopsys --workdir=./core/work core_tb;
-    # ghdl -r --ieee=synopsys --workdir=./core/work core_tb -gBIN_FILE=$1/work/rv32i_m/I/add-01.elf.bin --wave=./core/waves/core_tb.ghw;
+    test -d $ARCH_TEST_DIR || exit 1;
+
+    make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf clean build;
+
+    test -d ./work/ || mkdir ./work;
+
+    ghdl -i --workdir=./work/ $RTL_SRC;
+    ghdl -m --workdir=./work/ $RTL_TOP;
+
+    TBS_TOP_SRC=./tbs/$TBS_TOP.vhdl;
+
+    ghdl -i --ieee=synopsys --workdir=./work/ $TBS_PKG_SRC $TBS_TOP_SRC;
+    ghdl -m --ieee=synopsys --workdir=./work/ $TBS_TOP;
+
+    BIN_FILES_DIR=$ARCH_TEST_DIR/work/rv32i_m/I/;
+    BIN_FILES=$(find $BIN_FILES_DIR -name *.bin);
+
+    for BIN in $BIN_FILES; do
+
+        TEST_NAME=$(basename -s .elf.bin $BIN);
+
+        case $TEST_NAME in jalr-01 | jal-01) continue;; esac;
+
+        echo "running test: $TEST_NAME";
+
+        ghdl -r --ieee=synopsys --workdir=./work/ $TBS_TOP --ieee-asserts=disable -gPROGRAM_FILE=$BIN -gDUMP_FILE=$BIN_FILES_DIR/$TEST_NAME.signature.output -gMEM_SIZE=2097152;
+
+    done;
+
+    make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf verify;
+
+    ghdl --remove --workdir=./work;
+
+    rmdir ./work/;
 
 }
 
 while [ $# -gt 0 ]; do
     
-    case "$1" in
-
-        testbench | -tb)
-            testbench;;
-
-        wave | -w)
-            wave $2;;
+    case $1 in
 
         arch-test | -at)
             arch_test $2;
             exit 0;;
 
         *)  
-            echo "Comandos válidos:";
-            echo "testbench | -tb: executar testbenchs";
-            echo "wave | -w [tb]: visualizar formas de ondas"; 
-            echo "arch-test | -at [path]: realizar teste de conformidade"; 
+            echo "Valid commands:";
+            echo "arch-test | -at [path]: perform compliance test";
             exit 1;;
 
     esac
