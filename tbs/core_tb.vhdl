@@ -20,6 +20,7 @@ end entity core_tb;
 architecture core_tb_arch of core_tb is
     
     signal clk: std_logic;
+    signal reset: std_logic;
 
     signal rd_instr_mem_data: std_logic_vector(31 downto 0);
     signal rd_instr_mem_addr: std_logic_vector(31 downto 0);
@@ -56,6 +57,7 @@ begin
     
     uut: core port map (
         clk,
+        reset,
         rd_instr_mem_data,
         rd_instr_mem_addr,
         rd_mem_data,
@@ -66,6 +68,7 @@ begin
     );
 
     clk <= not clk after 5 ns when sim_started and not sim_finished else '0';
+    reset <= '0' after 10 ns when sim_started else '1';
 
     mem_wr: process (sim_started, clk)
 

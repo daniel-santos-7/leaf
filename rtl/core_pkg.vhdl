@@ -4,6 +4,7 @@ use IEEE.std_logic_1164.all;
 package core_pkg is
 
     -- opcodes --
+    
     constant LOGIC_ARITH_OPCODE: std_logic_vector(6 downto 0) := b"0110011"; 
     constant LOGIC_ARITH_IMM_OPCODE: std_logic_vector(6 downto 0) := b"0010011"; 
     constant JALR_OPCODE: std_logic_vector(6 downto 0) := b"1100111";
@@ -173,7 +174,8 @@ package core_pkg is
     component if_stage is
 
         port (
-            clk: std_logic;
+            clk: in std_logic;
+            reset: in std_logic;
             jmp, branch, target_shift: in std_logic;
             target: in std_logic_vector(31 downto 0);
             rd_instr_mem_data: in std_logic_vector(31 downto 0);
@@ -188,7 +190,7 @@ package core_pkg is
     component core is
     
         port (
-            clk: in std_logic;
+            clk, reset: in std_logic;
             rd_instr_mem_data: in std_logic_vector(31 downto 0);
             rd_instr_mem_addr: out std_logic_vector(31 downto 0);
             rd_mem_data: in std_logic_vector(31 downto 0);

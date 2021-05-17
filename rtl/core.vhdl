@@ -6,7 +6,7 @@ use work.core_pkg.all;
 entity core is
     
     port (
-        clk: in std_logic;
+        clk, reset: in std_logic;
         rd_instr_mem_data: in std_logic_vector(31 downto 0);
         rd_instr_mem_addr: out std_logic_vector(31 downto 0);
         rd_mem_data: in std_logic_vector(31 downto 0);
@@ -49,6 +49,7 @@ begin
     
     core_if_stage: if_stage port map (
         clk => clk,
+        reset => reset,
         jmp => jmp, 
         branch => branch, 
         target_shift => target_shift,
