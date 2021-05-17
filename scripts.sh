@@ -45,7 +45,31 @@ arch_test() {
 
     make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf verify;
 
-    ghdl --remove --workdir=./work;
+    ghdl --remove --workdir=./work/;
+
+    rmdir ./work/;
+
+}
+
+testbench() {
+
+	ghdl -i --ieee=synopsys --workdir=./work/ $TBS_PKG_SRC $TBS_SRC;
+
+    for TB in $TBS_SRC; do
+
+        TB_NAME=$(basename -s .vhdl $TB);
+
+        if [ $TB_NAME == $TBS_TOP ]; then continue; fi
+
+        echo "running testbench: $TB_NAME";
+
+        ghdl -m --ieee=synopsys --workdir=./work/ $TB_NAME;
+
+        ghdl -r --ieee=synopsys --workdir=./work $TB_NAME;
+
+    done;
+
+    ghdl --remove --workdir=./work/;
 
     rmdir ./work/;
 
@@ -59,9 +83,14 @@ while [ $# -gt 0 ]; do
             arch_test $2;
             exit 0;;
 
+        testbench | -tb)
+            testbench;
+            exit 0;;
+
         *)  
             echo "Valid commands:";
             echo "arch-test | -at [path]: perform compliance test";
+            echo "testbench | -tb: run hardware tests";
             exit 1;;
 
     esac
