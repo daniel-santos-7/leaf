@@ -14,7 +14,7 @@ architecture main_ctrl_tb_arch of main_ctrl_tb is
     signal rf_write_en: std_logic;
     signal ig_imm_type: std_logic_vector(2 downto 0);
     signal alu_src0, alu_src1, alu_src0_pass: std_logic;
-    signal alu_la_op, alu_imm_op: std_logic;
+    signal alu_std_op, alu_imm_op: std_logic;
     signal lsu_mode, lsu_en: std_logic;
     signal br_detector_en: std_logic;
     signal if_jmp, if_target_shift: std_logic;
@@ -30,7 +30,7 @@ begin
         alu_src0, 
         alu_src1, 
         alu_src0_pass,
-        alu_la_op, 
+        alu_std_op, 
         alu_imm_op,
         lsu_mode, 
         lsu_en,
@@ -55,7 +55,7 @@ begin
         assert alu_src0 = '0';
         assert alu_src1 = '0';
         assert alu_src0_pass = '1';
-        assert alu_la_op = '1';
+        assert alu_std_op = '0';
         assert alu_imm_op = '0';
         assert lsu_mode = '-';
         assert lsu_en = '0';
@@ -73,7 +73,7 @@ begin
         assert alu_src0 = '0';
         assert alu_src1 = '1';
         assert alu_src0_pass = '1';
-        assert alu_la_op = '1';
+        assert alu_std_op = '0';
         assert alu_imm_op = '1';
         assert lsu_mode = '-';
         assert lsu_en = '0';
@@ -88,10 +88,10 @@ begin
         assert rf_write_src = b"10";
         assert rf_write_en = '1';
         assert ig_imm_type = IMM_I_TYPE;
-        assert alu_src0 = '1';
+        assert alu_src0 = '0';
         assert alu_src1 = '1';
         assert alu_src0_pass = '1';
-        assert alu_la_op = '0';
+        assert alu_std_op = '1';
         assert alu_imm_op = '0';
         assert lsu_mode = '-';
         assert lsu_en = '0';
@@ -109,7 +109,7 @@ begin
         assert alu_src0 = '0';
         assert alu_src1 = '1';
         assert alu_src0_pass = '1';
-        assert alu_la_op = '0';
+        assert alu_std_op = '1';
         assert alu_imm_op = '0';
         assert lsu_mode = '0';
         assert lsu_en = '1';
@@ -127,7 +127,7 @@ begin
         assert alu_src0 = '0';
         assert alu_src1 = '1';
         assert alu_src0_pass = '1';
-        assert alu_la_op = '0';
+        assert alu_std_op = '1';
         assert alu_imm_op = '0';
         assert lsu_mode = '1';
         assert lsu_en = '1';
@@ -145,7 +145,7 @@ begin
         assert alu_src0 = '1';
         assert alu_src1 = '1';
         assert alu_src0_pass = '1';
-        assert alu_la_op = '0';
+        assert alu_std_op = '1';
         assert alu_imm_op = '0';
         assert lsu_mode = '-';
         assert lsu_en = '0';
@@ -163,7 +163,7 @@ begin
         assert alu_src0 = '-';
         assert alu_src1 = '1';
         assert alu_src0_pass = '0';
-        assert alu_la_op = '0';
+        assert alu_std_op = '1';
         assert alu_imm_op = '0';
         assert lsu_mode = '-';
         assert lsu_en = '0';
@@ -181,7 +181,7 @@ begin
         assert alu_src0 = '1';
         assert alu_src1 = '1';
         assert alu_src0_pass = '1';
-        assert alu_la_op = '0';
+        assert alu_std_op = '1';
         assert alu_imm_op = '0';
         assert lsu_mode = '-';
         assert lsu_en = '0';
@@ -199,7 +199,7 @@ begin
         assert alu_src0 = '1';
         assert alu_src1 = '1';
         assert alu_src0_pass = '1';
-        assert alu_la_op = '0';
+        assert alu_std_op = '1';
         assert alu_imm_op = '0';
         assert lsu_mode = '-';
         assert lsu_en = '0';
@@ -217,7 +217,7 @@ begin
         assert alu_src0 = '0';
         assert alu_src1 = '0';
         assert alu_src0_pass = '-';
-        assert alu_la_op = '0';
+        assert alu_std_op = '1';
         assert alu_imm_op = '0';
         assert lsu_mode = '-';
         assert lsu_en = '0';
