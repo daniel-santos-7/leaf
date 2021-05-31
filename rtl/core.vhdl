@@ -13,7 +13,8 @@ entity core is
         rd_mem_en: out std_logic;
         wr_mem_data: out std_logic_vector(31 downto 0);
         wr_mem_en: out std_logic;
-        rd_wr_mem_addr: out std_logic_vector(31 downto 0)
+        rd_wr_mem_addr: out std_logic_vector(31 downto 0);
+        wr_mem_byte_en: out std_logic_vector(3 downto 0)
     );
 
 end entity core;
@@ -76,7 +77,8 @@ begin
         branch => branch, 
         jmp => jmp, 
         target_shift => target_shift,
-        target => target
+        target => target,
+        wr_mem_byte_en => wr_mem_byte_en
     );
     
 end architecture core_arch;

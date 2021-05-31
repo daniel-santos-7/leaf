@@ -21,6 +21,7 @@ architecture id_ex_stage_tb_arch of id_ex_stage_tb is
     signal wr_mem_data: std_logic_vector(31 downto 0);
     signal branch, jmp, target_shift: std_logic;
     signal target: std_logic_vector(31 downto 0);
+    signal wr_mem_byte_en: std_logic_vector(3 downto 0);
 
     procedure tick(signal clk: out std_logic) is
 
@@ -46,6 +47,7 @@ begin
         wr_mem_en,
         rd_wr_mem_addr,
         wr_mem_data,
+        wr_mem_byte_en,
         branch, 
         jmp, 
         target_shift,

@@ -10,26 +10,27 @@ use std.textio.all;
 entity core_tb is
     
     generic (
-        PROGRAM_FILE: string;
-        DUMP_FILE: string;
-        MEM_SIZE: integer
+        PROGRAM_FILE:   string;
+        DUMP_FILE:      string;
+        MEM_SIZE:       integer
     );
 
 end entity core_tb;
 
 architecture core_tb_arch of core_tb is
     
-    signal clk: std_logic;
-    signal reset: std_logic;
+    signal clk:     std_logic;
+    signal reset:   std_logic;
 
     signal rd_instr_mem_data: std_logic_vector(31 downto 0);
     signal rd_instr_mem_addr: std_logic_vector(31 downto 0);
 
-    signal rd_wr_mem_addr: std_logic_vector(31 downto 0);
-    signal rd_mem_data: std_logic_vector(31 downto 0);
-    signal wr_mem_data: std_logic_vector(31 downto 0);
-    signal rd_mem_en: std_logic;
-    signal wr_mem_en: std_logic;
+    signal rd_wr_mem_addr:  std_logic_vector(31 downto 0);
+    signal rd_mem_data:     std_logic_vector(31 downto 0);
+    signal wr_mem_data:     std_logic_vector(31 downto 0);
+    signal rd_mem_en:       std_logic;
+    signal wr_mem_en:       std_logic;
+    signal wr_mem_byte_en:  std_logic_vector(3  downto 0);
 
     type ram_array is array (0 to MEM_SIZE-1) of std_logic_vector(7 downto 0);
     
@@ -41,10 +42,10 @@ architecture core_tb_arch of core_tb is
         
     begin
 
-        word(7 downto 0) := ram_mem(addr + 0);
-        word(15 downto 8) := ram_mem(addr + 1);
-        word(23 downto 16) := ram_mem(addr + 2);
-        word(31 downto 24) := ram_mem(addr + 3);
+        word(7  downto  0)  := ram_mem(addr + 0);
+        word(15 downto  8)  := ram_mem(addr + 1);
+        word(23 downto 16)  := ram_mem(addr + 2);
+        word(31 downto 24)  := ram_mem(addr + 3);
         
         return word;
 
@@ -64,7 +65,8 @@ begin
         rd_mem_en,
         wr_mem_data,
         wr_mem_en,
-        rd_wr_mem_addr
+        rd_wr_mem_addr,
+        wr_mem_byte_en
     );
 
     clk <= not clk after 5 ns when sim_started and not sim_finished else '0';
@@ -106,10 +108,25 @@ begin
 
             addr := to_integer(unsigned(rd_wr_mem_addr));
 
-            ram(addr) := wr_mem_data(7 downto 0);
-            ram(addr + 1) := wr_mem_data(15 downto 8);
-            ram(addr + 2) := wr_mem_data(23 downto 16);
-            ram(addr + 3) := wr_mem_data(31 downto 24);
+            case wr_mem_byte_en is
+                
+                when b"0001" => 
+                    
+                    ram(addr + 0) := wr_mem_data(7 downto 0);
+                    
+                when b"0011" => 
+                
+                    ram(addr + 0) := wr_mem_data(7  downto 0);
+                    ram(addr + 1) := wr_mem_data(15 downto 8);
+            
+                when others => 
+                
+                    ram(addr + 0) := wr_mem_data(7  downto 0);
+                    ram(addr + 1) := wr_mem_data(15 downto 8);
+                    ram(addr + 2) := wr_mem_data(23 downto 16);
+                    ram(addr + 3) := wr_mem_data(31 downto 24);
+
+            end case;
 
         end if;
 
@@ -130,14 +147,18 @@ begin
     data_mem_rd: process (rd_mem_en, rd_wr_mem_addr)
     
         variable addr: integer;
-    
+
     begin
         
-        addr := to_integer(unsigned(rd_instr_mem_addr));
-
         if rd_mem_en = '1' then
+
+            addr := to_integer(unsigned(rd_wr_mem_addr));
             
             rd_mem_data <= read_ram(ram, addr);
+
+        else
+
+            rd_mem_data <= (others => '0');
 
         end if;
 

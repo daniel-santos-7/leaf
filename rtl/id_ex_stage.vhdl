@@ -6,18 +6,24 @@ use work.core_pkg.all;
 entity id_ex_stage is
     
     port (
+        
         clk: in std_logic;
-        pc: in std_logic_vector(31 downto 0);
-        next_pc: in std_logic_vector(31 downto 0);
-        instr: in std_logic_vector(31 downto 0);
-        no_op: in std_logic;
-        rd_mem_data: in std_logic_vector(31 downto 0);
-        rd_mem_en: out std_logic;
-        wr_mem_en: out std_logic;
+        
+        pc:         in std_logic_vector(31 downto 0);
+        next_pc:    in std_logic_vector(31 downto 0);
+        instr:      in std_logic_vector(31 downto 0);
+        no_op:      in std_logic;
+        
+        rd_mem_data:    in std_logic_vector(31 downto 0);
+        rd_mem_en:      out std_logic;
+        wr_mem_en:      out std_logic;
         rd_wr_mem_addr: out std_logic_vector(31 downto 0);
-        wr_mem_data: out std_logic_vector(31 downto 0);
+        wr_mem_data:    out std_logic_vector(31 downto 0);
+        wr_mem_byte_en: out std_logic_vector(3 downto 0);
+        
         branch, jmp, target_shift: out std_logic;
         target: out std_logic_vector(31 downto 0)
+    
     );
 
 end entity id_ex_stage;
@@ -33,21 +39,20 @@ architecture id_ex_stage_arch of id_ex_stage is
     signal rf_rd_reg_data0, rf_rd_reg_data1: std_logic_vector(31 downto 0);
 
     signal alu_src0, alu_src1, alu_src0_pass: std_logic;
-    signal alu_la_op, alu_imm_op: std_logic;
+    signal alu_std_op, alu_imm_op: std_logic;
     signal alu_func: std_logic_vector(9 downto 0);
     signal alu_opd0, alu_opd1: std_logic_vector(31 downto 0);
     signal alu_op: std_logic_vector(3 downto 0);
-    signal alu_rslt: std_logic_vector(31 downto 0);
+    signal alu_res: std_logic_vector(31 downto 0);
 
-    signal lsu_rd_data: std_logic_vector(31 downto 0);
-
-    signal lsu_mode, lsu_en: std_logic;
+    signal lsu_mode, lsu_en:    std_logic;
+    signal lsu_rd_data:         std_logic_vector(31 downto 0);
 
     signal br_detector_en: std_logic;
 
 begin
 
-    with rf_wr_reg_src select rf_wr_reg_data <= alu_rslt when b"00", lsu_rd_data when b"01", next_pc when b"10", (31 downto 0 => '-') when others;
+    with rf_wr_reg_src select rf_wr_reg_data <= alu_res when b"00", lsu_rd_data when b"01", next_pc when b"10", (31 downto 0 => '-') when others;
 
     alu_opd0 <= pc when (alu_src0 = '1' and alu_src0_pass = '1') else rf_rd_reg_data0 when (alu_src0 = '0' and alu_src0_pass = '1') else (31 downto 0 => '0');
     
@@ -64,7 +69,7 @@ begin
         alu_src0 => alu_src0, 
         alu_src1 => alu_src1, 
         alu_src0_pass => alu_src0_pass,
-        alu_la_op => alu_la_op, 
+        alu_std_op => alu_std_op, 
         alu_imm_op => alu_imm_op,
         lsu_mode => lsu_mode, 
         lsu_en => lsu_en,
@@ -99,7 +104,7 @@ begin
     );
 
     stage_alu_ctrl: alu_ctrl port map (
-        la_op => alu_la_op,
+        std_op => alu_std_op,
         imm_op => alu_imm_op,
         func => alu_func,
         alu_op => alu_op
@@ -109,12 +114,12 @@ begin
         opd0 => alu_opd0, 
         opd1 => alu_opd1,
         op => alu_op,
-        rslt => alu_rslt
+        res => alu_res
     );
 
     stage_lsu: lsu port map (
         rd_mem_data => rd_mem_data,
-        rd_wr_addr => alu_rslt,
+        rd_wr_addr => alu_res,
         wr_data => rf_rd_reg_data1,
         data_type => instr(14 downto 12),
         mode => lsu_mode, 
@@ -123,9 +128,10 @@ begin
         wr_mem_en => wr_mem_en,
         rd_wr_mem_addr => rd_wr_mem_addr, 
         wr_mem_data => wr_mem_data,
-        rd_data => lsu_rd_data
+        rd_data => lsu_rd_data,
+        wr_mem_byte_en => wr_mem_byte_en
     );
 
-    target <= alu_rslt;
+    target <= alu_res;
 
 end architecture id_ex_stage_arch;

@@ -71,7 +71,7 @@ package core_pkg is
         port (
             opd0, opd1: in  std_logic_vector(31 downto 0);
             op: in std_logic_vector(3 downto 0);
-            rslt: out std_logic_vector(31 downto 0)
+            res: out std_logic_vector(31 downto 0)
         );
 
     end component alu;
@@ -79,7 +79,7 @@ package core_pkg is
     component alu_ctrl is
 
         port (
-            la_op: in std_logic;
+            std_op: in std_logic;
             imm_op: in std_logic;
             func: in std_logic_vector(9 downto 0);
             alu_op: out std_logic_vector(3 downto 0)
@@ -96,7 +96,7 @@ package core_pkg is
             rf_write_en: out std_logic;
             ig_imm_type: out std_logic_vector(2 downto 0);
             alu_src0, alu_src1, alu_src0_pass: out std_logic;
-            alu_la_op, alu_imm_op: out std_logic;
+            alu_std_op, alu_imm_op: out std_logic;
             lsu_mode, lsu_en: out std_logic;
             br_detector_en: out std_logic;
             if_jmp, if_target_shift: out std_logic
@@ -140,14 +140,17 @@ package core_pkg is
     component lsu is 
 
         port (
-            rd_mem_data: in std_logic_vector(31 downto 0);
-            rd_wr_addr: in std_logic_vector(31 downto 0);
-            wr_data: in std_logic_vector(31 downto 0);
-            data_type: in std_logic_vector(2 downto 0);
-            mode, en: in std_logic;
-            rd_mem_en, wr_mem_en: out std_logic;
-            rd_wr_mem_addr, wr_mem_data: out std_logic_vector(31 downto 0);
-            rd_data: out std_logic_vector(31 downto 0)
+            rd_mem_data:    in std_logic_vector(31 downto 0);
+            rd_wr_addr:     in std_logic_vector(31 downto 0);
+            wr_data:        in std_logic_vector(31 downto 0);
+            data_type:      in std_logic_vector(2 downto 0);
+            mode, en:       in std_logic;
+            rd_mem_en:      out std_logic;
+            wr_mem_en:      out std_logic;
+            rd_wr_mem_addr: out std_logic_vector(31 downto 0);
+            wr_mem_data:    out std_logic_vector(31 downto 0);
+            rd_data:        out std_logic_vector(31 downto 0);
+            wr_mem_byte_en: out std_logic_vector(3  downto 0)
         );
 
     end component lsu;
@@ -165,6 +168,7 @@ package core_pkg is
             wr_mem_en: out std_logic;
             rd_wr_mem_addr: out std_logic_vector(31 downto 0);
             wr_mem_data: out std_logic_vector(31 downto 0);
+            wr_mem_byte_en: out std_logic_vector(3 downto 0);
             branch, jmp, target_shift: out std_logic;
             target: out std_logic_vector(31 downto 0)
         );
@@ -197,7 +201,8 @@ package core_pkg is
             rd_mem_en: out std_logic;
             wr_mem_data: out std_logic_vector(31 downto 0);
             wr_mem_en: out std_logic;
-            rd_wr_mem_addr: out std_logic_vector(31 downto 0)
+            rd_wr_mem_addr: out std_logic_vector(31 downto 0);
+            wr_mem_byte_en: out std_logic_vector(3 downto 0)
         );
     
     end component core;
