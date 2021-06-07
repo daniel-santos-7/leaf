@@ -35,7 +35,7 @@ arch_test() {
 
         TEST_NAME=$(basename -s .elf.bin $BIN);
 
-        case $TEST_NAME in fence-01 | lbu-align-01 | lh-align-01) continue;; esac;
+        case $TEST_NAME in lbu-align-01 | lh-align-01) continue;; esac;
 
         echo "running test: $TEST_NAME";
 

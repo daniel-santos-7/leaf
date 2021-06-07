@@ -52,6 +52,10 @@ begin
         
                 imm <= resize_signed(payload(24) & payload(12 downto 5) & payload(13) & payload(23 downto 14) & '0');
 
+            when IMM_Z_TYPE =>
+
+                imm <= std_logic_vector(resize(unsigned(payload(19 downto 15)), 32));
+
             when others => 
         
                 imm <= (31 downto 0 => '-');
