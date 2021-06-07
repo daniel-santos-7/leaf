@@ -5,19 +5,17 @@ use IEEE.numeric_std.all;
 entity reg_file is
 
     port (
-
         clk: in std_logic;
         
-        rd_reg_addr0:   in std_logic_vector(4 downto 0);
-        rd_reg_addr1:   in std_logic_vector(4 downto 0);
-        wr_reg_addr:    in std_logic_vector(4 downto 0);
+        rd_reg_addr0: in std_logic_vector(4 downto 0);
+        rd_reg_addr1: in std_logic_vector(4 downto 0);
+        wr_reg_addr:  in std_logic_vector(4 downto 0);
         
-        wr_reg_data:    in std_logic_vector(31 downto 0);
-        wr_reg_en:      in std_logic;
+        wr_reg_data: in std_logic_vector(31 downto 0);
+        wr_reg_en:   in std_logic;
         
-        rd_reg_data0:   out std_logic_vector(31 downto 0);
-        rd_reg_data1:   out std_logic_vector(31 downto 0)
-    
+        rd_reg_data0: out std_logic_vector(31 downto 0);
+        rd_reg_data1: out std_logic_vector(31 downto 0)
     );
 
 end entity reg_file;

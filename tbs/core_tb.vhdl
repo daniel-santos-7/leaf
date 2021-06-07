@@ -32,6 +32,10 @@ architecture core_tb_arch of core_tb is
     signal wr_mem_en:       std_logic;
     signal wr_mem_byte_en:  std_logic_vector(3  downto 0);
 
+    signal ex_irq: std_logic := '0';
+    signal sw_irq: std_logic := '0';
+    signal tm_irq: std_logic := '0';
+
     type ram_array is array (0 to MEM_SIZE-1) of std_logic_vector(7 downto 0);
     
     shared variable ram: ram_array := (others => x"00");
@@ -57,19 +61,23 @@ architecture core_tb_arch of core_tb is
 begin
     
     uut: core port map (
-        clk,
-        reset,
-        rd_instr_mem_data,
-        rd_instr_mem_addr,
-        rd_mem_data,
-        rd_mem_en,
-        wr_mem_data,
-        wr_mem_en,
-        rd_wr_mem_addr,
-        wr_mem_byte_en
+        clk               => clk,
+        reset             => reset,
+        rd_instr_mem_data => rd_instr_mem_data,
+        rd_instr_mem_addr => rd_instr_mem_addr,
+        rd_mem_data       => rd_mem_data,
+        wr_mem_data       => wr_mem_data,
+        rd_mem_en         => rd_mem_en,
+        wr_mem_en         => wr_mem_en,
+        rd_wr_mem_addr    => rd_wr_mem_addr,
+        wr_mem_byte_en    => wr_mem_byte_en,
+        ex_irq            => ex_irq,
+        sw_irq            => sw_irq,
+        tm_irq            => tm_irq
     );
 
     clk <= not clk after 5 ns when sim_started and not sim_finished else '0';
+    
     reset <= '0' after 10 ns when sim_started else '1';
 
     mem_wr: process (sim_started, clk)

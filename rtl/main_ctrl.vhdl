@@ -7,181 +7,244 @@ entity main_ctrl is
     
     port (
         opcode: in std_logic_vector(6 downto 0);
-        no_op: in std_logic;
+        flush: in std_logic;
 
-        rf_write_src: out std_logic_vector(1 downto 0);
-        rf_write_en: out std_logic;
+        rf_wr_reg_src: out std_logic_vector(1 downto 0);
+        rf_wr_reg_en:  out std_logic;
         
         ig_imm_type: out std_logic_vector(2 downto 0);
         
-        alu_src0, alu_src1, alu_src0_pass: out std_logic;
-        alu_std_op, alu_imm_op: out std_logic;
+        alu_src0:      out std_logic; 
+        alu_src1:      out std_logic; 
+        alu_opd0_pass: out std_logic;
+        alu_opd1_pass: out std_logic;
+        alu_std_op:    out std_logic;
+        alu_imm_op:    out std_logic;
+
+        lsu_mode: out std_logic;
+        lsu_en:   out std_logic;
         
-        lsu_mode, lsu_en: out std_logic;
-        
-        br_detector_en: out std_logic;
-        if_jmp, if_target_shift: out std_logic
+        brd_en:     out std_logic;
+
+        csrs_wr_en: out std_logic;
+
+        if_jmp:     out std_logic;
+        if_jmp_rel: out std_logic
     );
 
 end entity main_ctrl;
 
 architecture main_ctrl_arch of main_ctrl is
     
-    signal rf_write_src_i: std_logic_vector(1 downto 0);
-    signal rf_write_en_i: std_logic;
-        
-    signal ig_imm_type_i: std_logic_vector(2 downto 0);
-    
-    signal alu_src0_i, alu_src1_i, alu_src0_pass_i: std_logic;
-    signal alu_std_op_i, alu_imm_op_i: std_logic;
-    
-    signal lsu_mode_i, lsu_en_i: std_logic;
-    
-    signal br_detector_en_i: std_logic;
-    signal if_jmp_i, if_target_shift_i: std_logic;
-
 begin
 
-    rf_ctrl: process(opcode)
+    rf_ctrl: process(opcode, flush)
     
     begin
 
-        case opcode is
+        if flush = '1' then
+            
+            rf_wr_reg_src <= (others => '-');
+            rf_wr_reg_en  <= '0';
 
-            when LOGIC_ARITH_OPCODE | LOGIC_ARITH_IMM_OPCODE | LOAD_UPPER_IMM_OPCODE | ADD_UPPER_IMM_PC_OPCODE =>
-                
-                rf_write_src_i <= b"00";
-                rf_write_en_i <= '1';
+        else
 
-            when JALR_OPCODE | JAL_OPCODE =>
+            case opcode is
+
+                when RR_OPCODE | IMM_OPCODE | LUI_OPCODE | AUIPC_OPCODE =>
                     
-                rf_write_src_i <= b"10";
-                rf_write_en_i <= '1';
+                    rf_wr_reg_src <= b"00";
+                    rf_wr_reg_en  <= '1';
+    
+                when JALR_OPCODE | JAL_OPCODE =>
+                        
+                    rf_wr_reg_src <= b"10";
+                    rf_wr_reg_en  <= '1';
+    
+                when LOAD_OPCODE =>
+                    
+                    rf_wr_reg_src <= b"01";
+                    rf_wr_reg_en  <= '1';
 
-            when LOAD_OPCODE =>
-                
-                rf_write_src_i <= b"01";
-                rf_write_en_i <= '1';
+                when SYSTEM_OPCODE =>
 
-            when others =>
-                
-                rf_write_src_i <= "--";
-                rf_write_en_i <= '0';
-                
-        end case;
+                    rf_wr_reg_src <= b"11";
+                    rf_wr_reg_en  <= '1';
+    
+                when others =>
+                    
+                    rf_wr_reg_src <= (others => '0');
+                    rf_wr_reg_en  <= '0';
+                    
+            end case;
+
+        end if;
 
     end process rf_ctrl;
 
-    ig_ctrl: process(opcode)
+    ig_ctrl: process(opcode, flush)
 
     begin
         
-        case opcode is
+        if flush = '1' then
+            
+            ig_imm_type <= (others => '-');
 
-            when LOGIC_ARITH_IMM_OPCODE | JALR_OPCODE | LOAD_OPCODE => ig_imm_type_i <= IMM_I_TYPE;
+        else
 
-            when LOAD_UPPER_IMM_OPCODE | ADD_UPPER_IMM_PC_OPCODE => ig_imm_type_i <=    IMM_U_TYPE;
+            case opcode is
 
-            when STORE_OPCODE => ig_imm_type_i  <= IMM_S_TYPE;
+                when IMM_OPCODE | JALR_OPCODE | LOAD_OPCODE => 
+                
+                    ig_imm_type <= IMM_I_TYPE;
+    
+                when LUI_OPCODE | AUIPC_OPCODE => 
+                
+                    ig_imm_type <= IMM_U_TYPE;
+    
+                when STORE_OPCODE => 
+                
+                    ig_imm_type <= IMM_S_TYPE;
+    
+                when BRANCH_OPCODE => 
+                    
+                    ig_imm_type <= IMM_B_TYPE;
+    
+                when JAL_OPCODE => 
+                
+                    ig_imm_type <= IMM_J_TYPE;
 
-            when BRANCH_OPCODE => ig_imm_type_i <= IMM_B_TYPE;
+                when SYSTEM_OPCODE =>
 
-            when JAL_OPCODE => ig_imm_type_i    <= IMM_J_TYPE;
+                    ig_imm_type <= IMM_Z_TYPE;
+    
+                when others => 
+                    
+                    ig_imm_type <= (others => '-');
+            
+            end case;
 
-            when others => ig_imm_type_i        <= "---";
-        
-        end case;
+        end if;
 
     end process ig_ctrl;
 
-    alu_ctrl: process(opcode)
+    alu_ctrl: process(opcode, flush)
     
     begin
     
-        case opcode is
+        if flush = '1' then
+            
+            alu_src0      <= '0';
+            alu_src1      <= '0';
+            alu_opd0_pass <= '0';
+            alu_opd1_pass <= '0';
+            alu_std_op    <= '1';
+            alu_imm_op    <= '0';
 
-            when LOGIC_ARITH_OPCODE =>
+        else
+
+            case opcode is
+
+                when RR_OPCODE =>
+                        
+                    alu_src0      <= '0';
+                    alu_src1      <= '0';
+                    alu_opd0_pass <= '1';
+                    alu_opd1_pass <= '1';
+                    alu_std_op    <= '0';
+                    alu_imm_op    <= '0';
+    
+                when IMM_OPCODE =>
                     
-                alu_src0_i <= '0';
-                alu_src1_i <= '0';
-                alu_src0_pass_i <= '1';
-                alu_std_op_i <= '0';
-                alu_imm_op_i <= '0';
+                    alu_src0      <= '0';
+                    alu_src1      <= '1';
+                    alu_opd0_pass <= '1';
+                    alu_opd1_pass <= '1';
+                    alu_std_op    <= '0';
+                    alu_imm_op    <= '1';
+    
+                when JALR_OPCODE => 
+    
+                    alu_src0      <= '0';
+                    alu_src1      <= '1';
+                    alu_opd0_pass <= '1';
+                    alu_opd1_pass <= '1';
+                    alu_std_op    <= '1';
+                    alu_imm_op    <= '0';
+    
+                when BRANCH_OPCODE | AUIPC_OPCODE | JAL_OPCODE =>
+                        
+                    alu_src0      <= '1';
+                    alu_src1      <= '1';
+                    alu_opd0_pass <= '1';
+                    alu_opd1_pass <= '1';
+                    alu_std_op    <= '1';
+                    alu_imm_op    <= '0';
+    
+                when LOAD_OPCODE | STORE_OPCODE =>
+                        
+                    alu_src0      <= '0';
+                    alu_src1      <= '1';
+                    alu_opd0_pass <= '1';
+                    alu_opd1_pass <= '1';
+                    alu_std_op    <= '1';
+                    alu_imm_op    <= '0';
+    
+                when LUI_OPCODE =>
+                        
+                    alu_src0      <= '-';
+                    alu_src1      <= '1';
+                    alu_opd0_pass <= '0';
+                    alu_opd1_pass <= '1';
+                    alu_std_op    <= '1';
+                    alu_imm_op    <= '0';
+    
+                when others =>
+    
+                    alu_src0      <= '0';
+                    alu_src1      <= '0';
+                    alu_opd0_pass <= '0';
+                    alu_opd1_pass <= '0';
+                    alu_std_op    <= '1';
+                    alu_imm_op    <= '0';
+            
+            end case;
 
-            when LOGIC_ARITH_IMM_OPCODE =>
-                
-                alu_src0_i <= '0';
-                alu_src1_i <= '1';
-                alu_src0_pass_i <= '1';
-                alu_std_op_i <= '0';
-                alu_imm_op_i <= '1';
-
-            when JALR_OPCODE => 
-
-                alu_src0_i <= '0';
-                alu_src1_i <= '1';
-                alu_src0_pass_i <= '1';
-                alu_std_op_i <= '1';
-                alu_imm_op_i <= '0';
-
-            when BRANCH_OPCODE | ADD_UPPER_IMM_PC_OPCODE | JAL_OPCODE =>
-                    
-                alu_src0_i <= '1';
-                alu_src1_i <= '1';
-                alu_src0_pass_i <= '1';
-                alu_std_op_i <= '1';
-                alu_imm_op_i <= '0';
-
-            when LOAD_OPCODE | STORE_OPCODE =>
-                    
-                alu_src0_i <= '0';
-                alu_src1_i <= '1';
-                alu_src0_pass_i <= '1';
-                alu_std_op_i <= '1';
-                alu_imm_op_i <= '0';
-
-            when LOAD_UPPER_IMM_OPCODE =>
-                    
-                alu_src0_i <= '-';
-                alu_src1_i <= '1';
-                alu_src0_pass_i <= '0';
-                alu_std_op_i <= '1';
-                alu_imm_op_i <= '0';
-
-            when others =>
-
-                alu_src0_i <= '0';
-                alu_src1_i <= '0';
-                alu_src0_pass_i <= '-';
-                alu_std_op_i <= '1';
-                alu_imm_op_i <= '0';
-        
-        end case;
+        end if;
 
     end process alu_ctrl;
 
-    lsu_ctrl: process(opcode)
+    lsu_ctrl: process(opcode, flush)
 
     begin
         
-        case opcode is
+        if flush = '1' then
+            
+            lsu_mode <= '-';
+            lsu_en   <= '0';
 
-            when LOAD_OPCODE =>
-                    
-                lsu_mode_i <= '0';
-                lsu_en_i <= '1';
+        else
 
-            when STORE_OPCODE =>
-                    
-                lsu_mode_i <= '1';
-                lsu_en_i <= '1';
+            case opcode is
 
-            when others =>
+                when LOAD_OPCODE =>
+                        
+                    lsu_mode <= '0';
+                    lsu_en   <= '1';
+    
+                when STORE_OPCODE =>
+                        
+                    lsu_mode <= '1';
+                    lsu_en   <= '1';
+    
+                when others =>
+    
+                    lsu_mode <= '-';
+                    lsu_en   <= '0';
+            
+            end case;
 
-                lsu_mode_i <= '-';
-                lsu_en_i <= '0';
-        
-        end case;
+        end if;
 
     end process lsu_ctrl;
 
@@ -189,55 +252,70 @@ begin
     
     begin
 
-        if opcode = BRANCH_OPCODE then
+        if flush = '1' then
             
-            br_detector_en_i <= '1';
+            brd_en <= '0';
+            
+        elsif opcode = BRANCH_OPCODE then
+            
+            brd_en <= '1';
         
         else
 
-            br_detector_en_i <= '0';
+            brd_en <= '0';
 
         end if;
 
     end process br_detector_ctrl;
 
-    if_ctrl: process(opcode)
+    csrs: process(opcode)
     
     begin
     
-        case opcode is
+        if opcode = SYSTEM_OPCODE then
+            
+            csrs_wr_en <= '1';
 
-            when JALR_OPCODE =>
-                
-                if_jmp_i <= '1';
-                if_target_shift_i <= '1';
+        else
 
-            when JAL_OPCODE =>
-                
-                if_jmp_i <= '1';
-                if_target_shift_i <= '0';
+            csrs_wr_en <= '0';
 
-            when others =>
-                
-                if_jmp_i <= '0';
-                if_target_shift_i <= '0';
-        
-        end case;
+        end if;
+
+    end process csrs;
+
+    if_ctrl: process(opcode, flush)
+    
+    begin
+    
+        if flush = '1' then
+            
+            if_jmp     <= '0';
+            if_jmp_rel <= '0';
+
+        else
+
+            case opcode is
+
+                when JALR_OPCODE =>
+                    
+                    if_jmp     <= '1';
+                    if_jmp_rel <= '1';
+    
+                when JAL_OPCODE =>
+                    
+                    if_jmp     <= '1';
+                    if_jmp_rel <= '0';
+    
+                when others =>
+                    
+                    if_jmp     <= '0';
+                    if_jmp_rel <= '0';
+            
+            end case;
+
+        end if;
 
     end process if_ctrl;
             
-    rf_write_src    <= "--"     when no_op = '1' else rf_write_src_i;
-    rf_write_en     <= '0'      when no_op = '1' else rf_write_en_i;
-    ig_imm_type     <= "---"    when no_op = '1' else ig_imm_type_i;
-    alu_src0        <= '0'      when no_op = '1' else alu_src0_i;
-    alu_src1        <= '0'      when no_op = '1' else alu_src1_i;
-    alu_src0_pass   <= '-'      when no_op = '1' else alu_src0_pass_i;
-    alu_std_op      <= '1'      when no_op = '1' else alu_std_op_i;
-    alu_imm_op      <= '0'      when no_op = '1' else alu_imm_op_i;
-    lsu_mode        <= '-'      when no_op = '1' else lsu_mode_i;
-    lsu_en          <= '0'      when no_op = '1' else lsu_en_i;
-    br_detector_en  <= '0'      when no_op = '1' else br_detector_en_i;
-    if_jmp          <= '0'      when no_op = '1' else if_jmp_i;
-    if_target_shift <= '0'      when no_op = '1' else if_target_shift_i;
-    
 end architecture main_ctrl_arch;

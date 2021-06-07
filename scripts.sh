@@ -16,7 +16,7 @@ arch_test() {
 
     test -d $ARCH_TEST_DIR || exit 1;
 
-    make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf clean build;
+    #make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf clean build;
 
     test -d ./work/ || mkdir ./work;
 
@@ -35,7 +35,7 @@ arch_test() {
 
         TEST_NAME=$(basename -s .elf.bin $BIN);
 
-        case $TEST_NAME in jalr-01 | jal-01) continue;; esac;
+        case $TEST_NAME in fence-01 | lbu-align-01 | lh-align-01) continue;; esac;
 
         echo "running test: $TEST_NAME";
 
