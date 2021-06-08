@@ -256,15 +256,19 @@ package core_pkg is
     
     component if_stage is
 
+        generic (
+            RESET_ADDR: std_logic_vector(31 downto 0) := (others => '0')
+        );
+    
         port (
             clk:   in std_logic;
             reset: in std_logic;
-
+    
             jmp:     in std_logic;
             jmp_rel: in std_logic;
             branch:  in std_logic;
             trap:    in std_logic;
-
+    
             target: in std_logic_vector(31 downto 0);
             
             rd_instr_mem_data: in  std_logic_vector(31 downto 0);
@@ -289,12 +293,13 @@ package core_pkg is
             
             rd_mem_data: in  std_logic_vector(31 downto 0);
             wr_mem_data: out std_logic_vector(31 downto 0);
+            
             rd_mem_en: out std_logic;
             wr_mem_en: out std_logic;
             
             rd_wr_mem_addr: out std_logic_vector(31 downto 0);
             wr_mem_byte_en: out std_logic_vector(3 downto 0);
-
+    
             ex_irq: in std_logic;
             sw_irq: in std_logic;
             tm_irq: in std_logic

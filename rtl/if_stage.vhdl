@@ -5,7 +5,7 @@ use IEEE.numeric_std.all;
 entity if_stage is
     
     generic (
-        RESET_ADDR: std_logic_vector(31 downto 0) := x"00000000"
+        RESET_ADDR: std_logic_vector(31 downto 0) := (others => '0')
     );
 
     port (
@@ -36,7 +36,7 @@ architecture if_stage_arch of if_stage is
     
     signal target_i: std_logic_vector(31 downto 0);
     
-    signal pc_reg:    std_logic_vector(31 downto 0);
+    signal pc_reg: std_logic_vector(31 downto 0);
 
     signal next_pc_i: std_logic_vector(31 downto 0);
     
@@ -44,7 +44,7 @@ begin
     
     taken <= branch or jmp or trap;
 
-    target_i <= target(31 downto 1) & '0' when jmp = '1' and jmp_rel = '1' else target;
+    target_i <= target(31 downto 2) & b"00";
     
     next_pc_i <= std_logic_vector(unsigned(pc_reg) + 4);
 
@@ -74,12 +74,9 @@ begin
 
     rd_instr_mem_addr <= pc_reg;
 
-    pc <= pc_reg;
-
+    pc      <= pc_reg;
     next_pc <= next_pc_i;
-    
-    instr <= rd_instr_mem_data;
-    
-    flush <= taken;
+    instr   <= rd_instr_mem_data;
+    flush   <= taken;
 
 end architecture if_stage_arch;
