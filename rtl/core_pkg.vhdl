@@ -108,7 +108,7 @@ package core_pkg is
         port (
             opcode: in std_logic_vector(6 downto 0);
             flush: in std_logic;
-
+    
             rf_wr_reg_src: out std_logic_vector(1 downto 0);
             rf_wr_reg_en:  out std_logic;
             
@@ -120,16 +120,15 @@ package core_pkg is
             alu_opd1_pass: out std_logic;
             alu_std_op:    out std_logic;
             alu_imm_op:    out std_logic;
-
+    
             lsu_mode: out std_logic;
             lsu_en:   out std_logic;
             
             brd_en:     out std_logic;
-
+    
             csrs_wr_en: out std_logic;
-
-            if_jmp:     out std_logic;
-            if_jmp_rel: out std_logic
+    
+            if_jmp:     out std_logic
         );
     
     end component main_ctrl;
@@ -239,14 +238,13 @@ package core_pkg is
             wr_mem_en:      out std_logic;
             rd_wr_mem_addr: out std_logic_vector(31 downto 0);
             wr_mem_byte_en: out std_logic_vector(3 downto 0);
-
+    
             ex_irq: in std_logic;
             sw_irq: in std_logic;
             tm_irq: in std_logic;
             
             branch:  out std_logic; 
             jmp:     out std_logic; 
-            jmp_rel: out std_logic;
             trap:    out std_logic;
             
             target: out std_logic_vector(31 downto 0)
@@ -265,7 +263,6 @@ package core_pkg is
             reset: in std_logic;
     
             jmp:     in std_logic;
-            jmp_rel: in std_logic;
             branch:  in std_logic;
             trap:    in std_logic;
     

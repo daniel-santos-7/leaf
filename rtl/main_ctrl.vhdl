@@ -28,8 +28,7 @@ entity main_ctrl is
 
         csrs_wr_en: out std_logic;
 
-        if_jmp:     out std_logic;
-        if_jmp_rel: out std_logic
+        if_jmp:     out std_logic
     );
 
 end entity main_ctrl;
@@ -290,27 +289,19 @@ begin
     
         if flush = '1' then
             
-            if_jmp     <= '0';
-            if_jmp_rel <= '0';
+            if_jmp <= '0';
 
         else
 
             case opcode is
 
-                when JALR_OPCODE =>
+                when JALR_OPCODE | JAL_OPCODE =>
                     
-                    if_jmp     <= '1';
-                    if_jmp_rel <= '1';
-    
-                when JAL_OPCODE =>
-                    
-                    if_jmp     <= '1';
-                    if_jmp_rel <= '0';
+                    if_jmp <= '1';
     
                 when others =>
                     
-                    if_jmp     <= '0';
-                    if_jmp_rel <= '0';
+                    if_jmp <= '0';
             
             end case;
 

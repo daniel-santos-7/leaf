@@ -27,7 +27,6 @@ entity id_ex_stage is
         
         branch:  out std_logic; 
         jmp:     out std_logic; 
-        jmp_rel: out std_logic;
         trap:    out std_logic;
         
         target: out std_logic_vector(31 downto 0)
@@ -205,8 +204,7 @@ begin
         lsu_en          => lsu_en,
         brd_en          => brd_en,
         csrs_wr_en      => csrs_wr_en,
-        if_jmp          => jmp, 
-        if_jmp_rel      => jmp_rel
+        if_jmp          => jmp
     );
 
     stage_ig: imm_gen port map (

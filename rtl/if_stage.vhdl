@@ -13,7 +13,6 @@ entity if_stage is
         reset: in std_logic;
 
         jmp:     in std_logic;
-        jmp_rel: in std_logic;
         branch:  in std_logic;
         trap:    in std_logic;
 

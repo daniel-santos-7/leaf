@@ -31,7 +31,6 @@ end entity core;
 architecture core_arch of core is
 
     signal jmp:     std_logic;
-    signal jmp_rel: std_logic;
     signal branch:  std_logic;
     signal trap:    std_logic;
     
@@ -79,7 +78,6 @@ begin
         reset             => reset,
         jmp               => jmp, 
         branch            => branch, 
-        jmp_rel           => jmp_rel,
         trap              => trap,
         target            => target,
         rd_instr_mem_data => rd_instr_mem_data,
@@ -108,7 +106,6 @@ begin
         tm_irq         => tm_irq,
         branch         => branch, 
         jmp            => jmp, 
-        jmp_rel        => jmp_rel,
         trap           => trap,
         target         => target
     );
