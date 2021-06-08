@@ -152,16 +152,16 @@ begin
 
     end process instr_mem_rd;
 
-    data_mem_rd: process (rd_mem_en, rd_wr_mem_addr)
+    data_mem_rd: process (clk, rd_mem_en, rd_mem_data)
     
         variable addr: integer;
 
     begin
-        
+            
         if rd_mem_en = '1' then
 
             addr := to_integer(unsigned(rd_wr_mem_addr));
-            
+
             rd_mem_data <= read_ram(ram, addr);
 
         else

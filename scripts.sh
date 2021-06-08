@@ -16,7 +16,7 @@ arch_test() {
 
     test -d $ARCH_TEST_DIR || exit 1;
 
-    #make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf clean build;
+    make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf clean build;
 
     test -d ./work/ || mkdir ./work;
 
@@ -35,11 +35,9 @@ arch_test() {
 
         TEST_NAME=$(basename -s .elf.bin $BIN);
 
-        case $TEST_NAME in lbu-align-01 | lh-align-01) continue;; esac;
-
         echo "running test: $TEST_NAME";
 
-        ghdl -r --ieee=synopsys --workdir=./work/ $TBS_TOP --ieee-asserts=disable -gPROGRAM_FILE=$BIN -gDUMP_FILE=$BIN_FILES_DIR/$TEST_NAME.signature.output -gMEM_SIZE=2097152;
+        ghdl -r --ieee=synopsys --workdir=./work/ $TBS_TOP --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM_FILE=$BIN -gDUMP_FILE=$BIN_FILES_DIR/$TEST_NAME.signature.output -gMEM_SIZE=2097152;
 
     done;
 

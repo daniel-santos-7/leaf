@@ -71,7 +71,7 @@ package tbs_pkg is
         rs2: in std_logic_vector(4 downto 0);
         imm: in std_logic_vector(31 downto 0)
     ) return std_logic_vector;
-
+    
 end package tbs_pkg;
 
 package body tbs_pkg is
