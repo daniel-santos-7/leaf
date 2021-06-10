@@ -14,7 +14,7 @@ architecture alu_ctrl_tb_arch of alu_ctrl_tb is
 
     signal func3:  std_logic_vector(2 downto 0);
     signal func7:  std_logic_vector(6 downto 0);
-    signal alu_op: std_logic_vector(6 downto 0);
+    signal alu_op: std_logic_vector(5 downto 0);
 
 begin
     
