@@ -18,8 +18,9 @@ entity main_ctrl is
         alu_src1:      out std_logic; 
         alu_opd0_pass: out std_logic;
         alu_opd1_pass: out std_logic;
-        alu_std_op:    out std_logic;
-        alu_imm_op:    out std_logic;
+        
+        alu_op_en:     out std_logic;
+        alu_func_type: out std_logic;
 
         lsu_mode: out std_logic;
         lsu_en:   out std_logic;
@@ -137,8 +138,8 @@ begin
             alu_src1      <= '0';
             alu_opd0_pass <= '0';
             alu_opd1_pass <= '0';
-            alu_std_op    <= '1';
-            alu_imm_op    <= '0';
+            alu_op_en     <= '0';
+            alu_func_type <= '0';
 
         else
 
@@ -150,8 +151,8 @@ begin
                     alu_src1      <= '0';
                     alu_opd0_pass <= '1';
                     alu_opd1_pass <= '1';
-                    alu_std_op    <= '0';
-                    alu_imm_op    <= '0';
+                    alu_op_en     <= '1';
+                    alu_func_type <= '0';
     
                 when IMM_OPCODE =>
                     
@@ -159,8 +160,8 @@ begin
                     alu_src1      <= '1';
                     alu_opd0_pass <= '1';
                     alu_opd1_pass <= '1';
-                    alu_std_op    <= '0';
-                    alu_imm_op    <= '1';
+                    alu_op_en     <= '1';
+                    alu_func_type <= '1';
     
                 when JALR_OPCODE => 
     
@@ -168,8 +169,8 @@ begin
                     alu_src1      <= '1';
                     alu_opd0_pass <= '1';
                     alu_opd1_pass <= '1';
-                    alu_std_op    <= '1';
-                    alu_imm_op    <= '0';
+                    alu_op_en     <= '0';
+                    alu_func_type <= '0';
     
                 when BRANCH_OPCODE | AUIPC_OPCODE | JAL_OPCODE =>
                         
@@ -177,8 +178,8 @@ begin
                     alu_src1      <= '1';
                     alu_opd0_pass <= '1';
                     alu_opd1_pass <= '1';
-                    alu_std_op    <= '1';
-                    alu_imm_op    <= '0';
+                    alu_op_en     <= '0';
+                    alu_func_type <= '0';
     
                 when LOAD_OPCODE | STORE_OPCODE =>
                         
@@ -186,8 +187,8 @@ begin
                     alu_src1      <= '1';
                     alu_opd0_pass <= '1';
                     alu_opd1_pass <= '1';
-                    alu_std_op    <= '1';
-                    alu_imm_op    <= '0';
+                    alu_op_en     <= '0';
+                    alu_func_type <= '0';
     
                 when LUI_OPCODE =>
                         
@@ -195,8 +196,8 @@ begin
                     alu_src1      <= '1';
                     alu_opd0_pass <= '0';
                     alu_opd1_pass <= '1';
-                    alu_std_op    <= '1';
-                    alu_imm_op    <= '0';
+                    alu_op_en     <= '0';
+                    alu_func_type <= '0';
     
                 when others =>
     
@@ -204,8 +205,8 @@ begin
                     alu_src1      <= '0';
                     alu_opd0_pass <= '0';
                     alu_opd1_pass <= '0';
-                    alu_std_op    <= '1';
-                    alu_imm_op    <= '0';
+                    alu_op_en     <= '0';
+                    alu_func_type <= '0';
             
             end case;
 

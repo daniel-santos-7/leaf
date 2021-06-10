@@ -69,11 +69,12 @@ architecture id_ex_stage_arch of id_ex_stage is
     signal alu_opd0_pass: std_logic;
     signal alu_opd1_pass: std_logic;
     
-    signal alu_std_op: std_logic;
-    signal alu_imm_op: std_logic;
-    signal alu_func:   std_logic_vector(9 downto 0);
+    signal alu_op_en:     std_logic;
+    signal alu_func_type: std_logic;
+    signal alu_func3:     std_logic_vector(2 downto 0);
+    signal alu_func7:     std_logic_vector(6 downto 0);
     
-    signal alu_op:   std_logic_vector(3  downto 0);
+    signal alu_op:   std_logic_vector(5  downto 0);
     signal alu_opd0: std_logic_vector(31 downto 0);
     signal alu_opd1: std_logic_vector(31 downto 0);
     signal alu_res:  std_logic_vector(31 downto 0);
@@ -104,7 +105,8 @@ begin
     csrs_wr_reg_data <= rf_rd_reg_data0;
     csrs_wr_imm_data <= ig_imm;
 
-    alu_func <= instr(31 downto 25) & instr(14 downto 12);
+    alu_func3 <= instr(14 downto 12);
+    alu_func7 <= instr(31 downto 25);
 
     lsu_rd_wr_addr <= alu_res;
     lsu_wr_data    <= rf_rd_reg_data1;
@@ -198,8 +200,8 @@ begin
         alu_src1        => alu_src1, 
         alu_opd0_pass   => alu_opd0_pass,
         alu_opd1_pass   => alu_opd1_pass,
-        alu_std_op      => alu_std_op, 
-        alu_imm_op      => alu_imm_op,
+        alu_op_en       => alu_op_en, 
+        alu_func_type   => alu_func_type,
         lsu_mode        => lsu_mode, 
         lsu_en          => lsu_en,
         brd_en          => brd_en,
@@ -247,10 +249,11 @@ begin
     );
 
     stage_alu_ctrl: alu_ctrl port map (
-        std_op => alu_std_op,
-        imm_op => alu_imm_op,
-        func   => alu_func,
-        alu_op => alu_op
+        alu_op_en     => alu_op_en,
+        alu_func_type => alu_func_type,
+        func3         => alu_func3,
+        func7         => alu_func7,
+        alu_op        => alu_op
     );
 
     stage_alu: alu port map (

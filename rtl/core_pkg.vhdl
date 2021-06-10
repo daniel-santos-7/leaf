@@ -17,7 +17,7 @@ package core_pkg is
     constant SYSTEM_OPCODE: std_logic_vector(6 downto 0) := b"1110011";
     constant FENCE_OPCODE:  std_logic_vector(6 downto 0) := b"0001111";
 
-    -- csr addrs --
+    -- CSR addr --
 
     constant CSR_ADDR_MHARTID:  std_logic_vector(11 downto 0) := x"F14";
     constant CSR_ADDR_MSTATUS:  std_logic_vector(11 downto 0) := x"300";
@@ -30,33 +30,33 @@ package core_pkg is
     constant CSR_ADDR_MTVAL:    std_logic_vector(11 downto 0) := x"343";
     constant CSR_ADDR_MIP:      std_logic_vector(11 downto 0) := x"344";
 
-    -- alu op --
+    -- ALU op --
 
-    constant ALU_ADD:  std_logic_vector(3 downto 0) := b"0000";
-    constant ALU_SLL:  std_logic_vector(3 downto 0) := b"0001";
-    constant ALU_SLT:  std_logic_vector(3 downto 0) := b"0010";
-    constant ALU_SLTU: std_logic_vector(3 downto 0) := b"0011";
-    constant ALU_XOR:  std_logic_vector(3 downto 0) := b"0100";
-    constant ALU_SRL:  std_logic_vector(3 downto 0) := b"0101";
-    constant ALU_OR:   std_logic_vector(3 downto 0) := b"0110";
-    constant ALU_AND:  std_logic_vector(3 downto 0) := b"0111";
-    constant ALU_SUB:  std_logic_vector(3 downto 0) := b"1000";
-    constant ALU_SRA:  std_logic_vector(3 downto 0) := b"1101";
+    constant ALU_ADD:  std_logic_vector(5 downto 0) := b"001111";
+    constant ALU_SLL:  std_logic_vector(5 downto 0) := b"001100";
+    constant ALU_SLT:  std_logic_vector(5 downto 0) := b"101111";
+    constant ALU_SLTU: std_logic_vector(5 downto 0) := b"111111";
+    constant ALU_XOR:  std_logic_vector(5 downto 0) := b"000011";
+    constant ALU_SRL:  std_logic_vector(5 downto 0) := b"001101";
+    constant ALU_OR:   std_logic_vector(5 downto 0) := b"000111";
+    constant ALU_AND:  std_logic_vector(5 downto 0) := b"001011";
+    constant ALU_SUB:  std_logic_vector(5 downto 0) := b"011111";
+    constant ALU_SRA:  std_logic_vector(5 downto 0) := b"001110";
 
-    -- alu control func --
+    -- ALU control func --
 
-    constant ALU_CTRL_ADD: std_logic_vector(9 downto 0) := b"0000000000";
-    constant ALU_CTRL_SLL: std_logic_vector(9 downto 0) := b"0000000001";
-    constant ALU_CTRL_SLT: std_logic_vector(9 downto 0) := b"0000000010";
+    constant ALU_CTRL_ADD:  std_logic_vector(9 downto 0) := b"0000000000";
+    constant ALU_CTRL_SLL:  std_logic_vector(9 downto 0) := b"0000000001";
+    constant ALU_CTRL_SLT:  std_logic_vector(9 downto 0) := b"0000000010";
     constant ALU_CTRL_SLTU: std_logic_vector(9 downto 0) := b"0000000011";
-    constant ALU_CTRL_XOR: std_logic_vector(9 downto 0) := b"0000000100";
-    constant ALU_CTRL_SRL: std_logic_vector(9 downto 0) := b"0000000101";
-    constant ALU_CTRL_OR: std_logic_vector(9 downto 0) := b"0000000110";
-    constant ALU_CTRL_AND: std_logic_vector(9 downto 0) := b"0000000111";
-    constant ALU_CTRL_SUB: std_logic_vector(9 downto 0) := b"0100000000";
-    constant ALU_CTRL_SRA: std_logic_vector(9 downto 0) := b"0100000101";
+    constant ALU_CTRL_XOR:  std_logic_vector(9 downto 0) := b"0000000100";
+    constant ALU_CTRL_SRL:  std_logic_vector(9 downto 0) := b"0000000101";
+    constant ALU_CTRL_OR:   std_logic_vector(9 downto 0) := b"0000000110";
+    constant ALU_CTRL_AND:  std_logic_vector(9 downto 0) := b"0000000111";
+    constant ALU_CTRL_SUB:  std_logic_vector(9 downto 0) := b"0100000000";
+    constant ALU_CTRL_SRA:  std_logic_vector(9 downto 0) := b"0100000101";
 
-    -- imms types --
+    -- imm types --
 
     constant IMM_I_TYPE: std_logic_vector(2 downto 0) := b"000";
     constant IMM_S_TYPE: std_logic_vector(2 downto 0) := b"001";
@@ -65,7 +65,7 @@ package core_pkg is
     constant IMM_J_TYPE: std_logic_vector(2 downto 0) := b"100";
     constant IMM_Z_TYPE: std_logic_vector(2 downto 0) := b"101";
 
-    -- branch detector modes --
+    -- branch detector mode --
 
     constant EQ_BD_MODE:  std_logic_vector(2 downto 0) := b"000";
     constant NE_BD_MODE:  std_logic_vector(2 downto 0) := b"001";
@@ -74,7 +74,7 @@ package core_pkg is
     constant LTU_BD_MODE: std_logic_vector(2 downto 0) := b"110";
     constant GEU_BD_MODE: std_logic_vector(2 downto 0) := b"111";
 
-    -- lsu data types --
+    -- lsu data type --
 
     constant LSU_BYTE:  std_logic_vector(2 downto 0) := b"000";
     constant LSU_BYTEU: std_logic_vector(2 downto 0) := b"100";
@@ -85,9 +85,11 @@ package core_pkg is
     component alu is
 
         port (
-            opd0, opd1: in  std_logic_vector(31 downto 0);
-            op: in std_logic_vector(3 downto 0);
-            res: out std_logic_vector(31 downto 0)
+            opd0: in  std_logic_vector(31 downto 0);
+            opd1: in  std_logic_vector(31 downto 0);
+            op:   in  std_logic_vector(5  downto 0);
+            
+            res:  out std_logic_vector(31 downto 0)
         );
 
     end component alu;
@@ -95,10 +97,12 @@ package core_pkg is
     component alu_ctrl is
 
         port (
-            std_op: in std_logic;
-            imm_op: in std_logic;
-            func: in std_logic_vector(9 downto 0);
-            alu_op: out std_logic_vector(3 downto 0)
+            alu_op_en:     in std_logic;
+            alu_func_type: in std_logic;
+            func3:         in std_logic_vector(2 downto 0);
+            func7:         in std_logic_vector(6 downto 0);
+    
+            alu_op: out std_logic_vector(5 downto 0)
         );
     
     end component alu_ctrl;
@@ -118,8 +122,9 @@ package core_pkg is
             alu_src1:      out std_logic; 
             alu_opd0_pass: out std_logic;
             alu_opd1_pass: out std_logic;
-            alu_std_op:    out std_logic;
-            alu_imm_op:    out std_logic;
+            
+            alu_op_en:     out std_logic;
+            alu_func_type: out std_logic;
     
             lsu_mode: out std_logic;
             lsu_en:   out std_logic;
