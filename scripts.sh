@@ -16,7 +16,7 @@ arch_test() {
 
     test -d $ARCH_TEST_DIR || exit 1;
 
-    make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf clean build;
+    #make -s -C $1 TARGETDIR=$LOCAL_TARGETDIR XLEN=32 RISCV_TARGET=leaf clean build;
 
     test -d ./work/ || mkdir ./work;
 
@@ -37,7 +37,7 @@ arch_test() {
 
         echo "running test: $TEST_NAME";
 
-        ghdl -r --ieee=synopsys --workdir=./work/ $TBS_TOP --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM_FILE=$BIN -gDUMP_FILE=$BIN_FILES_DIR/$TEST_NAME.signature.output -gMEM_SIZE=2097152;
+        ghdl -r --ieee=synopsys --workdir=./work/ $TBS_TOP --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM_FILE=$BIN -gDUMP_FILE=$BIN_FILES_DIR/$TEST_NAME.signature.output -gMEM_SIZE=2097152 --wave=./waves/$TEST_NAME.ghw;
 
     done;
 
@@ -54,24 +54,33 @@ testbench() {
 
     ghdl -i --workdir=./work/ $RTL_SRC;
     ghdl -m --workdir=./work/ $RTL_TOP;
-
 	ghdl -i --ieee=synopsys --workdir=./work/ $TBS_PKG_SRC $TBS_SRC;
 
-    for TB in $TBS_SRC; do
+    if [ $# -eq 0 ]; then
 
-        TB_NAME=$(basename -s .vhdl $TB);
+        for TB in $TBS_SRC; do
 
-        if [ $TB_NAME == $TBS_TOP ]; then continue; fi
+            TB_NAME=$(basename -s .vhdl $TB);
 
+            if [ $TB_NAME == $TBS_TOP ]; then continue; fi
+
+            testbench $TB_NAME;   
+        
+        done;
+
+    else
+        
+        TB_NAME=$1
+        
         echo "running testbench: $TB_NAME";
 
         ghdl -m --ieee=synopsys --workdir=./work/ $TB_NAME;
-        ghdl -r --ieee=synopsys --workdir=./work $TB_NAME;
+        ghdl -r --ieee=synopsys --workdir=./work $TB_NAME --wave=waves/$TB_NAME.ghw --ieee-asserts=disable;
 
-    done;
+    fi
 
     ghdl --remove --workdir=./work/;
-    rmdir ./work/;
+    # rmdir ./work/;
 
 }
 
@@ -84,7 +93,7 @@ while [ $# -gt 0 ]; do
             exit 0;;
 
         testbench | -tb)
-            testbench;
+            testbench $2;
             exit 0;;
 
         *)  
