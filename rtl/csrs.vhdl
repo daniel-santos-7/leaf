@@ -57,7 +57,7 @@ architecture csrs_arch of csrs is
     
 begin
     
-    read_csr: process(rd_wr_addr)
+    read_csr: process(rd_wr_addr, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip)
     
     begin
             
@@ -111,7 +111,7 @@ begin
 
     end process read_csr;
 
-    wr_csr: process(wr_mode)
+    wr_csr: process(wr_mode, wr_reg_data, wr_imm_data, rd_data_i)
     
     begin
         
