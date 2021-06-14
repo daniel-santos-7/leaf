@@ -24,9 +24,9 @@ architecture id_ex_stage_tb_arch of id_ex_stage_tb is
     signal rd_mem_en:      std_logic;
     signal wr_mem_en:      std_logic;
 
-    signal ex_irq: std_logic := '0';
-    signal sw_irq: std_logic := '0';
-    signal tm_irq: std_logic := '0';
+    signal ex_irq: std_logic;
+    signal sw_irq: std_logic;
+    signal tm_irq: std_logic;
     
     signal branch:  std_logic; 
     signal jmp:     std_logic; 
@@ -76,12 +76,22 @@ begin
 
         -- setup --
 
-        clk         <= '0';
-        reset       <= '1';
+        clk   <= '0';
+        reset <= '1';
+
+        pc          <= (others => '0');
+        next_pc     <= (others => '0');
+        instr       <= (others => '0');
+        flush       <= '0';
+        rd_mem_data <= (others => '0');
+
+        ex_irq <= '0';
+        sw_irq <= '0';
+        tm_irq <= '0';
 
         tick(clk);
 
-        reset       <= '0';
+        reset <= '0';
 
         -- no op instruction --
 
@@ -94,10 +104,10 @@ begin
         tick(clk);
 
         assert wr_mem_data    = x"00000000";
-        assert rd_wr_mem_addr = x"00000000";
-        assert wr_mem_byte_en = b"0000";
         assert rd_mem_en      = '0';
         assert wr_mem_en      = '0';
+        assert rd_wr_mem_addr = x"00000000";
+        assert wr_mem_byte_en = b"0000";
         assert branch         = '0';
         assert jmp            = '0';
         -- assert trap           = '0';
