@@ -2,11 +2,11 @@
 
 set -e
 
-RTL_SRC=./rtl/*.vhdl;
+RTL_SRC=./core/rtl/*.vhdl;
 RTL_TOP=core;
 
-TBS_PKG_SRC=./tbs/tbs_pkg.vhdl;
-TBS_SRC=./tbs/*_tb.vhdl;
+TBS_PKG_SRC=./core/tbs/tbs_pkg.vhdl;
+TBS_SRC=./core/tbs/*_tb.vhdl;
 TBS_TOP=core_tb;
 
 arch_test() {
@@ -23,7 +23,7 @@ arch_test() {
     ghdl -i --workdir=./work/ $RTL_SRC;
     ghdl -m --workdir=./work/ $RTL_TOP;
 
-    TBS_TOP_SRC=./tbs/$TBS_TOP.vhdl;
+    TBS_TOP_SRC=./core/tbs/$TBS_TOP.vhdl;
 
     ghdl -i --ieee=synopsys --workdir=./work/ $TBS_PKG_SRC $TBS_TOP_SRC;
     ghdl -m --ieee=synopsys --workdir=./work/ $TBS_TOP;
