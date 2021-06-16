@@ -24,7 +24,7 @@ architecture spi_tb_arch of spi_tb is
     signal sclk: std_logic;
     signal cs:   std_logic;
 
-    signal slave_data:  std_logic_vector(31 downto 0) := x"6789CDEF";
+    signal slave_data: std_logic_vector(31 downto 0) := x"6789CDEF";
 
     procedure tick(signal clk: out std_logic) is
 
@@ -102,14 +102,6 @@ begin
         tick(clk);
 
         wr_addr     <= b"00";
-        wr_data     <= x"00000008";
-        wr_byte_en  <= b"1111";
-
-        wr_en <= '1';
-
-        tick(clk);
-
-        wr_addr     <= b"00";
         wr_data     <= x"00000000";
         wr_byte_en  <= b"1111";
 
@@ -119,21 +111,19 @@ begin
 
         tick(clk);
 
-        status_reg := rd_data;
-
-        while status_reg /= x"FFFFFFFF" loop
+        while rd_data /= x"FFFFFFFF" loop
 
             rd_addr <= b"01";
 
             tick(clk);
-
-            status_reg := rd_data;
 
         end loop;
 
         rd_addr <= b"10";
 
         tick(clk);
+
+        assert rd_data = x"6789CDEF";
 
         wait;
 
