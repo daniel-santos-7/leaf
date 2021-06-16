@@ -41,30 +41,6 @@ package leaf_chip_pkg is
     
     end component ram;
 
-    component spi_master is
-    
-        port (
-            clk:   in std_logic;
-            reset: in std_logic;
-            
-            en: in std_logic;
-    
-            tx_data: in  std_logic_vector(7 downto 0);
-            rx_data: out std_logic_vector(7 downto 0);
-    
-            busy: out std_logic;
-            done: out std_logic;
-    
-            cpol: in  std_logic;
-            cpha: in  std_logic;
-            sdo:  out std_logic;
-            sdi:  in  std_logic;
-            sclk: out std_logic;
-            cs:   out std_logic
-        );
-    
-    end component spi_master;
-
     component spi is
     
         port (

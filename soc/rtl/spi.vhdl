@@ -1,8 +1,6 @@
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
-use work.leaf_chip_pkg.all;
 
 entity spi is
     
@@ -27,42 +25,130 @@ entity spi is
 end entity spi;
 
 architecture spi_arch of spi is
-    
-    signal busy: std_logic;
-    signal done: std_logic;
 
-    signal buffer_reg:   std_logic_vector(31 downto 0);
-    signal buffer_count: std_logic_vector(3  downto 0);
-
-    signal en:   std_logic;
     signal cpol: std_logic;
     signal cpha: std_logic;
 
-    signal tx_data: std_logic_vector(7 downto 0);
-    signal rx_data: std_logic_vector(7 downto 0);
+    signal buffer_reg: std_logic_vector(31 downto 0);
+    
+    signal tx_reg:  std_logic_vector(31 downto 0);
+    signal rx_reg:  std_logic_vector(31 downto 0);
+
+    signal tx_count: std_logic_vector(31 downto 0);
+    signal rx_count: std_logic_vector(31 downto 0);
+
+    signal sclk_i: std_logic;
+    signal cs_i:   std_logic;
+    signal cyc:    std_logic;
 
 begin
+
+    communication: process(clk)
+
+    begin
+        
+        if rising_edge(clk) then
+            
+            if reset = '1' then
+                
+                cpol       <= '0';
+                cpha       <= '0';
+                buffer_reg <= (others => '0');
+                tx_reg     <= (others => '0');
+                rx_reg     <= (others => '0');
+                tx_count   <= (others => '0');
+                rx_count   <= (others => '0');
+
+                sclk_i  <= '0';
+                cs_i    <= '1';
+                cyc     <= '1';
+
+            elsif wr_en = '1' then
+
+                if wr_addr = b"00" then
+                    
+                    cpol <= wr_data(3);
+                    cpha <= wr_data(7);
+
+                elsif wr_addr = b"10" then
+
+                    case wr_byte_en is
+                            
+                        when b"0001" =>
+                            
+                            buffer_reg <= wr_data(31 downto 24) & (23 downto 0 => '0');
+                            tx_reg     <= wr_data(31 downto 24) & (23 downto 0 => '0');
+                            rx_reg     <= (others => '0');
+                            tx_count   <= (31 downto 24 => '0', others => '1');
+                            rx_count   <= (31 downto 24 => '0', others => '1');
+                    
+                        when b"0011" =>
+
+                            buffer_reg <= wr_data(31 downto 16) & (15 downto 0 => '0');
+                            tx_reg     <= wr_data(31 downto 16) & (15 downto 0 => '0');
+                            rx_reg     <= (others => '0');
+                            tx_count   <= (31 downto 16 => '0', others => '1');
+                            rx_count   <= (31 downto 16 => '0', others => '1');
     
-    master: spi_master port map (
-        clk     => clk,
-        reset   => reset,
-        en      => en,
-        tx_data => tx_data,
-        rx_data => rx_data,
-        busy    => busy,
-        done    => done,
-        cpol    => cpol,
-        cpha    => cpha,
-        sdo     => sdo,
-        sdi     => sdi,
-        sclk    => sclk,
-        cs      => cs
-    ); 
+                        when others =>
 
-    rd_reg: process(rd_addr, cpha, cpol, en, buffer_count)
+                            buffer_reg <= wr_data;
+                            tx_reg     <= wr_data;
+                            rx_reg     <= (others => '0');
+                            tx_count   <= (others => '0');
+                            rx_count   <= (others => '0');
+                    
+                    end case;
 
-        variable ctrl_reg:   std_logic_vector(31 downto 0);
-        variable status_reg: std_logic_vector(31 downto 0);
+                    cs_i   <= '0';
+                    sclk_i <= cpol;
+                    cyc    <= not cpha;
+
+                end if;
+
+            elsif cs_i = '0' then
+
+                if rx_count = x"FFFFFFFF" and tx_count = x"FFFFFFFF" then
+                       
+                    sclk_i <= cpol;
+
+                    buffer_reg <= rx_reg;
+
+                    cs_i <= '1';
+
+                else
+
+                    sclk_i <= not sclk_i;
+
+                end if;
+
+                cyc <= not cyc;
+
+                if cyc = '0' and rx_count /= x"FFFFFFFF" then
+                        
+                    rx_reg <= rx_reg(30 downto 0) & sdi;
+
+                    rx_count <= rx_count(30 downto 0) & '1';
+                    
+                end if;
+
+                if cyc = '1' and tx_count /= x"FFFFFFFF" then
+                    
+                    sdo <= tx_reg(31);
+                    
+                    tx_reg <= tx_reg(30 downto 0) & '0';
+
+                    tx_count <= tx_count(30 downto 0) & '1';
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process communication;
+
+    rd_reg: process(rd_addr, cpha, cpol, tx_count, rx_count, buffer_reg)
 
     begin
 
@@ -70,16 +156,11 @@ begin
             
             when b"00" =>
                 
-                rd_data <= (11 => cpha, 7 => cpol, 3 => en, others => '0');
+                rd_data <= (7 => cpha, 3 => cpol, others => '0');
 
             when b"01" =>
 
-                rd_data <= (
-                    31 downto 24 => buffer_count(3), 
-                    23 downto 16 => buffer_count(2), 
-                    15 downto 8  => buffer_count(1),
-                    7 downto 0   => buffer_count(0) 
-                );
+                rd_data <= tx_count and rx_count;
         
             when b"10" =>
 
@@ -93,78 +174,7 @@ begin
 
     end process rd_reg;
 
-    wr_reg: process(clk)
-    
-    begin
-    
-        if rising_edge(clk) then
-            
-            if reset = '1' then
-                
-                en   <= '0';
-                cpol <= '0';
-                cpha <= '0';
-
-                buffer_reg   <= (others => '0');
-                buffer_count <= (others => '0');
-
-            else
-
-                if wr_en = '1' then
-                    
-                    if wr_addr = b"00" then
-                        
-                        en   <= wr_data(3);
-                        cpol <= wr_data(7);
-                        cpha <= wr_data(11);
-
-                    elsif wr_addr = b"10" then
-                        
-                        en <= '0';
-
-                        case wr_byte_en is
-                            
-                            when b"0001" =>
-                                
-                                buffer_reg   <= wr_data(31 downto 24) & (23 downto 0 => '0');
-                                buffer_count <= b"0111";
-                        
-                            when b"0011" =>
-
-                                buffer_reg   <= wr_data(31 downto 16) & (15 downto 0 => '0');
-                                buffer_count <= b"0011";
-        
-                            when others =>
-
-                                buffer_reg   <= wr_data;
-                                buffer_count <= b"0000";
-                        
-                        end case;
-
-                    end if;
-
-                elsif en = '1' then 
-                    
-                    if buffer_count = b"1111" then
-                        
-                        en <= '0';
-
-                    elsif busy = '0' and done = '1' then
-                        
-                        buffer_reg <= buffer_reg(23 downto 0) & rx_data;
-
-                        buffer_count <= buffer_count(2 downto 0) & '1';
-
-                    end if;
-
-                end if;
-
-            end if;
-
-        end if;
-
-    end process wr_reg;
-    
-    tx_data <= buffer_reg(31 downto 24);
+    sclk <= sclk_i;
+    cs   <= cs_i;
 
 end architecture spi_arch;
