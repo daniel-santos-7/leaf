@@ -20,8 +20,6 @@ spi_read:
 	
 	li x28, 0x0
 	sw x28, 0x8(x0)
-	li x28, 0x8
-	sw x28, 0x0(x0)
 	li x28, 0xFFFFFFFF
 	li x29, 0x0
 	
