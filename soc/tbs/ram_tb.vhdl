@@ -98,6 +98,42 @@ begin
         assert rd_data0 = x"AAAABBBB";
         assert rd_data1 = x"AAAABBBB";
 
+        -- --
+
+        tick(clk);
+
+        wr_en   <= '1';
+        wr_addr <= b"11111111111";
+        wr_data <= x"CCCCDDDD";
+        wr_byte_en <= b"0001";
+
+        tick(clk);
+
+        rd_addr0 <= b"11111111111";
+        rd_addr1 <= b"11111111111";
+
+        tick(clk);
+        
+        assert rd_data0 = x"AAAABBDD";
+        assert rd_data1 = x"AAAABBDD";
+
+        tick(clk);
+
+        wr_en   <= '1';
+        wr_addr <= b"11111111111";
+        wr_data <= x"CCCCDDDD";
+        wr_byte_en <= b"0011";
+
+        tick(clk);
+
+        rd_addr0 <= b"11111111111";
+        rd_addr1 <= b"11111111111";
+
+        tick(clk);
+        
+        assert rd_data0 = x"AAAADDDD";
+        assert rd_data1 = x"AAAADDDD";
+
         wait;
 
     end process test;
