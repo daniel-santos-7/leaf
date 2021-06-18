@@ -7,12 +7,12 @@ load_start:
 	li x6, 0x0
 
 load:
-	li x7, 0x400
+	li x7, 0x100
 	beq x6, x7, load_end
 	jal x1, spi_read
 	li x7, 0xFFFFFFFF
 	beq x10, x7, load_end
-	sw x10, 0x400(x6)
+	sw x10, 0x200(x6)
 	addi x6, x6, 0x4
 	jal x0, load
 
@@ -62,4 +62,4 @@ load_end:
 	li	x29, 0x00000000
 	li	x30, 0x00000000
 	li	x31, 0x00000000
-	j 0x400
+	j 0x200
