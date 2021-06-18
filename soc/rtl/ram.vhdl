@@ -5,8 +5,8 @@ use IEEE.numeric_std.all;
 entity ram is
     
     generic (
-        MEM_SIZE:  natural := 1024;  -- memory size 1kB
-        ADDR_BITS: natural := 10     -- internal bus width address = log2(MEM_SIZE)
+        MEM_SIZE:  natural := 256;  -- memory size 256B
+        ADDR_BITS: natural := 8     -- internal bus width address = log2(MEM_SIZE)
     );
 
     port (

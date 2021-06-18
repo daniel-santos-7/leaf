@@ -34,11 +34,11 @@ architecture leaf_chip_arch of leaf_chip is
     signal rom_rd_data: std_logic_vector(31 downto 0);
     signal rom_rd_addr: std_logic_vector(5 downto 0);
 
-    signal ram_rd_addr0:   std_logic_vector(7  downto 0);
+    signal ram_rd_addr0:   std_logic_vector(5  downto 0);
     signal ram_rd_data0:   std_logic_vector(31 downto 0);
-    signal ram_rd_addr1:   std_logic_vector(7  downto 0);
+    signal ram_rd_addr1:   std_logic_vector(5  downto 0);
     signal ram_rd_data1:   std_logic_vector(31 downto 0);
-    signal ram_wr_addr:    std_logic_vector(7  downto 0);
+    signal ram_wr_addr:    std_logic_vector(5  downto 0);
     signal ram_wr_data:    std_logic_vector(31 downto 0);
     signal ram_wr_byte_en: std_logic_vector(3  downto 0);
     signal ram_wr_en:      std_logic;
@@ -64,11 +64,7 @@ begin
 
             core_rd_instr_mem_data <= rom_rd_data;
 
-        elsif core_rd_instr_mem_addr < x"00000400" then
-
-            core_rd_instr_mem_data <= x"00000013";
-
-        elsif core_rd_instr_mem_addr < x"00000800" then
+        elsif core_rd_instr_mem_addr < x"00000300" then
 
             core_rd_instr_mem_data <= ram_rd_data0;
 
@@ -94,11 +90,7 @@ begin
     
                 core_rd_mem_data <= rom_rd_data;
     
-            elsif core_rd_wr_mem_addr < x"00000400" then
-    
-                core_rd_mem_data <= (others => '0');
-    
-            elsif core_rd_wr_mem_addr < x"00000800" then
+            elsif core_rd_wr_mem_addr < x"00000300" then
     
                 core_rd_mem_data <= ram_rd_data1;
     
@@ -121,12 +113,12 @@ begin
                 ram_wr_en <= '0';
                 spi_wr_en <= '1';
 
-            elsif core_rd_wr_mem_addr < x"00000400" then
+            elsif core_rd_wr_mem_addr < x"00000200" then
 
                 ram_wr_en <= '0';
                 spi_wr_en <= '0';
 
-            elsif core_rd_wr_mem_addr < x"00000800" then
+            elsif core_rd_wr_mem_addr < x"00000300" then
 
                 ram_wr_en <= '1';
                 spi_wr_en <= '0';
@@ -149,9 +141,9 @@ begin
 
     rom_rd_addr <= core_rd_instr_mem_addr(7 downto 2);
 
-    ram_rd_addr0   <= core_rd_instr_mem_addr(9 downto 2);
-    ram_rd_addr1   <= core_rd_wr_mem_addr(9 downto 2);
-    ram_wr_addr    <= core_rd_wr_mem_addr(9 downto 2);
+    ram_rd_addr0   <= core_rd_instr_mem_addr(7 downto 2);
+    ram_rd_addr1   <= core_rd_wr_mem_addr(7 downto 2);
+    ram_wr_addr    <= core_rd_wr_mem_addr(7 downto 2);
     ram_wr_data    <= core_wr_mem_data;
     ram_wr_byte_en <= core_wr_mem_byte_en;
 
@@ -173,8 +165,8 @@ begin
     );
     
     leaf_ram: ram generic map (
-        MEM_SIZE  => 1024,
-        ADDR_BITS => 10
+        MEM_SIZE  => 256,
+        ADDR_BITS => 8
     ) port map (
         clk         => clk,
         rd_addr0    => ram_rd_addr0,
