@@ -79,16 +79,6 @@ architecture rom_arch of rom is
 
 begin
     
-    rd_rom: process(rd_addr)
-    
-        variable addr: integer range 0 to MEM_SIZE/4-1;
-
-    begin
-                
-        addr := to_integer(unsigned(rd_addr));
-
-        rd_data <= boot_data(addr);
-
-    end process rd_rom;
+    rd_data <= boot_data(to_integer(unsigned(rd_addr)));
     
 end architecture rom_arch;

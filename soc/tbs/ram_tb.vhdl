@@ -35,7 +35,10 @@ architecture ram_tb_arch of ram_tb is
 
 begin
 
-    uut: ram port map (
+    uut: ram generic map (
+        MEM_SIZE => 8192,
+        ADDR_BITS => 13
+    ) port map (
         clk        => clk,
         rd_addr0   => rd_addr0,
         rd_data0   => rd_data0,

@@ -54,17 +54,21 @@ begin
     
     instr_arbiter: process(core_rd_instr_mem_addr, rom_rd_data, ram_rd_data0)
    
+        variable base_addr: std_logic_vector(23 downto 0);
+
     begin
    
-        if core_rd_instr_mem_addr < x"00000100" then
+        base_addr := core_rd_instr_mem_addr(31 downto 8);
+
+        if base_addr = x"000000" then
             
             core_rd_instr_mem_data <= x"00000013";
 
-        elsif core_rd_instr_mem_addr < x"00000200" then
+        elsif base_addr = x"000001" then
 
             core_rd_instr_mem_data <= rom_rd_data;
 
-        elsif core_rd_instr_mem_addr < x"00000300" then
+        elsif base_addr = x"000002" then
 
             core_rd_instr_mem_data <= ram_rd_data0;
 
@@ -78,19 +82,23 @@ begin
 
     data_arbiter: process(core_rd_wr_mem_addr, core_rd_mem_en, core_wr_mem_en, spi_rd_data, rom_rd_data, ram_rd_data1)
     
+        variable base_addr: std_logic_vector(23 downto 0);
+
     begin
+
+        base_addr := core_rd_wr_mem_addr(31 downto 8);
     
         if core_rd_mem_en = '1' then
             
-            if core_rd_wr_mem_addr < x"00000100" then
+            if base_addr = x"000000" then
             
                 core_rd_mem_data <= spi_rd_data;
 
-            elsif core_rd_wr_mem_addr < x"00000200" then
+            elsif base_addr = x"000001" then
     
                 core_rd_mem_data <= rom_rd_data;
     
-            elsif core_rd_wr_mem_addr < x"00000300" then
+            elsif base_addr = x"000002" then
     
                 core_rd_mem_data <= ram_rd_data1;
     
@@ -108,17 +116,17 @@ begin
 
         if core_wr_mem_en = '1' then
             
-            if core_rd_wr_mem_addr < x"00000100" then
+            if base_addr = x"000000" then
                 
                 ram_wr_en <= '0';
                 spi_wr_en <= '1';
 
-            elsif core_rd_wr_mem_addr < x"00000200" then
+            elsif base_addr = x"000001" then
 
                 ram_wr_en <= '0';
                 spi_wr_en <= '0';
 
-            elsif core_rd_wr_mem_addr < x"00000300" then
+            elsif base_addr = x"000002" then
 
                 ram_wr_en <= '1';
                 spi_wr_en <= '0';

@@ -6,7 +6,7 @@ package leaf_chip_pkg is
     component rom is
     
         generic (
-            MEM_SIZE:  natural := 1024;
+            MEM_SIZE:  natural := 256;
             ADDR_BITS: natural := 8
         );
     
@@ -20,8 +20,8 @@ package leaf_chip_pkg is
     component ram is
     
         generic (
-            MEM_SIZE:  natural := 8192;
-            ADDR_BITS: natural := 13
+            MEM_SIZE:  natural := 256;
+            ADDR_BITS: natural := 8
         );
     
         port (
