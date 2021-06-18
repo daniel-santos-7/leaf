@@ -5,8 +5,8 @@ use IEEE.numeric_std.all;
 entity ram is
     
     generic (
-        MEM_SIZE:  natural := 8192;  -- memory size 8kB
-        ADDR_BITS: natural := 13     -- internal bus width address = log2(MEM_SIZE)
+        MEM_SIZE:  natural := 1024;  -- memory size 1kB
+        ADDR_BITS: natural := 10     -- internal bus width address = log2(MEM_SIZE)
     );
 
     port (
@@ -34,9 +34,12 @@ end entity ram;
 
 architecture ram_arch of ram is
     
-    type data_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(31 downto 0);
+    type db_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(7 downto 0);
 
-    signal data: data_array;
+    signal db0: db_array;
+    signal db1: db_array;
+    signal db2: db_array;
+    signal db3: db_array;
 
 begin
     
@@ -56,16 +59,19 @@ begin
                 
                     when b"0001" => 
                         
-                        data(addr)(7 downto 0) <= wr_data(7 downto 0);
+                        db0(addr) <= wr_data(7 downto 0);
                         
                     when b"0011" => 
                     
-                        data(addr)(7  downto 0) <= wr_data(7  downto 0);
-                        data(addr)(15 downto 0) <= wr_data(15 downto 8);
+                        db0(addr) <= wr_data(7  downto 0);
+                        db1(addr) <= wr_data(15 downto 8);
                 
                     when others => 
                     
-                        data(addr) <= wr_data;
+                        db0(addr) <= wr_data(7  downto 0);
+                        db1(addr) <= wr_data(15 downto 8);
+                        db2(addr) <= wr_data(23 downto 16);
+                        db3(addr) <= wr_data(31 downto 24);
     
                 end case;
 
@@ -75,28 +81,14 @@ begin
         
     end process wr_ram;
 
-    rd_ram0: process(rd_addr0, data)
-    
-        variable addr: integer range 0 to MEM_SIZE/4-1;
+    rd_data0(7  downto  0)  <= db0(to_integer(unsigned(rd_addr0)));
+    rd_data0(15 downto  8)  <= db1(to_integer(unsigned(rd_addr0)));
+    rd_data0(23 downto 16)  <= db2(to_integer(unsigned(rd_addr0)));
+    rd_data0(31 downto 24)  <= db3(to_integer(unsigned(rd_addr0)));
 
-    begin
-    
-        addr := to_integer(unsigned(rd_addr0));
-
-        rd_data0 <= data(addr);
-        
-    end process rd_ram0;
-
-    rd_ram1: process(rd_addr1, data)
-    
-        variable addr: integer range 0 to MEM_SIZE/4-1;
-
-    begin
-                
-        addr := to_integer(unsigned(rd_addr1));
-
-        rd_data1 <= data(addr);
-
-    end process rd_ram1;
+    rd_data1(7  downto  0)  <= db0(to_integer(unsigned(rd_addr1)));
+    rd_data1(15 downto  8)  <= db1(to_integer(unsigned(rd_addr1)));
+    rd_data1(23 downto 16)  <= db2(to_integer(unsigned(rd_addr1)));
+    rd_data1(31 downto 24)  <= db3(to_integer(unsigned(rd_addr1)));        
     
 end architecture ram_arch;
