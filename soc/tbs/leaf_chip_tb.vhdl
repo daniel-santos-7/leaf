@@ -19,23 +19,23 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
     type program is array (natural range<>) of std_logic_vector(31 downto 0);
 
     constant hello_program: program := (
-        0 => x"00000013",
-        1 => x"04800593",
-        2 => x"024000ef",
-        3 => x"04500593",
-        4 => x"01c000ef",
-        5 => x"04c00593",
-        6 => x"014000ef",
-        7 => x"04c00593",
-        8 => x"00c000ef",
-        9 => x"04f00593",
-        10 => x"004000ef",
-        11 => x"00b02423",
-        12 => x"fff00e13",
-        13 => x"00402e83",
-        14 => x"ffce9ee3",
-        15 => x"00802503",
-        16 => x"00008067"
+        0 =>	x"00000013",
+        1 =>	x"04800593",
+        2 =>	x"024000ef",
+        3 =>	x"04500593",
+        4 =>	x"01c000ef",
+        5 =>	x"04c00593",
+        6 =>	x"014000ef",
+        7 =>	x"04c00593",
+        8 =>	x"00c000ef",
+        9 =>	x"04f00593",
+        10 =>	x"004000ef",
+        11 =>	x"00b02423",
+        12 =>	x"fff00e13",
+        13 =>	x"00402e83",
+        14 =>	x"ffce9ee3",
+        15 =>	x"00802503",
+        16 =>	x"00008067"
     );
 
     signal slave_data:  std_logic_vector(31 downto 0) := (others => '1');
