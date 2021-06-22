@@ -5,6 +5,10 @@ use work.core_pkg.all;
 
 entity core is
     
+    generic (
+        RESET_ADDR: std_logic_vector(31 downto 0) := (others => '0')
+    );
+
     port (
         clk:   in std_logic; 
         reset: in std_logic;
@@ -73,7 +77,9 @@ begin
 
     end process pipeline_regs;
     
-    core_if_stage: if_stage port map (
+    core_if_stage: if_stage generic map (
+        RESET_ADDR => RESET_ADDR
+    ) port map (
         clk               => clk,
         reset             => reset,
         jmp               => jmp, 

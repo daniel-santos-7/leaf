@@ -280,5 +280,6 @@ begin
 
     branch <= brd_branch;
     target <= alu_res;
+    trap   <= '0';
 
 end architecture id_ex_stage_arch;
