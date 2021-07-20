@@ -65,7 +65,7 @@ Original Author: Shay Gal-on
 #ifdef __GNUC__
 #define COMPILER_VERSION "GCC"__VERSION__
 #else
-#define COMPILER_VERSION "Please put compiler version here (e.g. gcc 4.1)"
+#define COMPILER_VERSION "riscv32-unknown-elf-gcc (GCC) 11.1.0"
 #endif
 #endif
 #ifndef COMPILER_FLAGS
@@ -127,7 +127,7 @@ typedef ee_u32 CORE_TICKS;
         MEM_STACK - to allocate the data block on the stack (NYI).
 */
 #ifndef MEM_METHOD
-#define MEM_METHOD MEM_STACK
+#define MEM_METHOD MEM_STATIC
 #endif
 
 /* Configuration : MULTITHREAD
@@ -166,7 +166,7 @@ typedef ee_u32 CORE_TICKS;
    greater then 1.
 */
 #ifndef MAIN_HAS_NOARGC
-#define MAIN_HAS_NOARGC 0
+#define MAIN_HAS_NOARGC 1
 #endif
 
 /* Configuration : MAIN_HAS_NORETURN
@@ -177,7 +177,7 @@ typedef ee_u32 CORE_TICKS;
         1 - platform does not support returning a value from main
 */
 #ifndef MAIN_HAS_NORETURN
-#define MAIN_HAS_NORETURN 0
+#define MAIN_HAS_NORETURN 1
 #endif
 
 /* Variable : default_num_contexts
