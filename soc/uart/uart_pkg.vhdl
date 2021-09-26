@@ -17,5 +17,19 @@ package uart_pkg is
             tx:      out std_logic
         );
     end component uart_tx;
+
+    component uart_rx is
+        generic(
+            UART_BAUD: integer
+        );
+    
+        port (
+            clk:     in std_logic;
+            reset:   in std_logic;
+            rx:      in std_logic;
+            rd_data: out std_logic_vector(7 downto 0);
+            rd_en:   out std_logic
+        );
+    end component uart_rx;
     
 end package uart_pkg;
