@@ -1,4 +1,4 @@
-UART_DSG = uart/uart_tx.vhdl uart/uart_rx.vhdl uart/uart_pkg.vhdl
+UART_DSG = uart/uart_tx.vhdl uart/uart_rx.vhdl uart/uart_pkg.vhdl uart/uart.vhdl
 UART_TBS = uart/uart_tx_tb.vhdl uart/uart_rx_tb.vhdl
 
 DSG_SRC = $(UART_DSG)
