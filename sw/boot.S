@@ -16,7 +16,7 @@ load:
 	addi x6, x6, 0x4
 	jal x0, load
 
-spi_read:
+uart_read:
 	
 	li x28, 0x0
 	sw x28, 0x8(x0)
