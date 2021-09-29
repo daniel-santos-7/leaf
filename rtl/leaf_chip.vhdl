@@ -16,7 +16,7 @@ entity leaf_chip is
         clk:   in  std_logic;
         reset: in  std_logic;
         rx:    in  std_logic;
-        tx:    out std_logic;
+        tx:    out std_logic
     );
 
 end entity leaf_chip;
@@ -265,8 +265,8 @@ begin
     uart_wr_addr    <= core_rd_wr_mem_addr(3 downto 2);
     uart_wr_byte_en <= core_wr_mem_byte_en;
 
-    leaf_uart: generic map(
-        UART_BAUD: integer
+    leaf_uart: uart generic map(
+        UART_BAUD => 5802
     ) port map(
         clk        => clk,
         reset      => reset,
@@ -274,9 +274,9 @@ begin
         rd_addr    => uart_rd_addr,
         rd_data    => uart_rd_data,
         wr_en      => uart_wr_en,
-        wr_addr    => uart_wr_addr
+        wr_addr    => uart_wr_addr,
         wr_data    => uart_wr_data,
-        wr_byte_en => uart_wr_byte_en
+        wr_byte_en => uart_wr_byte_en,
         rx         => rx,
         tx         => tx
     );

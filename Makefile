@@ -1,26 +1,26 @@
-UART_DSG = uart/uart_tx.vhdl uart/uart_rx.vhdl uart/uart_pkg.vhdl uart/uart.vhdl
-UART_TBS = uart/uart_tx_tb.vhdl uart/uart_rx_tb.vhdl
+CORE_SRC = $(wildcard rtl/core/rtl/*.vhdl)
+RAM_SRC =  $(wildcard rtl/ram/*.vhdl)
+ROM_SRC =  $(wildcard rtl/rom/*.vhdl)
+UART_SRC = $(wildcard rtl/uart/*.vhdl)
+CHIP_SRC = rtl/leaf_chip_pkg.vhdl rtl/leaf_chip.vhdl
 
-DSG_SRC = $(UART_DSG)
-TBS_SRC = $(UART_TBS)
+RTL_SRC = $(CORE_SRC) $(RAM_SRC) $(ROM_SRC) $(UART_SRC) $(CHIP_SRC)
 
 .PHONY: all clean
 
-all: work/work-obj93.cf waves/uart_tx_tb.ghw waves/uart_rx_tb.ghw
+all: work/work-obj93.cf
 
-work/work-obj93.cf: $(DSG_SRC)
+work/work-obj93.cf: $(RTL_SRC)
 	test -d work || mkdir work;
-	ghdl -a --workdir=work $(DSG_SRC) $(TBS_SRC);
+	ghdl -i --workdir=work $(RTL_SRC);
 
-waves/uart_tx_tb.ghw: work/work-obj93.cf
-	test -d waves || mkdir waves;
-	ghdl -e --workdir=work uart_tx_tb;
-	ghdl -r --workdir=work uart_tx_tb --wave=waves/uart_tx_tb.ghw;
+elab: work/work-obj93.cf
+	ghdl -c --workdir=work -e leaf_chip;
 
-waves/uart_rx_tb.ghw: work/work-obj93.cf
-	test -d waves || mkdir waves;
-	ghdl -e --workdir=work uart_rx_tb;
-	ghdl -r --workdir=work uart_rx_tb --wave=waves/uart_rx_tb.ghw;
+# waves/uart_tx_tb.ghw: work/work-obj93.cf
+# 	test -d waves || mkdir waves;
+# 	ghdl -e --workdir=work uart_tx_tb;
+# 	ghdl -r --workdir=work uart_tx_tb --wave=waves/uart_tx_tb.ghw;
 
 clean:
 	rm -rf work;
