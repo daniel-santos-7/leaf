@@ -52,6 +52,8 @@ begin
     -- read module registers
     ----------------------------------------------------------------------
 
+    status_reg <= x"0000" & tx_pointer & rx_pointer;
+
     rd_reg: process(rd_en, rd_addr)
     begin
         
