@@ -21,11 +21,11 @@ entity fifo is
 
         wr:      in  std_logic;
         wr_en:   out std_logic;
-        wr_data: in  std_logic_vector(7 downto 0);
+        wr_data: in  std_logic_vector(BITS-1 downto 0);
 
         rd:       in  std_logic;
         rd_en:    out std_logic;
-        rd_data:  out std_logic_vector(7 downto 0)
+        rd_data:  out std_logic_vector(BITS-1 downto 0)
     );
 end entity fifo;
 
@@ -33,9 +33,9 @@ architecture fifo_arch of fifo is
     
     ----------------------------- types ----------------------------------
 
-    type fifo_data_array is array (0 range SIZE-1) of std_logic_vector(2^BITS-1 downto 0);
+    type fifo_data_array is array (0 to SIZE-1) of std_logic_vector(BITS-1 downto 0);
     
-    type fifo_op_type is (READ_OP, WRITE_OP);
+    type fifo_op is (READ_OP, WRITE_OP);
 
     ---------------------------- fifo data -------------------------------
 
@@ -43,7 +43,7 @@ architecture fifo_arch of fifo is
 
     --------------------- fifo last op register --------------------------
     
-    signal fifo_op: fifo_op_type;
+    signal last_op: fifo_op;
 
     ------------------------- external flags -----------------------------
 
@@ -72,7 +72,7 @@ begin
 
             if rd = '1' and empty = '0' then
                 
-                rd_pointer <= rd_pointer + 1;
+                rd_pointer <= (rd_pointer + 1) mod SIZE;
                 
             end if;
             
@@ -95,9 +95,9 @@ begin
 
             if wr = '1' and full = '0' then
                 
-                fifo_data(wr_pointer) <= wr_pointer;
+                fifo_data(wr_pointer) <= wr_data;
                 
-                wr_pointer <= wr_pointer + 1;
+                wr_pointer <= (wr_pointer + 1) mod SIZE;
 
             end if;
 
