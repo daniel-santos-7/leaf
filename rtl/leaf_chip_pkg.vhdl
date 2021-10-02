@@ -128,13 +128,10 @@ package leaf_chip_pkg is
     component leaf_chip is
         
         port (
-            clk:   in std_logic;
-            reset: in std_logic;
-    
-            sdo:  out std_logic;
-            sdi:  in  std_logic;
-            sclk: out std_logic;
-            cs:   out std_logic
+            clk:   in  std_logic;
+            reset: in  std_logic;
+            rx:    in  std_logic;
+            tx:    out std_logic
         );
     
     end component leaf_chip;
