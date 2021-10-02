@@ -52,7 +52,7 @@ begin
     -- read module registers
     ----------------------------------------------------------------------
 
-    status_reg <= x"0000" & tx_pointer & rx_pointer;
+    status_reg <= x"000000" & tx_pointer & rx_pointer;
 
     rd_reg: process(rd_en, rd_addr)
     begin
@@ -144,8 +144,6 @@ begin
     ----------------------------------------------------------------------
     -- receiver
     ----------------------------------------------------------------------
-
-    rx_rd_data <= rx_reg(7 downto 0);
 
     receiver: uart_rx generic map (
         UART_BAUD => UART_BAUD
