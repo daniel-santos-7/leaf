@@ -11,7 +11,11 @@ use work.leaf_chip_pkg.all;
 use work.uart_pkg.all;
 
 entity leaf_chip is
-    
+
+    generic (
+        UART_BAUD: integer := 5802
+    );
+
     port (
         clk:   in  std_logic;
         reset: in  std_logic;
@@ -266,7 +270,7 @@ begin
     uart_wr_byte_en <= core_wr_mem_byte_en;
 
     leaf_uart: uart generic map(
-        UART_BAUD => 5802
+        UART_BAUD => UART_BAUD
     ) port map(
         clk        => clk,
         reset      => reset,

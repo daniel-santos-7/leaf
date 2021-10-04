@@ -126,6 +126,10 @@ package leaf_chip_pkg is
     end component core;
 
     component leaf_chip is
+
+        generic (
+            UART_BAUD: integer := 5802
+        );
         
         port (
             clk:   in  std_logic;

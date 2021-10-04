@@ -36,9 +36,6 @@ architecture uar_arch of uart is
     signal ctrl_reg:   std_logic_vector(31 downto 0);
     signal rx_reg:     std_logic_vector(31 downto 0);
     signal tx_reg:     std_logic_vector(31 downto 0);
-    
-    signal rx_pointer: std_logic_vector(3 downto 0);
-    signal tx_pointer: std_logic_vector(3 downto 0);
 
     signal tx_wr:      std_logic;
     signal rx_rd_en:   std_logic;
@@ -48,11 +45,32 @@ architecture uar_arch of uart is
     
 begin
 
-    ----------------------------------------------------------------------
-    -- read module registers
-    ----------------------------------------------------------------------
+    ------------------- read module registers ----------------------------
 
-    status_reg <= x"000000" & tx_pointer & rx_pointer;
+    status_reg <= x"0000" & (7 downto 0 => tx_wr_en) & (7 downto 0 => rx_rd_en);
+
+    ctrl_reg <= (others => '0');
+    
+    rx_reg <= x"000000" & rx_rd_data;
+
+    wr_reg: process(reset, clk)
+    begin
+        
+        if reset = '1' then
+            
+            tx_reg <= (others => '0');
+
+        elsif rising_edge(clk) then
+            
+            if wr_en = '1' and wr_addr = TX_ADDR then
+                
+                tx_reg <= wr_data;
+
+            end if;
+
+        end if;
+
+    end process wr_reg;
 
     rd_reg: process(rd_en, rd_addr)
     begin
@@ -87,63 +105,7 @@ begin
 
     end process rd_reg;
 
-    ----------------------------------------------------------------------
-    -- receive data
-    ----------------------------------------------------------------------
-
-    receive: process(clk)
-    begin
-        
-        if rising_edge(clk) then
-
-            if rd_en = '1' and rd_addr = RX_ADDR then
-                
-                rx_pointer <= (others => '0');
-
-                rx_reg <= (others => '1');
-
-            elsif rx_rd_en = '1' and rx_pointer /= x"FF" then 
-
-                rx_pointer <= '1' & rx_pointer(3 downto 1);
-
-                rx_reg <= rx_rd_data & rx_reg(31 downto 8);
-
-            end if;
-           
-        end if;
-
-    end process receive;
-
-    ----------------------------------------------------------------------
-    -- transmit data
-    ----------------------------------------------------------------------
-
-    transmit: process(clk)
-    begin
-        
-        if rising_edge(clk) then
-            
-            if wr_en = '1' then
-                
-                tx_pointer <= not wr_byte_en;
-
-                tx_reg <= wr_data;
-
-            elsif tx_wr_en = '1' and tx_pointer /= x"FF" then
-                
-                tx_pointer <= '1' & tx_pointer(3 downto 1);
-                    
-                tx_reg <= x"FF" & tx_reg(31 downto 8);
-
-            end if;
-
-        end if;
-
-    end process transmit;
-
-    ----------------------------------------------------------------------
-    -- receiver
-    ----------------------------------------------------------------------
+    ---------------------------- receiver --------------------------------
 
     receiver: uart_rx generic map (
         UART_BAUD => UART_BAUD
@@ -155,13 +117,11 @@ begin
         rd_en   => rx_rd_en
     );
 
-    ----------------------------------------------------------------------
-    -- transmitter
-    ----------------------------------------------------------------------
-
-    tx_wr <= '0' when tx_pointer = x"FF" else '0';
+    --------------------------- transmitter ------------------------------
 
     tx_wr_data <= tx_reg(7 downto 0);
+
+    tx_wr <= wr_en when wr_addr = TX_ADDR else '0';
 
     transmitter: uart_tx generic map (
         UART_BAUD => UART_BAUD
