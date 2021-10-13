@@ -19,24 +19,14 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
 
     type program is array (natural range<>) of std_logic_vector(31 downto 0);
 
-    constant test_program: program := (
-        0 =>	x"00000013",
-        1 =>	x"04800593",
-        2 =>	x"024000ef",
-        3 =>	x"04500593",
-        4 =>	x"01c000ef",
-        5 =>	x"04c00593",
-        6 =>	x"014000ef",
-        7 =>	x"04c00593",
-        8 =>	x"00c000ef",
-        9 =>	x"04f00593",
-        10 =>	x"004000ef",
-        11 =>	x"00b02423",
-        12 =>	x"fff00e13",
-        13 =>	x"00402e83",
-        14 =>	x"ffce9ee3",
-        15 =>	x"00802503",
-        16 =>	x"00008067"
+    constant software: program := (
+        0 =>  x"04100293",            
+        1 =>  x"0ff00313",            
+        2 =>  x"00000393",            
+        3 =>  x"00502623",
+        4 =>  x"00002383",
+        5 =>  x"0083d393",           
+        6 =>  x"fe731ce3"           
     );
 
 begin
@@ -52,9 +42,11 @@ begin
 
     test: process
 
-        constant LOAD_CMD: std_logic_vector(31 downto 0) := x"00000077";
+        constant LOAD_CMD:     std_logic_vector(7 downto 0) := x"77";
+        constant PROGRAM_SIZE: std_logic_vector(7 downto 0) := x"1C";
 
-        variable tx_frame: std_logic_vector(9 downto 0);
+        variable tx_frame:    std_logic_vector(9 downto 0);
+        variable instruction: std_logic_vector(31 downto 0);
 
     begin
         
@@ -76,19 +68,55 @@ begin
 
         end loop;
 
-        for i in 0 to 3 loop
+        tx_frame := '1' & LOAD_CMD & '0';
+
+        for i in 0 to 9 loop
+        
+            rx <= tx_frame(i);
+
+            for j in 0 to 2*uart_baud loop
+                
+                clk <= not clk;
+                wait for PERIOD/2;
+
+            end loop;
+
+        end loop;
+
+        tx_frame := '1' & PROGRAM_SIZE & '0';
+
+        for i in 0 to 9 loop
+        
+            rx <= tx_frame(i);
+
+            for j in 0 to 2*uart_baud loop
+                
+                clk <= not clk;
+                wait for PERIOD/2;
+
+            end loop;
+
+        end loop;
+
+        for i in 0 to 6 loop
             
-            tx_frame := '1' & LOAD_CMD(i*8+7 downto i*8) & '0';
+            instruction := software(i);
 
-            for i in 0 to 9 loop
-            
-                rx <= tx_frame(i);
+            for j in 0 to 3 loop
+                
+                tx_frame := '1' & instruction(8*j+7 downto j*8) & '0';
 
-                for j in 0 to 2*uart_baud loop
-                    
-                    clk <= not clk;
-                    wait for PERIOD/2;
-
+                for i in 0 to 9 loop
+        
+                    rx <= tx_frame(i);
+        
+                    for j in 0 to 2*uart_baud loop
+                        
+                        clk <= not clk;
+                        wait for PERIOD/2;
+        
+                    end loop;
+        
                 end loop;
 
             end loop;
@@ -97,6 +125,13 @@ begin
 
         for i in 0 to 2*UART_BAUD loop
             
+            clk <= not clk;
+            wait for PERIOD/2;
+
+        end loop;
+
+        for i in 0 to 12*UART_BAUD loop
+        
             clk <= not clk;
             wait for PERIOD/2;
 
