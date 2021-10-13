@@ -5,7 +5,7 @@
 # 2021
 # ----------------------------------------------------------------------
 
-.equ LOAD_CMD, 0x00000077
+.equ LOAD_CMD, 0x77
 .equ RAM_BASE, 0x200
 .equ RAM_SIZE, 0x100
 
@@ -40,46 +40,27 @@ _start:
 			bltu t1, t0, load_loop 	# load if t1 < program size
 
 	load_end:
-		li	x1,  0
-		li	x2,  0
-		li	x3,  0
-		li	x4,  0
-		li	x5,  0
-		li	x6,  0
-		li	x7,  0
-		li	x8,  0
-		li	x9,  0
-		li	x10, 0
-		li	x11, 0
-		li	x12, 0
-		li	x13, 0
-		li	x14, 0
-		li	x15, 0
-		li	x16, 0
-		li	x17, 0
-		li	x18, 0
-		li	x19, 0
-		li	x20, 0
-		li	x21, 0
-		li	x22, 0
-		li	x23, 0
-		li	x24, 0
-		li	x25, 0
-		li	x26, 0
-		li	x27, 0
-		li	x28, 0
-		li	x29, 0
-		li	x30, 0
-		li	x31, 0
 		j RAM_BASE
 
 	uart_read:
-		li t2, 0
-		li t3, 0xF
+		li t2, 0				# clear t2
+		li t3, 0xFF				# read enable flag
 		wait:
-			lw t2, 0x0(x0)
-			and t2, t2, t3
-			bne t2, t3, wait
+			lb t2, 0x0(x0)		# load enable flag from uart
+			bne t2, t3, wait	# loop if enable flag is not 0xFF
 
-	lw a0, 0x8(x0)
+	lw a0, 0x8(x0)				# a0 receive byte from uart
+	ret							# return
+
+	uart_wread:
+		li t4, 4
+		
+		wwait:
+			addi t4, x0, -1
+			call uart_read
+			slli t5, t5, 8
+			add t5, t5, a0
+			bne t4, x0, wwait
+		
+	add a0, x0, t5
 	ret
