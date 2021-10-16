@@ -27,6 +27,13 @@ waves/fifo_tb.ghw: work/work-obj93.cf
 	ghdl -m --workdir=work fifo_tb;
 	ghdl -r --workdir=work fifo_tb --ieee-asserts=disable --wave=waves/fifo_tb.ghw;
 
+sw/boot: sw/boot.S
+	riscv32-unknown-elf-gcc -nostartfiles -Ttext 0x100 $^ -o $@ 
+
+sw/hello: sw/hello.S
+	riscv32-unknown-elf-gcc -nostartfiles -Ttext 0x200 $^ -o $@
+
 clean:
 	rm -rf work;
 	rm -rf waves;
+	# rm sw/boot

@@ -9,6 +9,8 @@
 .equ RAM_BASE, 0x200
 .equ RAM_SIZE, 0x100
 
+.globl _start
+
 _start:
 	
 	li t0, 0	# clear t0
@@ -35,8 +37,8 @@ _start:
 
 		load_loop:
 			call uart_read			# read instruction
-			sw a0, RAM_BASE(t1)		# store instruction in address + RAM_BASE
-			addi t1, t1, 4			# t1 = instruction address
+			sb a0, RAM_BASE(t1)		# store instruction in address + RAM_BASE
+			addi t1, t1, 1			# t1 = instruction address
 			bltu t1, t0, load_loop 	# load if t1 < program size
 
 	load_end:
@@ -46,21 +48,8 @@ _start:
 		li t2, 0				# clear t2
 		li t3, 0xFF				# read enable flag
 		wait:
-			lb t2, 0x0(x0)		# load enable flag from uart
+			lbu t2, 0x0(x0)		# load enable flag from uart
 			bne t2, t3, wait	# loop if enable flag is not 0xFF
 
 	lw a0, 0x8(x0)				# a0 receive byte from uart
 	ret							# return
-
-	uart_wread:
-		li t4, 4
-		
-		wwait:
-			addi t4, x0, -1
-			call uart_read
-			slli t5, t5, 8
-			add t5, t5, a0
-			bne t4, x0, wwait
-		
-	add a0, x0, t5
-	ret

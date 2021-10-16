@@ -1,3 +1,7 @@
 /build
 /work
 /waves
+
+/sw/boot.o
+/sw/boot
+/sw/hello

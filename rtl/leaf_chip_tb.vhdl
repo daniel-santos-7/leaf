@@ -20,13 +20,13 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
     type program is array (natural range<>) of std_logic_vector(31 downto 0);
 
     constant software: program := (
-        0 =>  x"04100293",            
-        1 =>  x"0ff00313",            
-        2 =>  x"00000393",            
-        3 =>  x"00502623",
-        4 =>  x"00002383",
-        5 =>  x"0083d393",           
-        6 =>  x"fe731ce3"           
+        x"04100293",
+        x"0ff00313",
+        x"00000393",
+        x"00502623",
+        x"00002383",
+        x"0083d393",
+        x"fe731ce3"
     );
 
 begin

@@ -1,3 +1,5 @@
+.globl _start
+
 _start:
 	li t0, 0x41
 	li t1, 0xFF

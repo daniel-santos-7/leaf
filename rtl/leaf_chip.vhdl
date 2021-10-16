@@ -55,11 +55,11 @@ architecture leaf_chip_arch of leaf_chip is
 
     --------------------------- RAM signals ------------------------------
 
-    signal ram_rd_addr0:   std_logic_vector(5  downto 0);
+    signal ram_rd_addr0:   std_logic_vector(7  downto 0);
     signal ram_rd_data0:   std_logic_vector(31 downto 0);
-    signal ram_rd_addr1:   std_logic_vector(5  downto 0);
+    signal ram_rd_addr1:   std_logic_vector(7  downto 0);
     signal ram_rd_data1:   std_logic_vector(31 downto 0);
-    signal ram_wr_addr:    std_logic_vector(5  downto 0);
+    signal ram_wr_addr:    std_logic_vector(7  downto 0);
     signal ram_wr_data:    std_logic_vector(31 downto 0);
     signal ram_wr_byte_en: std_logic_vector(3  downto 0);
     signal ram_wr_en:      std_logic;
@@ -238,9 +238,9 @@ begin
 
     -------------------------- RAM memory --------------------------------
 
-    ram_rd_addr0   <= core_rd_instr_mem_addr(7 downto 2);
-    ram_rd_addr1   <= core_rd_wr_mem_addr(7 downto 2);
-    ram_wr_addr    <= core_rd_wr_mem_addr(7 downto 2);
+    ram_rd_addr0   <= core_rd_instr_mem_addr(7 downto 0);
+    ram_rd_addr1   <= core_rd_wr_mem_addr(7 downto 0);
+    ram_wr_addr    <= core_rd_wr_mem_addr(7 downto 0);
     ram_wr_data    <= core_wr_mem_data;
     ram_wr_byte_en <= core_wr_mem_byte_en;
     
