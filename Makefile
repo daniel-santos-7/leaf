@@ -8,6 +8,9 @@ CHIP_SRC = $(wildcard rtl/*.vhdl)
 
 RTL_SRC = $(CORE_SRC) $(RAM_SRC) $(ROM_SRC) $(UART_SRC) $(CHIP_SRC) $(COMMON_SRC)
 
+RV_CC = riscv32-unknown-elf-gcc
+RV_CFLAGS = -nostartfiles
+
 .PHONY: all clean
 
 all: work/work-obj93.cf waves/leaf_chip_tb.ghw
@@ -28,12 +31,14 @@ waves/fifo_tb.ghw: work/work-obj93.cf
 	ghdl -r --workdir=work fifo_tb --ieee-asserts=disable --wave=waves/fifo_tb.ghw;
 
 sw/boot: sw/boot.S
-	riscv32-unknown-elf-gcc -nostartfiles -Ttext 0x100 $^ -o $@ 
+	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@ 
 
-sw/hello: sw/hello.S
-	riscv32-unknown-elf-gcc -nostartfiles -Ttext 0x200 $^ -o $@
+sw/hello: sw/crt0.S sw/hello.c
+	$(RV_CC) $(RV_CFLAGS) -T sw/fwu.ld $^ -o $@
 
 clean:
 	rm -rf work;
 	rm -rf waves;
-	# rm sw/boot
+
+sw/clean:
+	rm sw/hello;
