@@ -2,9 +2,9 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-entity down_counter is
+entity piso is
     generic(
-        BITS: natural := 16
+        BITS: natural
     );
 
     port (
@@ -13,15 +13,13 @@ entity down_counter is
         en:   in  std_logic;
         mode: in  std_logic;
         load: in  std_logic_vector(BITS-1 downto 0);
-        val:  out std_logic_vector(BITS-1 downto 0)
+        ser:  out std_logic;
     );
-end entity down_counter;
+end entity piso;
 
-architecture down_counter_tb of down_counter is
-
-    constant MIN_VAL: unsigned(BITS-1 downto 0) := (others => '0');
+architecture piso_arch of piso is
     
-    signal inter_val: unsigned(BITS-1 downto 0);
+    signal val: std_logic_vector(BITS-1 downto 0);
 
 begin
     
@@ -30,7 +28,7 @@ begin
         
         if clr = '1' then
             
-            inter_val <= (others => '1');
+            val <= (others => '1');
 
         elsif rising_edge(clk) then
 
@@ -38,22 +36,20 @@ begin
                 
                 if mode = '1' then
                     
-                    inter_val <= unsigned(load);
-
-                elsif inter_val = MIN_VAL then
-
-                    inter_val <= (others => '1');
+                    val <= load;
 
                 else
 
-                    inter_val <= inter_val - 1;
+                    val <= '1' & piso_val(BITS-1 downto 1);
 
                 end if;
 
             end if;
-        
+
         end if;
 
     end process main;
+
+    ser <= val(0);
     
-end architecture down_counter_tb;
+end architecture piso_arch;
