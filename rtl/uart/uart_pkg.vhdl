@@ -73,8 +73,8 @@ package uart_pkg is
             reset:    in  std_logic;
             baud_div: in  std_logic_vector(15 downto 0);
             rd:       out std_logic;
+            rd_en:    in  std_logic;
             rd_data:  in  std_logic_vector(7 downto 0);
-            en:       in  std_logic;
             busy:     out std_logic;
             tx:       out std_logic
         );

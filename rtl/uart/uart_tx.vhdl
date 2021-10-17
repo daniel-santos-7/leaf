@@ -8,8 +8,8 @@ entity uart_tx is
         reset:    in  std_logic;
         baud_div: in  std_logic_vector(15 downto 0);
         rd:       out std_logic;
+        rd_en:    in  std_logic;
         rd_data:  in  std_logic_vector(7 downto 0);
-        en:       in  std_logic;
         busy:     out std_logic;
         tx:       out std_logic
     );
@@ -64,7 +64,7 @@ begin
 
     end process fsm;
 
-    fsm_next_state: process(curr_state, en, baud_counter_tc, tx_counter_tc)
+    fsm_next_state: process(curr_state, rd_en, baud_counter_tc, tx_counter_tc)
     begin
         
         case curr_state is
@@ -75,7 +75,7 @@ begin
         
             when IDLE =>
                 
-                if en = '1' then
+                if rd_en = '1' then
                     
                     next_state <= TX_START;
 
