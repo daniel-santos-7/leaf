@@ -18,27 +18,26 @@ package leaf_chip_pkg is
     end component rom;
 
     component ram is
-    
         generic (
-            MEM_SIZE:  natural := 256;
-            ADDR_BITS: natural := 8
+            BITS: natural := 8     -- internal bus width address = log2(MEM_SIZE)
         );
     
         port (
             clk: in std_logic;
             
-            rd_addr0: in  std_logic_vector(ADDR_BITS-1 downto 0);
-            rd_data0: out std_logic_vector(31 downto 0);
+            -- read only port --
     
-            rd_addr1: in  std_logic_vector(ADDR_BITS-1 downto 0);
-            rd_data1: out std_logic_vector(31 downto 0);
+            adr_i0: in  std_logic_vector(ADDR_BITS-3 downto 0);
+            dat_o0: out std_logic_vector(31 downto 0);
     
-            wr_addr:    in  std_logic_vector(ADDR_BITS-1 downto 0);
-            wr_data:    in  std_logic_vector(31 downto 0);
-            wr_byte_en: in  std_logic_vector(3  downto 0);
-            wr_en:      in  std_logic
+            -- read/write port --
+    
+            adr_i1: in  std_logic_vector(ADDR_BITS-3 downto 0);        
+            dat_o1: out std_logic_vector(31 downto 0);
+            dat_i1: in  std_logic_vector(31 downto 0);
+            sel_i1: in  std_logic_vector(3  downto 0);
+            we_i1:  in  std_logic;
         );
-    
     end component ram;
 
     component spi is
