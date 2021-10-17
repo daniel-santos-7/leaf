@@ -19,24 +19,24 @@ entity ram is
         
         -- read only port --
 
-        adr_i0: in  std_logic_vector(ADDR_BITS-3 downto 0);
+        adr_i0: in  std_logic_vector(BITS-3 downto 0);
         dat_o0: out std_logic_vector(31 downto 0);
 
         -- read/write port --
 
-        adr_i1: in  std_logic_vector(ADDR_BITS-3 downto 0);        
+        adr_i1: in  std_logic_vector(BITS-3 downto 0);        
         dat_o1: out std_logic_vector(31 downto 0);
         dat_i1: in  std_logic_vector(31 downto 0);
         sel_i1: in  std_logic_vector(3  downto 0);
-        we_i1:  in  std_logic;
+        we_i1:  in  std_logic
     );
 end entity ram;
 
 architecture ram_arch of ram is
     
-    constant MEM_SIZE := BITS**2;
+    constant MEM_SIZE: natural := 2**BITS;
 
-    type mem_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(31 downto 0);
+    type mem_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(7 downto 0);
 
     signal mem0: mem_array;
     signal mem1: mem_array;
@@ -58,7 +58,7 @@ begin
 
         if rising_edge(clk) then
 
-            addr := to_integer(unsigned(wr_addr));
+            addr := to_integer(unsigned(adr_i1));
 
             mem0_we := sel_i1(0);
             mem1_we := sel_i1(1);
