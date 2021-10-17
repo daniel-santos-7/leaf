@@ -5,14 +5,14 @@ _start:
 
 .hidden clear_bss
 clear_bss:
-	la x1, __bss_begin
-	la x2, __bss_end
-	beq x1, x2, 2f
+	la t0, __bss_begin
+	la t1, __bss_end
+	beq t0, t1, 2f
 
 1:
-	sw x0, (x1)
-	addi x1, x1, 4
-	bne x1, x2, 1b
+	sw x0, (t0)
+	addi t0, t0, 4
+	bne t0, t1, 1b
 2:
 
 .hidden init_stack
