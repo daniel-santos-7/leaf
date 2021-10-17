@@ -1,19 +1,23 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: fifo
+-- description: boot read-only memory
+----------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 entity rom is
-    
     generic (
-        MEM_SIZE:  natural := 256;
-        ADDR_BITS: natural := 8
+        BITS: natural := 8
     );
 
     port (
-        rd_addr: in  std_logic_vector(ADDR_BITS-3  downto 0);
-        rd_data: out std_logic_vector(31 downto 0)
+        addr: in  std_logic_vector(BITS-3  downto 0);
+        dout: out std_logic_vector(31 downto 0)
     );
-
 end entity rom;
 
 architecture rom_arch of rom is

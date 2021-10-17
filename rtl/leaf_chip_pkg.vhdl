@@ -4,17 +4,14 @@ use IEEE.std_logic_1164.all;
 package leaf_chip_pkg is
     
     component rom is
-    
         generic (
-            MEM_SIZE:  natural := 256;
-            ADDR_BITS: natural := 8
+            BITS: natural := 8
         );
     
         port (
-            rd_addr: in  std_logic_vector(ADDR_BITS-3  downto 0);
-            rd_data: out std_logic_vector(31 downto 0)
+            addr: in  std_logic_vector(BITS-3  downto 0);
+            dout: out std_logic_vector(31 downto 0)
         );
-    
     end component rom;
 
     component ram is
