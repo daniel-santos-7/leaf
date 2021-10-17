@@ -2,6 +2,20 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 
 package uart_pkg is
+
+    component down_counter is
+        generic(
+            BITS: natural := 16
+        );
+    
+        port (
+            clr:  in std_logic;
+            en:   in std_logic;
+            mode: in std_logic;
+            load: in std_logic_vector(BITS-1 downto 0);
+            val:  out std_logic_vector(BITS-1 downto 0)
+        );
+    end component down_counter;
     
     component uart_tx is
         generic(
