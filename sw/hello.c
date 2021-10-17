@@ -16,7 +16,7 @@ int main() {
 }
 
 void uart_send_char(const char c) {
-    while((*UART_TX_ADDRESS) != 255);
+    while((*UART_TX_ADDRESS) != 0xFF);
 
     (*UART_TX_ADDRESS) = c;
 }
