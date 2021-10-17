@@ -3,19 +3,16 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 entity uart_rx is
-
-    generic(
-        UART_BAUD: integer
-    );
-
     port (
-        clk:     in std_logic;
-        reset:   in std_logic;
-        rx:      in std_logic;
-        rd_data: out std_logic_vector(7 downto 0);
-        rd_en:   out std_logic
+        clk:      in  std_logic;
+        reset:    in  std_logic;
+        baud_div: in  std_logic_vector(15 downto 0);
+        wr:       out std_logic;
+        wr_en:    in  std_logic;
+        wr_data:  out std_logic_vector(7 downto 0);
+        busy:     out std_logic;
+        rx:       in  std_logic
     );
-
 end entity uart_rx;
 
 architecture uart_rx_arch of uart_rx is
@@ -40,22 +37,13 @@ architecture uart_rx_arch of uart_rx is
     signal rx_counter_val:  unsigned(2 downto 0);
     signal rx_counter_load: unsigned(2 downto 0);
     
-    signal sipo_clr: std_logic;
-    signal sipo_en:  std_logic;
-    signal sipo_ser: std_logic;
-    signal sipo_val: std_logic_vector(7 downto 0);
-
-    signal buffer_clr:  std_logic;
-    signal buffer_ld:   std_logic;
-    signal buffer_load: std_logic_vector(7 downto 0);
-    signal buffer_val:  std_logic_vector(7 downto 0);
+    signal rx_sipo_clr: std_logic;
+    signal rx_sipo_en:  std_logic;
+    signal rx_sipo_ser: std_logic;
+    signal rx_sipo_val: std_logic_vector(7 downto 0);
 
 begin
     
-    ----------------------------------------------------------------------
-    -- finite state machine
-    ----------------------------------------------------------------------
-
     fsm: process(clk)
     begin
         
@@ -75,7 +63,7 @@ begin
 
     end process fsm;
 
-    fsm_next_state: process(curr_state, rx, baud_counter_tc, rx_counter_tc)
+    fsm_next_state: process(curr_state, wr_en, rx, baud_counter_tc, rx_counter_tc)
     begin
         
         case curr_state is
@@ -86,8 +74,8 @@ begin
         
             when IDLE =>
                 
-                if rx = '0' then
-                    
+                if wr_en = '1' and rx = '0' then
+
                     next_state <= RX_START;
 
                 else
@@ -136,15 +124,11 @@ begin
 
     end process fsm_next_state;
 
-    ----------------------------------------------------------------------
-    -- counter to delay the state machine on receipt
-    ----------------------------------------------------------------------
-
-    uart_baud_val <= to_unsigned(UART_BAUD, 32);
+    uart_baud_val <= baud_div;
 
     baud_counter_load <= '0' & uart_baud_val(31 downto 1) when curr_state = RX_START else uart_baud_val;
 
-    baud_counter_tc   <= '1' when baud_counter_val = x"00000000" else '0';
+    baud_counter_tc   <= '1' when baud_counter_val = x"0000" else '0';
 
     baud_counter_clr  <= '1' when curr_state = START else '0';
 
@@ -152,40 +136,15 @@ begin
 
     baud_counter_mode <= '1' when curr_state = IDLE or baud_counter_tc = '1' else '0';
 
-    baud_counter: process(clk, baud_counter_clr)
-    begin
-        
-        if baud_counter_clr = '1' then
-            
-            baud_counter_val <= (others => '1');
-
-        elsif rising_edge(clk) then
-
-            if baud_counter_en = '1' then
-                
-                if baud_counter_mode = '1' then
-                    
-                    baud_counter_val <= baud_counter_load;
-
-                elsif baud_counter_tc = '1' then
-
-                    baud_counter_val <= (others => '1');
-
-                else
-
-                    baud_counter_val <= baud_counter_val - 1;
-
-                end if;
-
-            end if;
-        
-        end if;
-
-    end process baud_counter;
-
-    ----------------------------------------------------------------------
-    -- received bit counter
-    ----------------------------------------------------------------------
+    baud_counter: down_counter generic map (
+        BITS => 16
+    ) port map (
+        clr  => baud_counter_clr,
+        en   => baud_counter_en,
+        mode => baud_counter_mode,
+        load => baud_counter_load,
+        val  => baud_counter_val
+    );
 
     rx_counter_tc  <= '1' when rx_counter_val = b"000" else '0';
 
@@ -193,100 +152,35 @@ begin
 
     rx_counter_en  <= baud_counter_tc when curr_state = RX_DATA else '0';
 
-    rx_counter: process(clk, rx_counter_clr)
-    begin
-        
-        if rx_counter_clr = '1' then
-            
-            rx_counter_val <= (others => '1');
+    rx_counter: down_counter generic map (
+        BITS => 3
+    ) port map (
+        clr  => rx_counter_clr,
+        en   => rx_counter_en,
+        mode => '0',
+        load => (others => '1'),
+        val  => rx_counter_val
+    );
 
-        elsif rising_edge(clk) then
+    rx_sipo_clr <= '1' when curr_state = START else '0';
 
-            if rx_counter_en = '1' then
-                
-                if rx_counter_tc = '1' then
-
-                    rx_counter_val <= (others => '1');
-
-                else
-
-                    rx_counter_val <= rx_counter_val - 1;
-
-                end if;
-
-            end if;
-        
-        end if;
-
-    end process rx_counter;
-
-    ----------------------------------------------------------------------
-    -- receive buffer
-    ----------------------------------------------------------------------
-
-    buffer_clr <= '1' when curr_state = START else '0';
-
-    buffer_ld  <= '1' when curr_state = RX_STOP and next_state = IDLE else '0';
-
-    buffer_load <= sipo_val;
-
-    rx_buffer: process(clk)
-    begin
-        
-        if buffer_clr = '1' then
-                
-            buffer_val <= (others => '0');
-
-        elsif rising_edge(clk) then
-
-            if buffer_ld = '1' then
-                
-                buffer_val <= buffer_load;
-
-            end if;
-
-        end if;
-
-    end process rx_buffer;
-
-    ----------------------------------------------------------------------
-    -- 8 bit sipo register for reception (serial-in, parallel-out)
-    ----------------------------------------------------------------------
-
-    sipo_clr <= '1' when curr_state = START else '0';
-
-    sipo_en  <= baud_counter_tc when curr_state = RX_START or curr_state = RX_DATA else '0';        
+    rx_sipo_en  <= baud_counter_tc when curr_state = RX_START or curr_state = RX_DATA else '0';        
     
-    sipo_ser <= rx;
+    rx_sipo_ser <= rx;
 
-    sipo: process(clk, sipo_clr)
-    begin
-        
-        if sipo_clr = '1' then
-            
-            sipo_val <= (others => '1');
+    rx_sipo: sipo generic map (
+        BITS => 8
+    ) port map (
+        clk => clk,
+        clr => rx_sipo_clr,
+        en  => rx_sipo_en,
+        ser => rx_sipo_ser,
+        val => rx_sipo_val
+    );
 
-        elsif rising_edge(clk) then
+    wr <= '1' when curr_state = RX_STOP and next_state = IDLE else '0';
 
-            if sipo_en = '1' then
-
-                sipo_val <= sipo_ser & sipo_val(7 downto 1);
-
-            end if;
-
-        end if;
-
-    end process sipo;
-
-    ----------------------------------------------------------------------
-    -- reception output
-    ----------------------------------------------------------------------
-
-    rd_data <= buffer_val;
-
-    ----------------------------------------------------------------------
-    -- flags
-    ----------------------------------------------------------------------
+    wr_data <= rx_sipo_val;
 
     rd_en <= '1' when curr_state = IDLE else '0';
     

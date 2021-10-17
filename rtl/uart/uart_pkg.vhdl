@@ -52,6 +52,20 @@ package uart_pkg is
             ser:  out std_logic;
         );
     end component piso;
+
+    component sipo is
+        generic(
+            BITS: natural
+        );
+    
+        port (
+            clk:  in  std_logic;
+            clr:  in  std_logic;
+            en:   in  std_logic;
+            ser:  in  std_logic;
+            val:  out std_logic_vector(BITS-1 downto 0);
+        );
+    end component sipo;
     
     component uart_tx is
         port (
@@ -67,16 +81,15 @@ package uart_pkg is
     end component uart_tx;
 
     component uart_rx is
-        generic(
-            UART_BAUD: integer
-        );
-    
         port (
-            clk:     in std_logic;
-            reset:   in std_logic;
-            rx:      in std_logic;
-            rd_data: out std_logic_vector(7 downto 0);
-            rd_en:   out std_logic
+            clk:      in  std_logic;
+            reset:    in  std_logic;
+            baud_div: in  std_logic_vector(15 downto 0);
+            wr:       out std_logic;
+            wr_en:    in  std_logic;
+            wr_data:  out std_logic_vector(7 downto 0);
+            busy:     out std_logic;
+            rx:       in  std_logic
         );
     end component uart_rx;
 
