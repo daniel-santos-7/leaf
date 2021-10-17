@@ -6,11 +6,10 @@ entity uart_tx is
     port (
         clk:      in  std_logic;
         reset:    in  std_logic;
-        baud_div: in std_logic_vector(15 downto 0);
+        baud_div: in  std_logic_vector(15 downto 0);
         rd:       out std_logic;
         rd_data:  in  std_logic_vector(7 downto 0);
-        wr:       in  std_logic;
-        wr_data:  in  std_logic_vector(7 downto 0);
+        en:       in  std_logic;
         busy:     out std_logic;
         tx:       out std_logic
     );
@@ -65,7 +64,7 @@ begin
 
     end process fsm;
 
-    fsm_next_state: process(curr_state, wr, baud_counter_tc, tx_counter_tc)
+    fsm_next_state: process(curr_state, en, baud_counter_tc, tx_counter_tc)
     begin
         
         case curr_state is
@@ -76,7 +75,7 @@ begin
         
             when IDLE =>
                 
-                if wr = '1' then
+                if en = '1' then
                     
                     next_state <= TX_START;
 
