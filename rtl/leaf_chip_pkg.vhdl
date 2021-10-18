@@ -9,8 +9,9 @@ package leaf_chip_pkg is
         );
     
         port (
-            addr: in  std_logic_vector(BITS-3  downto 0);
-            dout: out std_logic_vector(31 downto 0)
+            rd:      in std_logic;
+            rd_addr: in  std_logic_vector(BITS-3  downto 0);
+            rd_data: out std_logic_vector(31 downto 0)
         );
     end component rom;
 

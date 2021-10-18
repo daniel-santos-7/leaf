@@ -15,14 +15,15 @@ entity rom is
     );
 
     port (
-        addr: in  std_logic_vector(BITS-3  downto 0);
-        dout: out std_logic_vector(31 downto 0)
+        rd:      in std_logic;
+        rd_addr: in  std_logic_vector(BITS-3  downto 0);
+        rd_data: out std_logic_vector(31 downto 0)
     );
 end entity rom;
 
 architecture rom_arch of rom is
     
-    type data_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(31 downto 0);
+    type mem_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(31 downto 0);
 
     -- constant boot_data: data_array := (
     --     x"00000293",
@@ -52,7 +53,7 @@ architecture rom_arch of rom is
     --     others => x"00000013"
     -- );
 
-    constant boot_data: data_array := (
+    constant mem: mem_array := (
         x"07800293",
         x"0ff00313",
         x"00000393",
@@ -66,6 +67,19 @@ architecture rom_arch of rom is
 
 begin
     
-    rd_data <= boot_data(to_integer(unsigned(rd_addr)));
+    main: process(rd, rd_addr)
+    begin
+        
+        if rd = '1' then
+            
+            rd_data <= mem(to_integer(unsigned(rd_addr)));
+
+        else
+
+            rd_data <= (others => '0');
+
+        end if;
+
+    end process main;
     
 end architecture rom_arch;
