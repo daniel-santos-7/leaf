@@ -3,22 +3,17 @@ use IEEE.std_logic_1164.all;
 use work.uart_pkg.all;
 
 entity uart is
-    generic (
-        UART_BAUD: integer
-    );
-
     port (
         clk:   in  std_logic;
         reset: in  std_logic;
-        
-        rd_en:   in  std_logic;
+
+        rd:      in  std_logic;
         rd_addr: in  std_logic_vector(1  downto 0);
         rd_data: out std_logic_vector(31 downto 0);
 
-        wr_en:      in std_logic;
-        wr_addr:    in std_logic_vector(1  downto 0);
-        wr_data:    in std_logic_vector(31 downto 0);
-        wr_byte_en: in std_logic_vector(3  downto 0);
+        wr:      in std_logic;
+        wr_addr: in std_logic_vector(1  downto 0);
+        wr_data: in std_logic_vector(31 downto 0);
 
         rx: in  std_logic;
         tx: out std_logic
@@ -27,74 +22,156 @@ end entity uart;
 
 architecture uar_arch of uart is
 
-    constant STATUS_ADDR: std_logic_vector(1 downto 0) := b"00";
-    constant CTRL_ADDR:   std_logic_vector(1 downto 0) := b"01";
-    constant RX_ADDR:     std_logic_vector(1 downto 0) := b"10";
-    constant TX_ADDR:     std_logic_vector(1 downto 0) := b"11";
+    constant STAT_ADDR: std_logic_vector(1 downto 0) := b"00";
+    constant CTRL_ADDR: std_logic_vector(1 downto 0) := b"01";
+    constant BRDV_ADDR: std_logic_vector(1 downto 0) := b"10";
+    constant TXRX_ADDR: std_logic_vector(1 downto 0) := b"11";
 
-    signal status_reg: std_logic_vector(31 downto 0);
-    signal ctrl_reg:   std_logic_vector(31 downto 0);
-    signal rx_reg:     std_logic_vector(31 downto 0);
-    signal tx_reg:     std_logic_vector(31 downto 0);
+    signal status: std_logic_vector(5 downto 0);
 
+    signal baud_div: std_logic_vector(15 downto 0);
+
+    signal rx_fifo_wr:      std_logic;
+    signal rx_fifo_wr_en:   std_logic;
+    signal rx_fifo_rd:      std_logic;
+    signal rx_fifo_rd_en:   std_logic;
+    signal rx_fifo_wr_data: std_logic_vector(7 downto 0);
+    signal rx_fifo_rd_data: std_logic_vector(7 downto 0);
+
+    signal rx:         std_logic;
+    signal rx_wr:      std_logic;
+    signal rx_wr_en:   std_logic;
+    signal rx_busy:    std_logic;
+    signal rx_wr_data: std_logic_vector(7 downto 0);
+
+    signal tx_fifo_wr:      std_logic;
+    signal tx_fifo_wr_en:   std_logic;
+    signal tx_fifo_rd:      std_logic;
+    signal tx_fifo_rd_en:   std_logic;
+    signal tx_fifo_wr_data: std_logic_vector(7 downto 0);
+    signal tx_fifo_rd_data: std_logic_vector(7 downto 0);
+
+    signal tx:         std_logic;
     signal tx_wr:      std_logic;
-    signal rx_rd_en:   std_logic;
     signal tx_wr_en:   std_logic;
-    signal rx_rd_data: std_logic_vector(7 downto 0);
+    signal tx_busy:    std_logic;
     signal tx_wr_data: std_logic_vector(7 downto 0);
     
 begin
 
-    ------------------- read module registers ----------------------------
+    ------------------ baud rate divider register ------------------------
 
-    status_reg <= x"0000" & (7 downto 0 => tx_wr_en) & (7 downto 0 => rx_rd_en);
-
-    ctrl_reg <= (others => '0');
-    
-    rx_reg <= x"000000" & rx_rd_data;
-
-    wr_reg: process(reset, clk)
+    baud_div_reg: process(reset, clk)
     begin
         
         if reset = '1' then
-            
-            tx_reg <= (others => '0');
+
+            baud_div <= (others => '1');
 
         elsif rising_edge(clk) then
             
-            if wr_en = '1' and wr_addr = TX_ADDR then
-                
-                tx_reg <= wr_data;
+            if wr = '1' and wr_addr = BRDV_ADDR then
+               
+                baud_div <= wr_data;
 
             end if;
 
         end if;
 
-    end process wr_reg;
+    end process baud_div_reg;
 
-    rd_reg: process(rd_en, rd_addr)
+    -------------------------- receiver buffer ----------------------------
+
+    rx_fifo_rd <= '1' when rd = '1' and rd_addr = TXRX_ADDR;
+
+    rx_fifo: generic map (
+        SIZE: natural := 8;
+        BITS: natural := 8 
+    ) port map (
+        clk     => clk,
+        reset   => reset,
+        wr      => rx_fifo_wr,
+        wr_en   => rx_fifo_wr_en,
+        wr_data => rx_fifo_wr_data,
+        rd      => rx_fifo_rd,
+        rd_en   => rx_fifo_rd_en,
+        rd_data => rx_fifo_rd_data
+    );
+
+    ---------------------------- receiver --------------------------------
+
+    rx_wr      <= rx_fifo_wr;
+    rx_wr_en   <= rx_fifo_wr_en;
+    rx_wr_data <= rx_fifo_wr_data;
+
+    receiver: uart_rx port map (
+        clk      => clk,
+        reset    => reset,
+        baud_div => baud_div,
+        wr       => rx_wr,
+        wr_en    => rx_wr_en,
+        wr_data  => rx_wr_data,
+        busy     => rx_busy,
+        rx       => rx
+    );
+
+    ----------------------- transmitter buffer --------------------------
+
+    tx_fifo_wr      <= '1' when wr = '1' and wr_addr = TXRX_ADDR else '0';
+    tx_fifo_wr_data <= wr_data;
+
+    tx_fifo: generic map (
+        SIZE: natural := 8;
+        BITS: natural := 8 
+    ) port map (
+        clk     => clk,
+        reset   => reset,
+        wr      => tx_fifo_wr,
+        wr_en   => tx_fifo_wr_en,
+        wr_data => tx_fifo_wr_data,
+        rd      => tx_fifo_rd,
+        rd_en   => tx_fifo_rd_en,
+        rd_data => tx_fifo_rd_data
+    );
+
+    --------------------------- transmitter ------------------------------
+
+    tx_rd      <= tx_fifo_rd;
+    tx_rd_en   <= tx_fifo_rd_en;
+    tx_rd_data <= tx_fifo_rd_data;
+
+    transmitter: uart_tx port map (
+        clk       => clk,
+        reset     => reset,
+        baud_div  => baud_div,
+        rd        => tx_rd,
+        rd_en     => tx_rd_en,
+        rd_data   => tx_rd_data,
+        busy      => tx_busy,
+        tx        => tx
+    );
+
+    -------------------------- module status -----------------------------
+
+    status(5 downto 4) <= tx_fifo_wr_en & rx_fifo_wr_en;
+    status(3 downto 2) <= tx_fifo_rd_en & rx_fifo_rd_en;
+    status(1 downto 0) <= tx_busy & rx_busy;
+
+    -------------------------- read registers ----------------------------
+
+    rd_reg: process(rd, rd_addr, status, baud_div, rx_fifo_rd_data)
     begin
         
-        if rd_en = '1' then
+        if rd = '1' then
             
             case rd_addr is
-            
-                when STATUS_ADDR =>
-    
-                    rd_data <= status_reg;
-    
-                when CTRL_ADDR => 
-    
-                    rd_data <= ctrl_reg;
-    
-                when RX_ADDR =>
-    
-                    rd_data <= rx_reg;
-    
-                when others =>
-    
-                    rd_data <= (others => '0');
-            
+                
+                when STAT_ADDR => rd_data <= (5 downto 0 => status, others => '0');
+                when CTRL_ADDR => rd_data <= (1 downto 0 => '1', others => '0');
+                when BRDV_ADDR => rd_data <= baud_div;
+                when TXRX_ADDR => rd_data <= (7 downto 0 => rx_fifo_rd_data, others => '0');
+                when others    => rd_data <= (others => '0');
+                
             end case;
             
         else 
@@ -105,33 +182,4 @@ begin
 
     end process rd_reg;
 
-    ---------------------------- receiver --------------------------------
-
-    receiver: uart_rx generic map (
-        UART_BAUD => UART_BAUD
-    ) port map (
-        clk     => clk,
-        reset   => reset,
-        rx      => rx,
-        rd_data => rx_rd_data,
-        rd_en   => rx_rd_en
-    );
-
-    --------------------------- transmitter ------------------------------
-
-    tx_wr_data <= tx_reg(7 downto 0);
-
-    tx_wr <= wr_en when wr_addr = TX_ADDR else '0';
-
-    transmitter: uart_tx generic map (
-        UART_BAUD => UART_BAUD
-    ) port map (
-        clk     => clk,
-        reset   => reset,
-        wr      => tx_wr,
-        wr_data => tx_wr_data,
-        wr_en   => tx_wr_en,
-        tx      => tx
-    );
-    
 end architecture uar_arch;

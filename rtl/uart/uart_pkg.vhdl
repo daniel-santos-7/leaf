@@ -94,22 +94,17 @@ package uart_pkg is
     end component uart_rx;
 
     component uart is
-        generic (
-            UART_BAUD: integer
-        );
-    
         port (
             clk:   in  std_logic;
             reset: in  std_logic;
-            
-            rd_en:   in  std_logic;
+    
+            rd:      in  std_logic;
             rd_addr: in  std_logic_vector(1  downto 0);
             rd_data: out std_logic_vector(31 downto 0);
     
-            wr_en:      in std_logic;
-            wr_addr:    in std_logic_vector(1  downto 0);
-            wr_data:    in std_logic_vector(31 downto 0);
-            wr_byte_en: in std_logic_vector(3  downto 0);
+            wr:      in std_logic;
+            wr_addr: in std_logic_vector(1  downto 0);
+            wr_data: in std_logic_vector(31 downto 0);
     
             rx: in  std_logic;
             tx: out std_logic
