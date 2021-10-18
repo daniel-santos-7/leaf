@@ -49,7 +49,7 @@ package uart_pkg is
             en:   in  std_logic;
             mode: in  std_logic;
             load: in  std_logic_vector(BITS-1 downto 0);
-            ser:  out std_logic;
+            ser:  out std_logic
         );
     end component piso;
 
@@ -63,7 +63,7 @@ package uart_pkg is
             clr:  in  std_logic;
             en:   in  std_logic;
             ser:  in  std_logic;
-            val:  out std_logic_vector(BITS-1 downto 0);
+            val:  out std_logic_vector(BITS-1 downto 0)
         );
     end component sipo;
     
@@ -97,15 +97,15 @@ package uart_pkg is
         port (
             clk:   in  std_logic;
             reset: in  std_logic;
-    
+
             rd:      in  std_logic;
             rd_addr: in  std_logic_vector(1  downto 0);
-            rd_data: out std_logic_vector(31 downto 0);
-    
+            rd_data: out std_logic_vector(15 downto 0);
+
             wr:      in std_logic;
             wr_addr: in std_logic_vector(1  downto 0);
-            wr_data: in std_logic_vector(31 downto 0);
-    
+            wr_data: in std_logic_vector(15 downto 0);
+
             rx: in  std_logic;
             tx: out std_logic
         );

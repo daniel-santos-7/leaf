@@ -24,16 +24,16 @@ package leaf_chip_pkg is
             
             -- read only port --
     
-            adr_i0: in  std_logic_vector(ADDR_BITS-3 downto 0);
+            adr_i0: in  std_logic_vector(BITS-3 downto 0);
             dat_o0: out std_logic_vector(31 downto 0);
     
             -- read/write port --
     
-            adr_i1: in  std_logic_vector(ADDR_BITS-3 downto 0);        
+            adr_i1: in  std_logic_vector(BITS-3 downto 0);        
             dat_o1: out std_logic_vector(31 downto 0);
             dat_i1: in  std_logic_vector(31 downto 0);
             sel_i1: in  std_logic_vector(3  downto 0);
-            we_i1:  in  std_logic;
+            we_i1:  in  std_logic
         );
     end component ram;
 

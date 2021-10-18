@@ -13,13 +13,13 @@ entity piso is
         en:   in  std_logic;
         mode: in  std_logic;
         load: in  std_logic_vector(BITS-1 downto 0);
-        ser:  out std_logic;
+        ser:  out std_logic
     );
 end entity piso;
 
 architecture piso_arch of piso is
     
-    signal val: std_logic_vector(BITS-1 downto 0);
+    signal inter_val: std_logic_vector(BITS-1 downto 0);
 
 begin
     
@@ -28,7 +28,7 @@ begin
         
         if clr = '1' then
             
-            val <= (others => '1');
+            inter_val <= (others => '1');
 
         elsif rising_edge(clk) then
 
@@ -36,11 +36,11 @@ begin
                 
                 if mode = '1' then
                     
-                    val <= load;
+                    inter_val <= load;
 
                 else
 
-                    val <= '1' & piso_val(BITS-1 downto 1);
+                    inter_val <= '1' & inter_val(BITS-1 downto 1);
 
                 end if;
 
@@ -50,6 +50,6 @@ begin
 
     end process main;
 
-    ser <= val(0);
+    ser <= inter_val(0);
     
 end architecture piso_arch;

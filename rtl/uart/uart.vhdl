@@ -9,11 +9,11 @@ entity uart is
 
         rd:      in  std_logic;
         rd_addr: in  std_logic_vector(1  downto 0);
-        rd_data: out std_logic_vector(31 downto 0);
+        rd_data: out std_logic_vector(15 downto 0);
 
         wr:      in std_logic;
         wr_addr: in std_logic_vector(1  downto 0);
-        wr_data: in std_logic_vector(31 downto 0);
+        wr_data: in std_logic_vector(15 downto 0);
 
         rx: in  std_logic;
         tx: out std_logic
@@ -38,7 +38,6 @@ architecture uar_arch of uart is
     signal rx_fifo_wr_data: std_logic_vector(7 downto 0);
     signal rx_fifo_rd_data: std_logic_vector(7 downto 0);
 
-    signal rx:         std_logic;
     signal rx_wr:      std_logic;
     signal rx_wr_en:   std_logic;
     signal rx_busy:    std_logic;
@@ -51,11 +50,10 @@ architecture uar_arch of uart is
     signal tx_fifo_wr_data: std_logic_vector(7 downto 0);
     signal tx_fifo_rd_data: std_logic_vector(7 downto 0);
 
-    signal tx:         std_logic;
-    signal tx_wr:      std_logic;
-    signal tx_wr_en:   std_logic;
+    signal tx_rd:      std_logic;
+    signal tx_rd_en:   std_logic;
     signal tx_busy:    std_logic;
-    signal tx_wr_data: std_logic_vector(7 downto 0);
+    signal tx_rd_data: std_logic_vector(7 downto 0);
     
 begin
 
@@ -84,9 +82,9 @@ begin
 
     rx_fifo_rd <= '1' when rd = '1' and rd_addr = TXRX_ADDR;
 
-    rx_fifo: generic map (
-        SIZE: natural := 8;
-        BITS: natural := 8 
+    rx_fifo: fifo generic map (
+        SIZE => 8,
+        BITS => 8 
     ) port map (
         clk     => clk,
         reset   => reset,
@@ -100,9 +98,9 @@ begin
 
     ---------------------------- receiver --------------------------------
 
-    rx_wr      <= rx_fifo_wr;
-    rx_wr_en   <= rx_fifo_wr_en;
-    rx_wr_data <= rx_fifo_wr_data;
+    rx_fifo_wr      <= rx_wr;
+    rx_wr_en        <= rx_fifo_wr_en;
+    rx_fifo_wr_data <= rx_wr_data;
 
     receiver: uart_rx port map (
         clk      => clk,
@@ -118,11 +116,11 @@ begin
     ----------------------- transmitter buffer --------------------------
 
     tx_fifo_wr      <= '1' when wr = '1' and wr_addr = TXRX_ADDR else '0';
-    tx_fifo_wr_data <= wr_data;
+    tx_fifo_wr_data <= wr_data(7 downto 0);
 
-    tx_fifo: generic map (
-        SIZE: natural := 8;
-        BITS: natural := 8 
+    tx_fifo: fifo generic map (
+        SIZE => 8,
+        BITS => 8 
     ) port map (
         clk     => clk,
         reset   => reset,
@@ -166,11 +164,27 @@ begin
             
             case rd_addr is
                 
-                when STAT_ADDR => rd_data <= (5 downto 0 => status, others => '0');
-                when CTRL_ADDR => rd_data <= (1 downto 0 => '1', others => '0');
-                when BRDV_ADDR => rd_data <= baud_div;
-                when TXRX_ADDR => rd_data <= (7 downto 0 => rx_fifo_rd_data, others => '0');
-                when others    => rd_data <= (others => '0');
+                when STAT_ADDR => 
+                
+                    rd_data(5  downto 0) <= status;
+                    rd_data(15 downto 6) <= (others => '0');
+                
+                when CTRL_ADDR => 
+                    
+                    rd_data <= (1 downto 0 => '1', others => '0');
+                
+                when BRDV_ADDR => 
+                    
+                    rd_data <= baud_div;
+                
+                when TXRX_ADDR => 
+                    
+                    rd_data(7  downto 0) <= rx_fifo_rd_data;
+                    rd_data(15 downto 8) <= (others => '0');
+                
+                when others => 
+                
+                    rd_data <= (others => '0');
                 
             end case;
             

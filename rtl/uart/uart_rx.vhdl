@@ -1,6 +1,7 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
+use work.uart_pkg.all;
 
 entity uart_rx is
     port (
@@ -22,20 +23,20 @@ architecture uart_rx_arch of uart_rx is
     signal curr_state: state;
     signal next_state: state;
 
-    signal uart_baud_val: unsigned(31 downto 0);
+    signal uart_baud_val: std_logic_vector(15 downto 0);
     
     signal baud_counter_tc:   std_logic;
     signal baud_counter_clr:  std_logic;
     signal baud_counter_en:   std_logic;
     signal baud_counter_mode: std_logic;
-    signal baud_counter_val:  unsigned(31 downto 0);
-    signal baud_counter_load: unsigned(31 downto 0);
+    signal baud_counter_val:  std_logic_vector(15 downto 0);
+    signal baud_counter_load: std_logic_vector(15 downto 0);
     
     signal rx_counter_tc:   std_logic;
     signal rx_counter_clr:  std_logic;
     signal rx_counter_en:   std_logic;
-    signal rx_counter_val:  unsigned(2 downto 0);
-    signal rx_counter_load: unsigned(2 downto 0);
+    signal rx_counter_val:  std_logic_vector(2 downto 0);
+    signal rx_counter_load: std_logic_vector(2 downto 0);
     
     signal rx_sipo_clr: std_logic;
     signal rx_sipo_en:  std_logic;
@@ -126,7 +127,7 @@ begin
 
     uart_baud_val <= baud_div;
 
-    baud_counter_load <= '0' & uart_baud_val(31 downto 1) when curr_state = RX_START else uart_baud_val;
+    baud_counter_load <= '0' & uart_baud_val(15 downto 1) when curr_state = RX_START else uart_baud_val;
 
     baud_counter_tc   <= '1' when baud_counter_val = x"0000" else '0';
 
@@ -139,6 +140,7 @@ begin
     baud_counter: down_counter generic map (
         BITS => 16
     ) port map (
+        clk  => clk,
         clr  => baud_counter_clr,
         en   => baud_counter_en,
         mode => baud_counter_mode,
@@ -155,6 +157,7 @@ begin
     rx_counter: down_counter generic map (
         BITS => 3
     ) port map (
+        clk  => clk,
         clr  => rx_counter_clr,
         en   => rx_counter_en,
         mode => '0',
@@ -182,6 +185,6 @@ begin
 
     wr_data <= rx_sipo_val;
 
-    rd_en <= '1' when curr_state = IDLE else '0';
+    busy <= '0' when curr_state = IDLE else '1';
     
 end architecture uart_rx_arch;

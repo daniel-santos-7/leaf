@@ -55,5 +55,7 @@ begin
         end if;
 
     end process main;
+
+    val <= std_logic_vector(inter_val);
     
 end architecture down_counter_tb;

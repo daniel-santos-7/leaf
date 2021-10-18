@@ -1,6 +1,7 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
+use work.uart_pkg.all;
 
 entity uart_tx is
     port (
@@ -26,14 +27,14 @@ architecture uart_tx_arch of uart_tx is
     signal baud_counter_clr:  std_logic;
     signal baud_counter_en:   std_logic;
     signal baud_counter_mode: std_logic;
-    signal baud_counter_val:  unsigned(31 downto 0);
-    signal baud_counter_load: unsigned(31 downto 0);
+    signal baud_counter_val:  std_logic_vector(15 downto 0);
+    signal baud_counter_load: std_logic_vector(15 downto 0);
 
     signal tx_counter_tc:   std_logic;
     signal tx_counter_clr:  std_logic;
     signal tx_counter_en:   std_logic;
-    signal tx_counter_val:  unsigned(2 downto 0);
-    signal tx_counter_load: unsigned(2 downto 0);
+    signal tx_counter_val:  std_logic_vector(2 downto 0);
+    signal tx_counter_load: std_logic_vector(2 downto 0);
 
     signal tx_piso_clr:  std_logic;
     signal tx_piso_en:   std_logic;
@@ -138,6 +139,7 @@ begin
     baud_counter: down_counter generic map (
         BITS => 16
     ) port map (
+        clk  => clk,
         clr  => baud_counter_clr,
         en   => baud_counter_en,
         mode => baud_counter_mode,
@@ -154,6 +156,7 @@ begin
     tx_counter: down_counter generic map (
         BITS => 3
     ) port map (
+        clk  => clk,
         clr  => tx_counter_clr,
         en   => tx_counter_en,
         mode => '0',
