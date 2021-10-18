@@ -1,11 +1,10 @@
-# CORE_SRC = $(wildcard rtl/core/rtl/*.vhdl)
-# RAM_SRC =  $(wildcard rtl/ram/*.vhdl)
-# ROM_SRC =  $(wildcard rtl/rom/*.vhdl)
+CORE_SRC = $(wildcard rtl/core/rtl/*.vhdl)
+RAM_SRC =  $(wildcard rtl/ram/*.vhdl)
+ROM_SRC =  $(wildcard rtl/rom/*.vhdl)
 UART_SRC = $(wildcard rtl/uart/*.vhdl)
-# CHIP_SRC = $(wildcard rtl/*.vhdl)
+CHIP_SRC = $(wildcard rtl/*.vhdl)
 
-# RTL_SRC = $(CORE_SRC) $(RAM_SRC) $(ROM_SRC) $(UART_SRC) $(CHIP_SRC) $(COMMON_SRC)
-RTL_SRC = $(UART_SRC)
+RTL_SRC = $(CORE_SRC) $(RAM_SRC) $(ROM_SRC) $(UART_SRC) $(CHIP_SRC) $(COMMON_SRC)
 
 RV_CC = riscv32-unknown-elf-gcc
 RV_CFLAGS = -nostartfiles

@@ -15,8 +15,6 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
 
     constant PERIOD: time := 20 ns;
 
-    constant UART_BAUD: integer := 20;
-
     type program is array (natural range<>) of std_logic_vector(31 downto 0);
 
     constant software: program := (
@@ -31,9 +29,7 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
 
 begin
 
-    uut: leaf_chip generic map(
-        UART_BAUD => UART_BAUD
-    ) port map (
+    uut: leaf_chip port map (
         clk   => clk,
         reset => reset,
         rx    => rx,

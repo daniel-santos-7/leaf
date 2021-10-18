@@ -26,7 +26,7 @@ entity ram is
         wr_addr:    in  std_logic_vector(BITS-3 downto 0);
         wr_data:    in  std_logic_vector(31 downto 0);
         wr_byte_en: in  std_logic_vector(3  downto 0);
-        wr:         in  std_logic;
+        wr:         in  std_logic
     );
 end entity ram;
 

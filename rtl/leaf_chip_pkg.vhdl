@@ -9,7 +9,7 @@ package leaf_chip_pkg is
         );
     
         port (
-            rd:      in std_logic;
+            rd:      in  std_logic;
             rd_addr: in  std_logic_vector(BITS-3  downto 0);
             rd_data: out std_logic_vector(31 downto 0)
         );
@@ -37,28 +37,6 @@ package leaf_chip_pkg is
             we_i1:  in  std_logic
         );
     end component ram;
-
-    component spi is
-    
-        port (
-            clk:   in std_logic;
-            reset: in std_logic; 
-            
-            rd_addr: in  std_logic_vector(1  downto 0);
-            rd_data: out std_logic_vector(31 downto 0);
-    
-            wr_addr:    in std_logic_vector(1  downto 0);
-            wr_data:    in std_logic_vector(31 downto 0);
-            wr_byte_en: in std_logic_vector(3  downto 0);
-            wr_en:      in std_logic;
-    
-            sdo:  out std_logic;
-            sdi:  in  std_logic;
-            sclk: out std_logic;
-            cs:   out std_logic
-        );
-    
-    end component spi;
 
     component uart_rx is
 
