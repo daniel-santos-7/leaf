@@ -17,24 +17,21 @@ package leaf_chip_pkg is
 
     component ram is
         generic (
-            BITS: natural := 8     -- internal bus width address = log2(MEM_SIZE)
+            BITS: natural := 8
         );
-    
         port (
             clk: in std_logic;
             
-            -- read only port --
+            rd_addr0: in  std_logic_vector(BITS-3 downto 0);
+            rd_data0: out std_logic_vector(31 downto 0);
     
-            adr_i0: in  std_logic_vector(BITS-3 downto 0);
-            dat_o0: out std_logic_vector(31 downto 0);
+            rd_addr1: in  std_logic_vector(BITS-3 downto 0);        
+            rd_data1: out std_logic_vector(31 downto 0);
     
-            -- read/write port --
-    
-            adr_i1: in  std_logic_vector(BITS-3 downto 0);        
-            dat_o1: out std_logic_vector(31 downto 0);
-            dat_i1: in  std_logic_vector(31 downto 0);
-            sel_i1: in  std_logic_vector(3  downto 0);
-            we_i1:  in  std_logic
+            wr_addr:    in  std_logic_vector(BITS-3 downto 0);
+            wr_data:    in  std_logic_vector(31 downto 0);
+            wr_byte_en: in  std_logic_vector(3  downto 0);
+            wr:         in  std_logic
         );
     end component ram;
 
@@ -101,18 +98,12 @@ package leaf_chip_pkg is
     end component core;
 
     component leaf_chip is
-
-        generic (
-            UART_BAUD: integer := 5802
-        );
-        
         port (
             clk:   in  std_logic;
             reset: in  std_logic;
             rx:    in  std_logic;
             tx:    out std_logic
         );
-    
     end component leaf_chip;
     
 end package leaf_chip_pkg;
