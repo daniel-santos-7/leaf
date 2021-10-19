@@ -3,6 +3,11 @@ use IEEE.std_logic_1164.all;
 
 package tbs_pkg is
 
+    constant CLK_PERIOD: time := 20 ns;
+
+    procedure tick(signal clk: inout std_logic);
+    procedure tickn(signal clk: inout std_logic; constant N: natural);
+
     function r_instr(
         opcode: in std_logic_vector(6 downto 0);
         rd: in std_logic_vector(4 downto 0);
@@ -75,6 +80,26 @@ package tbs_pkg is
 end package tbs_pkg;
 
 package body tbs_pkg is
+
+    procedure tick(signal clk: inout std_logic) is
+    begin
+
+        clk <= not clk;
+        wait for CLK_PERIOD/2;
+
+        clk <= not clk;
+        wait for CLK_PERIOD/2;
+        
+    end procedure;
+
+    procedure tickn(signal clk: inout std_logic; constant N: natural) is
+    begin
+
+        for i in 0 to N loop
+            tick(clk);
+        end loop;
+
+    end procedure;
 
     function r_instr(
         opcode: in std_logic_vector(6 downto 0);

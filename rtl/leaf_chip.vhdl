@@ -52,7 +52,7 @@ architecture leaf_chip_arch of leaf_chip is
     signal ram_wr_addr:    std_logic_vector(7  downto 2);
     signal ram_wr_data:    std_logic_vector(31 downto 0);
     signal ram_wr_byte_en: std_logic_vector(3  downto 0);
-    signal ram_wr_en:      std_logic;
+    signal ram_wr:      std_logic;
 
     --------------------------- RAM signals ------------------------------
 
@@ -156,24 +156,24 @@ begin
                 
                 when x"000000" =>
                     
-                    ram_wr_en <= '0';
+                    ram_wr <= '0';
                     uart_wr   <= '1';
             
                 when x"000002" =>
                     
-                    ram_wr_en <= '1';
+                    ram_wr <= '1';
                     uart_wr   <= '0';
 
                 when others =>
                     
-                    ram_wr_en <= '0';
+                    ram_wr <= '0';
                     uart_wr   <= '0';
             
             end case;
 
         else
 
-            ram_wr_en  <= '0';
+            ram_wr  <= '0';
             uart_wr <= '0';
 
         end if;
@@ -212,7 +212,7 @@ begin
         wr_addr     => ram_wr_addr,
         wr_data     => ram_wr_data,
         wr_byte_en  => ram_wr_byte_en,
-        wr_en       => ram_wr_en
+        wr          => ram_wr
     );
 
     -------------------------- uart module -------------------------------
@@ -224,7 +224,7 @@ begin
     leaf_uart: uart port map(
         clk        => clk,
         reset      => reset,
-        rd_en      => uart_rd,
+        rd         => uart_rd,
         rd_addr    => uart_rd_addr,
         rd_data    => uart_rd_data,
         wr         => uart_wr,

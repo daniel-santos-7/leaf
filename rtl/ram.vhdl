@@ -13,7 +13,6 @@ entity ram is
     generic (
         BITS: natural := 8
     );
-
     port (
         clk: in std_logic;
         
@@ -63,7 +62,7 @@ begin
             mem2_wr := wr_byte_en(2);
             mem3_wr := wr_byte_en(3);
 
-            if we = '1' then
+            if wr = '1' then
                     
                 if mem0_wr = '1' then
 

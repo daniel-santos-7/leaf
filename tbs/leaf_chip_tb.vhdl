@@ -2,6 +2,7 @@ library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
 use work.leaf_chip_pkg.all;
+use work.tbs_pkg.all;
 
 entity leaf_chip_tb is
 end entity leaf_chip_tb;
@@ -12,8 +13,6 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
     signal reset: std_logic;
     signal rx:    std_logic;
     signal tx:    std_logic;
-
-    constant PERIOD: time := 20 ns;
 
     type program is array (natural range<>) of std_logic_vector(31 downto 0);
 
@@ -26,6 +25,28 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
         x"0083d393",
         x"fe731ce3"
     );
+
+    constant UART_BAUD: natural := 434;
+
+    procedure uart_tx(constant DATA: std_logic_vector(7 downto 0); signal clk: inout std_logic; signal rx: out std_logic) is
+
+        variable frame: std_logic_vector(9 downto 0);
+
+    begin
+
+        frame := '1' & DATA & '0';
+
+        for i in 0 to 9 loop
+            
+            rx <= frame(i);
+
+            for j in 0 to UART_BAUD loop
+                tick(clk);
+            end loop;
+
+        end loop;
+
+    end procedure;
 
 begin
 
@@ -40,98 +61,39 @@ begin
 
         constant LOAD_CMD:     std_logic_vector(7 downto 0) := x"77";
         constant PROGRAM_SIZE: std_logic_vector(7 downto 0) := x"1C";
-
-        variable tx_frame:    std_logic_vector(9 downto 0);
+        
         variable instruction: std_logic_vector(31 downto 0);
 
     begin
         
+        clk   <= '0';
         reset <= '1';
         rx    <= '1';
 
-        clk <= '0';
-        wait for PERIOD/2;
+        wait for CLK_PERIOD;
 
-        clk <= '1';
-        wait for PERIOD/2;
+        tick(clk);
 
         reset <= '0';
 
-        for i in 0 to 2*UART_BAUD loop
-                
-            clk <= not clk;
-            wait for PERIOD/2;
+        tickn(clk, 20);
 
-        end loop;
-
-        tx_frame := '1' & LOAD_CMD & '0';
-
-        for i in 0 to 9 loop
-        
-            rx <= tx_frame(i);
-
-            for j in 0 to 2*uart_baud loop
-                
-                clk <= not clk;
-                wait for PERIOD/2;
-
-            end loop;
-
-        end loop;
-
-        tx_frame := '1' & PROGRAM_SIZE & '0';
-
-        for i in 0 to 9 loop
-        
-            rx <= tx_frame(i);
-
-            for j in 0 to 2*uart_baud loop
-                
-                clk <= not clk;
-                wait for PERIOD/2;
-
-            end loop;
-
-        end loop;
+        uart_tx(LOAD_CMD, clk, rx);
+        uart_tx(PROGRAM_SIZE, clk, rx);
 
         for i in 0 to 6 loop
             
             instruction := software(i);
 
             for j in 0 to 3 loop
-                
-                tx_frame := '1' & instruction(8*j+7 downto j*8) & '0';
-
-                for i in 0 to 9 loop
-        
-                    rx <= tx_frame(i);
-        
-                    for j in 0 to 2*uart_baud loop
-                        
-                        clk <= not clk;
-                        wait for PERIOD/2;
-        
-                    end loop;
-        
-                end loop;
-
+                uart_tx(instruction(8*j+7 downto j*8), clk, rx);
             end loop;
 
         end loop;
 
-        for i in 0 to 2*UART_BAUD loop
-            
-            clk <= not clk;
-            wait for PERIOD/2;
-
-        end loop;
-
-        for i in 0 to 12*UART_BAUD loop
-        
-            clk <= not clk;
-            wait for PERIOD/2;
-
-        end loop;
+        -- while tx = '1' loop
+        --     tick(clk);
+        -- end loop;
 
         wait;
 

@@ -80,7 +80,7 @@ begin
 
     -------------------------- receiver buffer ----------------------------
 
-    rx_fifo_rd <= '1' when rd = '1' and rd_addr = TXRX_ADDR;
+    rx_fifo_rd <= '1' when rd = '1' and rd_addr = TXRX_ADDR else '0';
 
     rx_fifo: fifo generic map (
         SIZE => 8,
