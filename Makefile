@@ -39,15 +39,10 @@ $(BINDIR)/boot: $(BOOTSRC)
 $(BINDIR)/uart_test: sw/uart_test.S
 	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@;
 
-sw/boot: sw/boot.S
-	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@ 
-
-sw/byte_test: sw/byte_test.S
-	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@ 
-
 sw/hello: sw/crt0.S sw/hello.c
 	$(RV_CC) $(RV_CFLAGS) -T sw/fwu.ld $^ -o $@
 
 clean:
 	rm -rf work;
 	rm -rf waves;
+	rm -rf bins;
