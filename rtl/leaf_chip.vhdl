@@ -142,13 +142,15 @@ begin
 
     -------------------------- write data --------------------------------
 
-    data_write: process(core_rd_wr_mem_addr, core_wr_mem_en)
+    data_write: process(core_rd_wr_mem_addr, core_wr_mem_en, core_wr_mem_byte_en, core_wr_mem_data)
     
-        variable base_addr: std_logic_vector(23 downto 0);
+        variable base_addr:   std_logic_vector(23 downto 0);
+        variable addr_offset: std_logic_vector(1 downto 0);
 
     begin
 
-        base_addr := core_rd_wr_mem_addr(31 downto 8);
+        base_addr   := core_rd_wr_mem_addr(31 downto 8);
+        addr_offset := core_rd_wr_mem_addr(1  downto 0);
 
         if core_wr_mem_en = '1' then
             
@@ -156,25 +158,64 @@ begin
                 
                 when x"000000" =>
                     
-                    ram_wr <= '0';
-                    uart_wr   <= '1';
+                    ram_wr         <= '0';
+                    uart_wr        <= '1';
+                    ram_wr_byte_en <= (others => '0');
             
                 when x"000002" =>
+
+                    ram_wr         <= '1';
+                    uart_wr        <= '0';
                     
-                    ram_wr <= '1';
-                    uart_wr   <= '0';
+                    case core_wr_mem_byte_en is
+                        
+                        when b"0001" =>
+
+                            case addr_offset is
+                                when b"00"  => ram_wr_byte_en <= b"0001";
+                                when b"01"  => ram_wr_byte_en <= b"0010";
+                                when b"10"  => ram_wr_byte_en <= b"0100";
+                                when b"11"  => ram_wr_byte_en <= b"1000";
+                                when others => null;
+                            end case;
+
+                        when b"0011" =>
+                        
+                            case addr_offset is
+                                when b"00"  => ram_wr_byte_en <= b"0011";
+                                when b"01"  => ram_wr_byte_en <= b"0110";
+                                when b"10"  => ram_wr_byte_en <= b"1100";
+                                when b"11"  => ram_wr_byte_en <= b"1000";
+                                when others => null;
+                            end case;
+
+                        when others =>
+
+                            ram_wr_byte_en <= core_wr_mem_byte_en;
+                    
+                    end case;
 
                 when others =>
                     
-                    ram_wr <= '0';
-                    uart_wr   <= '0';
+                    ram_wr         <= '0';
+                    uart_wr        <= '0';
+                    ram_wr_byte_en <= (others => '0');
             
+            end case;
+
+            case addr_offset is
+                when b"01"  => ram_wr_data <= core_wr_mem_data(23 downto 0) & core_wr_mem_data(31 downto 24);
+                when b"10"  => ram_wr_data <= core_wr_mem_data(15 downto 0) & core_wr_mem_data(31 downto 16);
+                when b"11"  => ram_wr_data <= core_wr_mem_data(7  downto 0) & core_wr_mem_data(31 downto  8);
+                when others => ram_wr_data <= core_wr_mem_data;
             end case;
 
         else
 
             ram_wr  <= '0';
             uart_wr <= '0';
+            ram_wr_byte_en <= (others => '0');
+            ram_wr_data <= (others => '0');
 
         end if;
         
@@ -198,8 +239,6 @@ begin
     ram_rd_addr0   <= core_rd_instr_mem_addr(7 downto 2);
     ram_rd_addr1   <= core_rd_wr_mem_addr(7 downto 2);
     ram_wr_addr    <= core_rd_wr_mem_addr(7 downto 2);
-    ram_wr_data    <= core_wr_mem_data;
-    ram_wr_byte_en <= core_wr_mem_byte_en;
     
     leaf_ram: ram generic map (
         BITS => 8
