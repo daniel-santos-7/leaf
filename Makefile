@@ -36,6 +36,9 @@ $(BINDIR):
 $(BINDIR)/boot: $(BOOTSRC)
 	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@;
 
+$(BINDIR)/uart_test: sw/uart_test.S
+	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@;
+
 sw/boot: sw/boot.S
 	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@ 
 

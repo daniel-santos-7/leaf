@@ -18,12 +18,13 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
 
     constant software: program := (
         x"04100293",
-        x"0ff00313",
+        x"02000313",
         x"00000393",
         x"00502623",
-        x"00002383",
-        x"0083d393",
-        x"fe731ce3"
+        x"00c02383",
+        x"0203f393",
+        x"fe731ce3",
+        x"0000006f"
     );
 
     constant UART_BAUD: natural := 434;
@@ -76,7 +77,7 @@ begin
 
         reset <= '0';
 
-        tickn(clk, 20);
+        tickn(clk, 10);
 
         uart_tx(LOAD_CMD, clk, rx);
         uart_tx(PROGRAM_SIZE, clk, rx);
@@ -91,9 +92,11 @@ begin
 
         end loop;
 
-        -- while tx = '1' loop
-        --     tick(clk);
-        -- end loop;
+        while tx = '1' loop
+            tick(clk);
+        end loop;
+
+        tickn(clk, 10*UART_BAUD);
 
         wait;
 
