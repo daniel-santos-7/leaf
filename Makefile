@@ -33,14 +33,14 @@ $(WAVESDIR)/leaf_chip_tb.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 $(BINDIR):
 	mkdir $@;
 
-$(BINDIR)/boot: $(BOOTSRC)
-	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@;
+$(BINDIR)/boot: $(BOOTSRC) $(BINDIR)
+	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $(BOOTSRC) -o $@;
 
-$(BINDIR)/uart_test: sw/uart_test.S
-	$(RV_CC) $(RV_CFLAGS) -Ttext 0x100 $^ -o $@;
+$(BINDIR)/hello: sw/hello.S $(BINDIR)
+	$(RV_CC) $(RV_CFLAGS) -Ttext 0x200 sw/hello.S -o $@;
 
-sw/hello: sw/crt0.S sw/hello.c
-	$(RV_CC) $(RV_CFLAGS) -T sw/fwu.ld $^ -o $@
+# $(BINDIR)/hello: sw/crt0.S sw/hello.c $(BINDIR)
+# 	$(RV_CC) $(RV_CFLAGS) -T sw/fwu.ld sw/crt0.S sw/hello.c -o $@
 
 clean:
 	rm -rf work;
