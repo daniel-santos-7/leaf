@@ -12,8 +12,8 @@ uart_setup:
     sh t0, 0x8(x0)
 
 msg:
-    
-    li a0, '\n'
+
+    li a0, 0
     call uart_write
 
     li a0, 'H'
@@ -33,11 +33,15 @@ msg:
 
     li t0, 0
     li t1, 0x17D7840
+
+    li a0, '\n'
+    call uart_write
+
     delay:
         addi t0, t0, 1
         bne t0, t1, delay
 
-j msg
+    j msg
 
 uart_write:
     li t2, 0
