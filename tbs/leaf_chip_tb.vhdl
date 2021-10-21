@@ -16,14 +16,20 @@ architecture leaf_chip_tb_arch of leaf_chip_tb is
 
     type program is array (natural range<>) of std_logic_vector(31 downto 0);
 
+    -- constant software: program := (
+    --     x"04100293",
+    --     x"02000313",
+    --     x"00000393",
+    --     x"00502623",
+    --     x"00c02383",
+    --     x"0203f393",
+    --     x"fe731ce3",
+    --     x"0000006f"
+    -- );
+
     constant software: program := (
         x"04100293",
-        x"02000313",
-        x"00000393",
-        x"00502623",
-        x"00c02383",
-        x"0203f393",
-        x"fe731ce3",
+        x"00500623",
         x"0000006f"
     );
 
@@ -61,7 +67,7 @@ begin
     test: process
 
         constant LOAD_CMD:     std_logic_vector(7 downto 0) := x"77";
-        constant PROGRAM_SIZE: std_logic_vector(7 downto 0) := x"1C";
+        constant PROGRAM_SIZE: std_logic_vector(7 downto 0) := x"0C";
         
         variable instruction: std_logic_vector(31 downto 0);
 
@@ -82,7 +88,7 @@ begin
         uart_tx(LOAD_CMD, clk, rx);
         uart_tx(PROGRAM_SIZE, clk, rx);
 
-        for i in 0 to 6 loop
+        for i in 0 to software'length-1 loop
             
             instruction := software(i);
 

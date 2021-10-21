@@ -134,7 +134,7 @@ begin
 
     --------------------------- transmitter ------------------------------
 
-    tx_rd      <= tx_fifo_rd;
+    tx_fifo_rd <= tx_rd;
     tx_rd_en   <= tx_fifo_rd_en;
     tx_rd_data <= tx_fifo_rd_data;
 
