@@ -23,7 +23,8 @@ arch_test() {
     ghdl -i --workdir=./work/ $RTL_SRC;
     ghdl -m --workdir=./work/ $RTL_TOP;
 
-    TBS_TOP_SRC=./core/tbs/$TBS_TOP.vhdl;
+    # TBS_TOP_SRC=./core/tbs/$TBS_TOP.vhdl;
+    TBS_TOP_SRC=./tbs/$TBS_TOP.vhdl;
 
     ghdl -i --ieee=synopsys --workdir=./work/ $TBS_PKG_SRC $TBS_TOP_SRC;
     ghdl -m --ieee=synopsys --workdir=./work/ $TBS_TOP;
