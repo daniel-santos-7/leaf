@@ -35,7 +35,8 @@ export RISCV_TARGET=leaf
 arch-test: $(WORKDIR)/work-obj93.cf
 	$(MAKE) -C $(ARCH_TEST_DIR) clean build
 	$(GHDL) -m $(GHDLFLAGS) core_tb
-	for bin in $$(find $(ARCH_TEST_DIR)/work/rv32i_m/I/ -name "*.bin"); do \
+	bins=$$(find $(ARCH_TEST_DIR)/work/rv32i_m/I/ -name "*.bin"); \
+	for bin in $$bins; do \
         test=$$(basename -s .elf.bin $$bin); \
         echo "running test: $$test"; \
         $(GHDL) -r $(GHDLFLAGS) core_tb --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM_FILE=$$bin -gDUMP_FILE=$(ARCH_TEST_DIR)/work/rv32i_m/I/$$test.signature.output -gMEM_SIZE=2097152; \
