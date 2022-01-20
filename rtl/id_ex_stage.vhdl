@@ -111,36 +111,6 @@ begin
     lsu_wr_data    <= rf_rd_reg_data1;
     lsu_data_type  <= instr(14 downto 12);
 
-    rf_wr_reg_mux: process(rf_wr_reg_src, alu_res, lsu_rd_data, next_pc, csrs_rd_data)
-    
-    begin
-        
-        case rf_wr_reg_src is
-            
-            when b"00" =>
-                
-                rf_wr_reg_data <= alu_res;
-
-            when b"01" =>
-        
-                rf_wr_reg_data <= lsu_rd_data;
-
-            when b"10" =>
-
-                rf_wr_reg_data <= next_pc;
-
-            when b"11" =>
-
-                rf_wr_reg_data <= csrs_rd_data;
-
-            when others =>
-                
-                rf_wr_reg_data <= (others => '0');
-        
-        end case;
-
-    end process rf_wr_reg_mux;
-
     stage_mc: main_ctrl port map (
         opcode          => opcode,
         flush           => flush,
@@ -166,15 +136,19 @@ begin
         imm      => ig_imm
     );
 
-    stage_rf: reg_file port map (
-        clk          => clk,
-        rd_reg_addr0 => rf_rd_reg_addr0,
-        rd_reg_addr1 => rf_rd_reg_addr1,
-        wr_reg_addr  => rf_wr_reg_addr,
-        wr_reg_data  => rf_wr_reg_data,
-        wr_reg_en    => rf_wr_reg_en,
-        rd_reg_data0 => rf_rd_reg_data0, 
-        rd_reg_data1 => rf_rd_reg_data1
+    stage_int_strg: int_strg port map (
+        clk        => clk,
+        wr_en      => rf_wr_reg_en,
+        wr_addr    => rf_wr_reg_addr,
+        wr_src0    => alu_res,
+        wr_src1    => lsu_rd_data,
+        wr_src2    => next_pc,
+        wr_src3    => csrs_rd_data,
+        wr_src_sel => rf_wr_reg_src,
+        rd_addr0   => rf_rd_reg_addr0,
+        rd_addr1   => rf_rd_reg_addr1,
+        rd_data0   => rf_rd_reg_data0,
+        rd_data1   => rf_rd_reg_data1
     );
 
     stage_br_detector: br_detector port map (
