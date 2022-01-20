@@ -308,5 +308,34 @@ package core_pkg is
         );
     
     end component core;
+
+    ----------------------------------------------------------------
+
+    component logic_unit is
+        port (
+            opd0:   in  std_logic_vector(31 downto 0);
+            opd1:   in  std_logic_vector(31 downto 0);
+            op:     in  std_logic_vector(1  downto 0);
+            res:    out std_logic_vector(31 downto 0)
+        );
+    end component logic_unit;
+
+    component ex_block is
+        port (
+            opd0_src0:    in  std_logic_vector(31 downto 0);
+            opd0_src1:    in  std_logic_vector(31 downto 0);
+            opd1_src0:    in  std_logic_vector(31 downto 0);
+            opd1_src1:    in  std_logic_vector(31 downto 0);
+            opd0_src_sel: in  std_logic;
+            opd1_src_sel: in  std_logic;
+            opd0_pass:    in  std_logic;
+            opd1_pass:    in  std_logic;
+            func_type:    in  std_logic;
+            op_en:        in  std_logic;
+            func3:        in  std_logic_vector(2  downto 0);
+            func7:        in  std_logic_vector(6  downto 0);
+            res:          out std_logic_vector(31 downto 0)
+        );
+    end component ex_block;
     
 end package core_pkg;
