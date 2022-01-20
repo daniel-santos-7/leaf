@@ -74,7 +74,6 @@ architecture id_ex_stage_arch of id_ex_stage is
     signal alu_func3:     std_logic_vector(2 downto 0);
     signal alu_func7:     std_logic_vector(6 downto 0);
     
-    signal alu_op:   std_logic_vector(5  downto 0);
     signal alu_opd0: std_logic_vector(31 downto 0);
     signal alu_opd1: std_logic_vector(31 downto 0);
     signal alu_res:  std_logic_vector(31 downto 0);
@@ -142,54 +141,6 @@ begin
 
     end process rf_wr_reg_mux;
 
-    alu_opd0_mux: process(alu_opd0_pass, alu_src0, pc, rf_rd_reg_data0)
-    
-    begin
-    
-        if alu_opd0_pass = '1' then
-        
-            if alu_src0 = '1' then
-                
-                alu_opd0 <= pc;
-
-            else
-
-                alu_opd0 <= rf_rd_reg_data0;
-
-            end if;
-
-        else
-        
-            alu_opd0 <= (others => '0');
-
-        end if;
-
-    end process alu_opd0_mux;
-
-    alu_opd1_mux: process(alu_opd1_pass, alu_src1, ig_imm, rf_rd_reg_data1)
-    
-    begin
-    
-        if alu_opd1_pass = '1' then
-            
-            if alu_src1 = '1' then
-            
-                alu_opd1 <= ig_imm;
-    
-            else
-    
-                alu_opd1 <= rf_rd_reg_data1;
-    
-            end if;
-
-        else
-
-            alu_opd1 <= (others => '0');
-
-        end if;
-        
-    end process alu_opd1_mux;
-
     stage_mc: main_ctrl port map (
         opcode          => opcode,
         flush           => flush,
@@ -248,19 +199,20 @@ begin
         rd_data     => csrs_rd_data
     );
 
-    stage_alu_ctrl: alu_ctrl port map (
-        alu_op_en     => alu_op_en,
-        alu_func_type => alu_func_type,
-        func3         => alu_func3,
-        func7         => alu_func7,
-        alu_op        => alu_op
-    );
-
-    stage_alu: alu port map (
-        opd0 => alu_opd0, 
-        opd1 => alu_opd1,
-        op   => alu_op,
-        res  => alu_res
+    stage_ex_block: ex_block port map (
+        opd0_src0    => rf_rd_reg_data0,
+        opd0_src1    => pc,
+        opd1_src0    => rf_rd_reg_data1,
+        opd1_src1    => ig_imm,
+        opd0_src_sel => alu_src0,
+        opd1_src_sel => alu_src1,
+        opd0_pass    => alu_opd0_pass,
+        opd1_pass    => alu_opd1_pass,
+        func_type    => alu_func_type,
+        op_en        => alu_op_en,
+        func3        => alu_func3,
+        func7        => alu_func7,
+        res          => alu_res
     );
 
     stage_lsu: lsu port map (
