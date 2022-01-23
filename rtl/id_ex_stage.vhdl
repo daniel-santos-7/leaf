@@ -142,19 +142,13 @@ begin
     );
 
     stage_ex_block: ex_block port map (
-        opd0_src0    => rf_rd_reg_data0,
-        opd0_src1    => pc,
-        opd1_src0    => rf_rd_reg_data1,
-        opd1_src1    => imm,
-        opd0_src_sel => ex_ctrl(4),
-        opd1_src_sel => ex_ctrl(5),
-        opd0_pass    => ex_ctrl(2),
-        opd1_pass    => ex_ctrl(3),
-        func_type    => ex_ctrl(1),
-        op_en        => ex_ctrl(0),
-        func3        => ex_func(2 downto 0),
-        func7        => ex_func(9 downto 3),
-        res          => alu_res
+        opd0_src0 => rf_rd_reg_data0,
+        opd0_src1 => pc,
+        opd1_src0 => rf_rd_reg_data1,
+        opd1_src1 => imm,
+        ex_ctrl   => ex_ctrl,
+        ex_func   => ex_func,
+        res       => alu_res
     );
 
     stage_lsu: lsu port map (
