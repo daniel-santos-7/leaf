@@ -354,5 +354,24 @@ package core_pkg is
             rd_data1:   out std_logic_vector(31 downto 0)
         );
     end component int_strg;
+
+    component id_block is
+        port (
+            instr           : in  std_logic_vector(31 downto 0);
+            flush           : in  std_logic;
+            regs_addr       : out std_logic_vector(14 downto 0);
+            csrs_addr       : out std_logic_vector(11 downto 0);
+            ex_func         : out std_logic_vector(9  downto 0);
+            csrs_mode       : out std_logic_vector(2  downto 0);
+            brde_mode       : out std_logic_vector(2  downto 0);
+            dmls_dtype      : out std_logic_vector(2  downto 0);
+            imm             : out std_logic_vector(31 downto 0);
+            int_strg_ctrl   : out std_logic_vector(2  downto 0);
+            ex_ctrl         : out std_logic_vector(5  downto 0);
+            dmls_ctrl       : out std_logic_vector(1  downto 0);
+            brde_ctrl       : out std_logic_vector(1  downto 0);
+            csrs_ctrl       : out std_logic
+        );
+    end component id_block;
     
 end package core_pkg;
