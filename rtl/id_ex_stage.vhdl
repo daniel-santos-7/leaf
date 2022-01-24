@@ -106,13 +106,12 @@ begin
 
     stage_int_strg: int_strg port map (
         clk        => clk,
-        wr_en      => int_strg_ctrl(0),
         wr_src0    => alu_res,
         wr_src1    => lsu_rd_data,
         wr_src2    => next_pc,
         wr_src3    => csrs_rd_data,
-        wr_src_sel => int_strg_ctrl(2 downto 1),
         regs_addr  => regs_addr,
+        int_strg_ctrl => int_strg_ctrl,
         rd_data0   => rf_rd_reg_data0,
         rd_data1   => rf_rd_reg_data1
     );

@@ -5,16 +5,15 @@ use work.core_pkg.all;
 
 entity int_strg is
     port (
-        clk:        in  std_logic;
-        wr_en:      in  std_logic;
-        wr_src0:    in  std_logic_vector(31 downto 0);
-        wr_src1:    in  std_logic_vector(31 downto 0);
-        wr_src2:    in  std_logic_vector(31 downto 0);
-        wr_src3:    in  std_logic_vector(31 downto 0);
-        wr_src_sel: in  std_logic_vector(1  downto 0);
-        regs_addr:  in  std_logic_vector(14 downto 0);
-        rd_data0:   out std_logic_vector(31 downto 0);
-        rd_data1:   out std_logic_vector(31 downto 0)
+        clk:           in  std_logic;
+        wr_src0:       in  std_logic_vector(31 downto 0);
+        wr_src1:       in  std_logic_vector(31 downto 0);
+        wr_src2:       in  std_logic_vector(31 downto 0);
+        wr_src3:       in  std_logic_vector(31 downto 0);
+        regs_addr:     in  std_logic_vector(14 downto 0);
+        int_strg_ctrl: in  std_logic_vector(2 downto 0);
+        rd_data0:      out std_logic_vector(31 downto 0);
+        rd_data1:      out std_logic_vector(31 downto 0)
     );
 end entity int_strg;
 
@@ -24,13 +23,19 @@ architecture int_strg_arch of int_strg is
     signal rd_addr0: std_logic_vector(4 downto 0);
     signal rd_addr1: std_logic_vector(4 downto 0);
 
+    signal wr_en:      std_logic;
+    signal wr_src_sel: std_logic_vector(1 downto 0);
+
     signal wr_data: std_logic_vector(31 downto 0);
 
 begin
     
-    wr_addr  <= regs_addr(4 downto 0);
-    rd_addr0 <= regs_addr(9 downto 5);
+    wr_addr  <= regs_addr(4  downto  0);
+    rd_addr0 <= regs_addr(9  downto  5);
     rd_addr1 <= regs_addr(14 downto 10);
+
+    wr_en      <= int_strg_ctrl(0);
+    wr_src_sel <= int_strg_ctrl(2 downto 1);
 
     wr_data_mux: process(wr_src_sel, wr_src0, wr_src1, wr_src2, wr_src3)
     begin

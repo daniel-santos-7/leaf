@@ -334,16 +334,15 @@ package core_pkg is
 
     component int_strg is
         port (
-            clk:        in  std_logic;
-            wr_en:      in  std_logic;
-            wr_src0:    in  std_logic_vector(31 downto 0);
-            wr_src1:    in  std_logic_vector(31 downto 0);
-            wr_src2:    in  std_logic_vector(31 downto 0);
-            wr_src3:    in  std_logic_vector(31 downto 0);
-            wr_src_sel: in  std_logic_vector(1  downto 0);
-            regs_addr:  in  std_logic_vector(14 downto 0);
-            rd_data0:   out std_logic_vector(31 downto 0);
-            rd_data1:   out std_logic_vector(31 downto 0)
+            clk:           in  std_logic;
+            wr_src0:       in  std_logic_vector(31 downto 0);
+            wr_src1:       in  std_logic_vector(31 downto 0);
+            wr_src2:       in  std_logic_vector(31 downto 0);
+            wr_src3:       in  std_logic_vector(31 downto 0);
+            regs_addr:     in  std_logic_vector(14 downto 0);
+            int_strg_ctrl: in  std_logic_vector(2 downto 0);
+            rd_data0:      out std_logic_vector(31 downto 0);
+            rd_data1:      out std_logic_vector(31 downto 0)
         );
     end component int_strg;
 
