@@ -69,12 +69,11 @@ architecture id_ex_stage_arch of id_ex_stage is
     signal alu_opd1: std_logic_vector(31 downto 0);
     signal alu_res:  std_logic_vector(31 downto 0);
 
-    signal lsu_rd_wr_addr: std_logic_vector(31 downto 0);
-    signal lsu_wr_data:    std_logic_vector(31 downto 0);
+    signal dmls_addr:  std_logic_vector(31 downto 0);
+    signal dmst_data:  std_logic_vector(31 downto 0);
     signal dmls_dtype: std_logic_vector(2 downto 0);
-
-    signal dmls_ctrl: std_logic_vector(1 downto 0);
-    signal lsu_rd_data:    std_logic_vector(31 downto 0);
+    signal dmls_ctrl:  std_logic_vector(1 downto 0);
+    signal dmld_data:  std_logic_vector(31 downto 0);
 
 begin
 
@@ -83,9 +82,6 @@ begin
     
     csrs_wr_reg_data <= rf_rd_reg_data0;
     csrs_wr_imm_data <= imm;
-
-    lsu_rd_wr_addr <= alu_res;
-    lsu_wr_data    <= rf_rd_reg_data1;
 
     uut: id_block port map (
         instr         => instr,
@@ -107,7 +103,7 @@ begin
     stage_int_strg: int_strg port map (
         clk        => clk,
         wr_src0    => alu_res,
-        wr_src1    => lsu_rd_data,
+        wr_src1    => dmld_data,
         wr_src2    => next_pc,
         wr_src3    => csrs_rd_data,
         regs_addr  => regs_addr,
@@ -148,19 +144,21 @@ begin
         res       => alu_res
     );
 
+    dmst_data <= rf_rd_reg_data1;
+    dmls_addr <= alu_res;
+
     stage_lsu: lsu port map (
-        rd_data        => lsu_rd_data,
-        wr_data        => lsu_wr_data,
-        rd_wr_addr     => lsu_rd_wr_addr,
-        data_type      => dmls_dtype,
-        mode           => dmls_ctrl(1), 
-        en             => dmls_ctrl(0),
-        rd_mem_data    => rd_mem_data,
-        wr_mem_data    => wr_mem_data,
-        rd_mem_en      => rd_mem_en, 
-        wr_mem_en      => wr_mem_en,
-        rd_wr_mem_addr => rd_wr_mem_addr,
-        wr_mem_byte_en => wr_mem_byte_en
+        dmld_data      => dmld_data,
+        dmst_data      => dmst_data,
+        dmls_addr      => dmls_addr,
+        dmls_dtype     => dmls_dtype,
+        dmls_ctrl      => dmls_ctrl,
+        dmrd_data    => rd_mem_data,
+        dmwr_data    => wr_mem_data,
+        dmrd_en      => rd_mem_en, 
+        dmwr_en      => wr_mem_en,
+        dmrw_addr => rd_wr_mem_addr,
+        dm_byte_en => wr_mem_byte_en
     );
 
     branch <= brd_branch;
