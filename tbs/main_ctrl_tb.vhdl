@@ -11,6 +11,7 @@ architecture main_ctrl_tb_arch of main_ctrl_tb is
     signal opcode: std_logic_vector(6 downto 0);
     signal flush:  std_logic;
 
+    signal int_strg_ctrl: std_logic_vector(2 downto 0);
     signal rf_wr_reg_src: std_logic_vector(1 downto 0);
     signal rf_wr_reg_en:  std_logic;
     
@@ -37,8 +38,9 @@ begin
     uut: main_ctrl port map (
         opcode          => opcode,
         flush           => flush,
-        rf_wr_reg_src   => rf_wr_reg_src,
-        rf_wr_reg_en    => rf_wr_reg_en,
+        -- rf_wr_reg_src   => rf_wr_reg_src,
+        -- rf_wr_reg_en    => rf_wr_reg_en,
+        int_strg_ctrl   => int_strg_ctrl,
         ig_imm_type     => ig_imm_type,
         alu_src0        => alu_src0, 
         alu_src1        => alu_src1,
@@ -52,6 +54,9 @@ begin
         csrs_wr_en      => csrs_wr_en,
         if_jmp          => if_jmp
     );
+
+    rf_wr_reg_en <= int_strg_ctrl(0);
+    rf_wr_reg_src <= int_strg_ctrl(2 downto 1);
 
     process
     

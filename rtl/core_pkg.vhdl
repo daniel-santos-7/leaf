@@ -108,34 +108,23 @@ package core_pkg is
     end component alu_ctrl;
 
     component main_ctrl is
-    
         port (
-            opcode: in std_logic_vector(6 downto 0);
-            flush: in std_logic;
-    
-            rf_wr_reg_src: out std_logic_vector(1 downto 0);
-            rf_wr_reg_en:  out std_logic;
-            
-            ig_imm_type: out std_logic_vector(2 downto 0);
-            
+            opcode:        in  std_logic_vector(6 downto 0);
+            flush:         in  std_logic;
+            int_strg_ctrl: out std_logic_vector(2 downto 0);
+            ig_imm_type:   out std_logic_vector(2 downto 0);
             alu_src0:      out std_logic; 
             alu_src1:      out std_logic; 
             alu_opd0_pass: out std_logic;
             alu_opd1_pass: out std_logic;
-            
             alu_op_en:     out std_logic;
             alu_func_type: out std_logic;
-    
-            lsu_mode: out std_logic;
-            lsu_en:   out std_logic;
-            
-            brd_en:     out std_logic;
-    
-            csrs_wr_en: out std_logic;
-    
-            if_jmp:     out std_logic
+            lsu_mode:      out std_logic;
+            lsu_en:        out std_logic;
+            brd_en:        out std_logic;
+            csrs_wr_en:    out std_logic;
+            if_jmp:        out std_logic
         );
-    
     end component main_ctrl;
 
     component imm_gen is

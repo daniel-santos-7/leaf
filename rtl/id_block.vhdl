@@ -53,8 +53,9 @@ begin
     id_main_ctrl: main_ctrl port map (
         opcode          => opcode,
         flush           => flush,
-        rf_wr_reg_src   => int_strg_ctrl(2 downto 1),
-        rf_wr_reg_en    => int_strg_ctrl(0),
+        -- rf_wr_reg_src   => int_strg_ctrl(2 downto 1),
+        -- rf_wr_reg_en    => int_strg_ctrl(0),
+        int_strg_ctrl   => int_strg_ctrl,
         ig_imm_type     => imm_type,
         alu_src0        => ex_ctrl(4), 
         alu_src1        => ex_ctrl(5), 
