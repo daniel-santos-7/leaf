@@ -18,7 +18,7 @@ end entity ex_block;
 architecture ex_block_arch of ex_block is
     
     signal op_en:        std_logic;
-    signal func_type:    std_logic;
+    signal ftype:        std_logic;
     signal opd0_src_sel: std_logic;
     signal opd1_src_sel: std_logic;
     signal opd0_pass:    std_logic;
@@ -38,7 +38,7 @@ architecture ex_block_arch of ex_block is
 begin
 
     op_en        <= ex_ctrl(0);
-    func_type    <= ex_ctrl(1);
+    ftype        <= ex_ctrl(1);
     opd0_pass    <= ex_ctrl(2);
     opd1_pass    <= ex_ctrl(3);
     opd0_src_sel <= ex_ctrl(4);
@@ -54,11 +54,11 @@ begin
     gtd_opd1 <= opd1 and (31 downto 0 => opd1_pass);
 
     ex_alu_ctrl: alu_ctrl port map (
-        alu_op_en     => op_en,
-        alu_func_type => func_type,
-        func3         => func3,
-        func7         => func7,
-        alu_op        => op
+        op_en => op_en,
+        ftype => ftype,
+        func3 => func3,
+        func7 => func7,
+        op    => op
     );
 
     ex_alu: alu port map (

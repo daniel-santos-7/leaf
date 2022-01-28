@@ -95,16 +95,13 @@ package core_pkg is
     end component alu;
 
     component alu_ctrl is
-
         port (
-            alu_op_en:     in std_logic;
-            alu_func_type: in std_logic;
-            func3:         in std_logic_vector(2 downto 0);
-            func7:         in std_logic_vector(6 downto 0);
-    
-            alu_op: out std_logic_vector(5 downto 0)
+            op_en:  in  std_logic;
+            ftype:  in  std_logic;
+            func3:  in  std_logic_vector(2 downto 0);
+            func7:  in  std_logic_vector(6 downto 0);
+            op:     out std_logic_vector(5 downto 0)
         );
-    
     end component alu_ctrl;
 
     component main_ctrl is

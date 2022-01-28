@@ -9,21 +9,21 @@ end entity alu_ctrl_tb;
 
 architecture alu_ctrl_tb_arch of alu_ctrl_tb is
 
-    signal alu_op_en:     std_logic;
-    signal alu_func_type: std_logic;
+    signal op_en:     std_logic;
+    signal ftype: std_logic;
 
     signal func3:  std_logic_vector(2 downto 0);
     signal func7:  std_logic_vector(6 downto 0);
-    signal alu_op: std_logic_vector(5 downto 0);
+    signal op: std_logic_vector(5 downto 0);
 
 begin
     
     uut: alu_ctrl port map (
-        alu_op_en     => alu_op_en,
-        alu_func_type => alu_func_type,
+        op_en     => op_en,
+        ftype => ftype,
         func3         => func3,
         func7         => func7,
-        alu_op        => alu_op
+        op        => op
     );
 
     test: process
@@ -34,11 +34,11 @@ begin
         
         -- setup --
     
-        alu_op_en <= '1';
+        op_en <= '1';
 
         -- RR operations --
 
-        alu_func_type <= '0';
+        ftype <= '0';
 
         -- ADD operation --
 
@@ -47,7 +47,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_ADD;
+        assert op = ALU_ADD;
 
         -- SUB operation --
 
@@ -56,7 +56,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_SUB;
+        assert op = ALU_SUB;
 
         -- SLL operation --
 
@@ -65,7 +65,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_SLL;
+        assert op = ALU_SLL;
 
         -- SLT operation --
 
@@ -74,7 +74,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_SLT;
+        assert op = ALU_SLT;
 
         -- SLTU operation --
 
@@ -83,7 +83,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_SLTU;
+        assert op = ALU_SLTU;
 
         -- XOR operation --
 
@@ -92,7 +92,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_XOR;
+        assert op = ALU_XOR;
 
         -- SRL operation --
 
@@ -101,7 +101,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_SRL;
+        assert op = ALU_SRL;
 
         -- SRA operation --
 
@@ -110,7 +110,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_SRA;
+        assert op = ALU_SRA;
 
         -- OR operation --
 
@@ -119,7 +119,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_OR;
+        assert op = ALU_OR;
 
         -- AND operation --
 
@@ -128,11 +128,11 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_AND;
+        assert op = ALU_AND;
 
         -- IMM operations --
 
-        alu_func_type <= '1';
+        ftype <= '1';
 
         -- ADD operation --
 
@@ -141,7 +141,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_ADD;
+        assert op = ALU_ADD;
 
         -- SRA operation --
 
@@ -150,11 +150,11 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_SRA;
+        assert op = ALU_SRA;
 
         -- others operations --
 
-        alu_op_en <= '0';
+        op_en <= '0';
 
         -- ADD operation --
 
@@ -163,7 +163,7 @@ begin
 
         wait for period;
 
-        assert alu_op = ALU_ADD;
+        assert op = ALU_ADD;
 
         wait;
 
