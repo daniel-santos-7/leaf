@@ -5,15 +5,12 @@ use IEEE.numeric_std.all;
 use work.core_pkg.all;
 
 entity alu is
-
     port(
 	    opd0: in  std_logic_vector(31 downto 0);
         opd1: in  std_logic_vector(31 downto 0);
 	    op:   in  std_logic_vector(5  downto 0);
-        
 	    res:  out std_logic_vector(31 downto 0)
     );
-
 end entity alu;
 
 architecture alu_arch of alu is
@@ -75,17 +72,13 @@ begin
     begin
 
         if arith_op = '1' then
-            
             opd0_i := arith_opd0;
             opd1_i := not arith_opd1;
             cin(0) := '1';
-
         else
-
             opd0_i := arith_opd0;
             opd1_i := arith_opd1;
             cin(0) := '0';
-
         end if;
 
         arith_res <= std_logic_vector(unsigned(opd0_i) + unsigned(opd1_i) + unsigned(cin));
@@ -99,31 +92,19 @@ begin
     begin
         
         if comp_opd0 = comp_opd1 then
-
             comp_res_i := comp_opd2;
-
         else 
-            
             if comp_op = '0' then
-
                 comp_res_i := comp_opd0 and not comp_opd1;
-
             else
-            
                 comp_res_i := not comp_opd0 and comp_opd1;
-                
             end if;
-
         end if;
 
         if comp_en = '1' then
-            
             comp_res <= (0 => comp_res_i, others => '0');
-
         else
-
             comp_res <= comp_bypass;
-
         end if;
 
     end process comparator;
@@ -137,23 +118,10 @@ begin
     begin
         
         case logic_op is
-            
-             when LOGIC_XOR => 
-                
-                logic_res <= opd0 xor opd1;
-
-            when LOGIC_OR =>  
-            
-                logic_res <= opd0 or opd1;
-
-            when LOGIC_AND => 
-                
-                logic_res <= opd0 and opd1;
-            
-            when others =>  
-            
-                logic_res <= logic_bypass;
-                
+            when LOGIC_XOR  => logic_res <= opd0 xor opd1;
+            when LOGIC_OR   => logic_res <= opd0 or opd1;
+            when LOGIC_AND  => logic_res <= opd0 and opd1;
+            when others     => logic_res <= logic_bypass;
         end case;
 
     end process logic_unit;
@@ -171,23 +139,10 @@ begin
         shamt := to_integer(unsigned(shifter_shamt));
 
         case shifter_op is
-            
-            when SHIFTER_SLL => 
-            
-                shifter_res <= std_logic_vector(shift_left(unsigned(shifter_opd), shamt));
-
-            when SHIFTER_SRL => 
-            
-                shifter_res <= std_logic_vector(shift_right(unsigned(shifter_opd), shamt));
-                
-            when SHIFTER_SRA => 
-            
-                shifter_res <= std_logic_vector(shift_right(signed(shifter_opd), shamt));
-
-            when others => 
-            
-                shifter_res <= shifter_bypass;
-        
+            when SHIFTER_SLL => shifter_res <= std_logic_vector(shift_left(unsigned(shifter_opd), shamt));
+            when SHIFTER_SRL => shifter_res <= std_logic_vector(shift_right(unsigned(shifter_opd), shamt));
+            when SHIFTER_SRA => shifter_res <= std_logic_vector(shift_right(signed(shifter_opd), shamt));
+            when others      => shifter_res <= shifter_bypass;
         end case;       
 
     end process shifter;
