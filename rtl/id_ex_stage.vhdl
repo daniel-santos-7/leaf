@@ -55,7 +55,7 @@ architecture id_ex_stage_arch of id_ex_stage is
     signal dmls_addr:  std_logic_vector(31 downto 0);
     signal dmst_data:  std_logic_vector(31 downto 0);
     signal dmls_dtype: std_logic_vector(2 downto 0);
-    signal dmls_ctrl:  std_logic_vector(1 downto 0);
+    signal dmls_ctrl:  dmls_ctrl_type;
     signal dmld_data:  std_logic_vector(31 downto 0);
 
 begin

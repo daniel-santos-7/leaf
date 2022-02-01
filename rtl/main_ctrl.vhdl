@@ -10,8 +10,7 @@ entity main_ctrl is
         int_strg_ctrl : out std_logic_vector(2 downto 0);
         ig_itype      : out std_logic_vector(2 downto 0);
         ex_ctrl       : out ex_ctrl_type;
-        lsu_mode      : out std_logic;
-        lsu_en        : out std_logic;
+        dmls_ctrl     : out dmls_ctrl_type;
         brd_en        : out std_logic;
         csrs_wr_en    : out std_logic;
         if_jmp        : out std_logic
@@ -149,39 +148,24 @@ begin
 
     end process ex_ctrl_logic;
 
-    lsu_ctrl: process(opcode, flush)
-
+    dmls_ctrl_logic: process(opcode, flush)
     begin
         
         if flush = '1' then
             
-            lsu_mode <= '-';
-            lsu_en   <= '0';
+            dmls_ctrl <= ('-', '0');
 
         else
 
             case opcode is
-
-                when LOAD_OPCODE =>
-                        
-                    lsu_mode <= '0';
-                    lsu_en   <= '1';
-    
-                when STORE_OPCODE =>
-                        
-                    lsu_mode <= '1';
-                    lsu_en   <= '1';
-    
-                when others =>
-    
-                    lsu_mode <= '-';
-                    lsu_en   <= '0';
-            
+                when LOAD_OPCODE  => dmls_ctrl <= ('0','1');
+                when STORE_OPCODE => dmls_ctrl <= ('1','1');
+                when others       => dmls_ctrl <= ('-','0');
             end case;
 
         end if;
 
-    end process lsu_ctrl;
+    end process dmls_ctrl_logic;
 
     br_detector_ctrl: process(opcode)
     begin

@@ -15,7 +15,7 @@ entity id_block is
         ex_func       : out ex_func_type;
         ex_ctrl       : out ex_ctrl_type;
         dmls_dtype    : out std_logic_vector(2  downto 0);
-        dmls_ctrl     : out std_logic_vector(1  downto 0);
+        dmls_ctrl     : out dmls_ctrl_type;
         brde_mode     : out std_logic_vector(2  downto 0);
         brde_ctrl     : out std_logic_vector(1  downto 0);
         imm           : out std_logic_vector(31 downto 0)
@@ -55,8 +55,7 @@ begin
         int_strg_ctrl   => int_strg_ctrl,
         ig_itype        => itype,
         ex_ctrl         => ex_ctrl, 
-        lsu_mode        => dmls_ctrl(1), 
-        lsu_en          => dmls_ctrl(0),
+        dmls_ctrl       => dmls_ctrl, 
         brd_en          => brde_ctrl(1),
         csrs_wr_en      => csrs_ctrl,
         if_jmp          => brde_ctrl(0)

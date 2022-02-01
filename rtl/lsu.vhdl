@@ -9,7 +9,7 @@ entity lsu is
         dmst_data:  in  std_logic_vector(31 downto 0);
         dmls_addr:  in  std_logic_vector(31 downto 0);
         dmls_dtype: in  std_logic_vector(2  downto 0);
-        dmls_ctrl:  in  std_logic_vector(1  downto 0);
+        dmls_ctrl:  in  dmls_ctrl_type;
         dmrd_data:  in  std_logic_vector(31 downto 0);
         dmwr_data:  out std_logic_vector(31 downto 0);
         dmrw_addr:  out std_logic_vector(31 downto 0);
@@ -35,8 +35,8 @@ architecture lsu_arch of lsu is
 
 begin
 
-    en      <= dmls_ctrl(0);
-    mode    <= dmls_ctrl(1);
+    en      <= dmls_ctrl.en;
+    mode    <= dmls_ctrl.mode;
 
     dmem_rd <= not mode and en;
     dmem_wr <= mode and en;

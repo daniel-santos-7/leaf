@@ -66,9 +66,14 @@ package core_pkg is
     end record ex_ctrl_type;
 
     type ex_func_type is record
-        func7: std_logic_vector(6 downto 0);
-        func3: std_logic_vector(2 downto 0);
+        func7 : std_logic_vector(6 downto 0);
+        func3 : std_logic_vector(2 downto 0);
     end record ex_func_type;
+
+    type dmls_ctrl_type is record
+        mode: std_logic;
+        en  : std_logic;
+    end record dmls_ctrl_type;
 
     -- imm types --
 
@@ -125,8 +130,7 @@ package core_pkg is
             int_strg_ctrl : out std_logic_vector(2 downto 0);
             ig_itype      : out std_logic_vector(2 downto 0);
             ex_ctrl       : out ex_ctrl_type;
-            lsu_mode      : out std_logic;
-            lsu_en        : out std_logic;
+            dmls_ctrl     : out dmls_ctrl_type;
             brd_en        : out std_logic;
             csrs_wr_en    : out std_logic;
             if_jmp        : out std_logic
@@ -198,24 +202,19 @@ package core_pkg is
     end component csrs;
 
     component lsu is 
-
         port (
-            dmld_data:    out std_logic_vector(31 downto 0);        
-            dmst_data:    in  std_logic_vector(31 downto 0);
-            dmls_addr: in  std_logic_vector(31 downto 0);
-            
-            dmls_dtype: in std_logic_vector(2 downto 0);
-            dmls_ctrl: in  std_logic_vector(1  downto 0);
-    
-            dmrd_en: out std_logic; 
-            dmwr_en: out std_logic;
-    
-            dmrd_data:    in  std_logic_vector(31 downto 0);
-            dmwr_data:    out std_logic_vector(31 downto 0);
-            dmrw_addr: out std_logic_vector(31 downto 0);
-            dm_byte_en: out std_logic_vector(3  downto 0)
+            dmst_data:  in  std_logic_vector(31 downto 0);
+            dmls_addr:  in  std_logic_vector(31 downto 0);
+            dmls_dtype: in  std_logic_vector(2  downto 0);
+            dmls_ctrl:  in  dmls_ctrl_type;
+            dmrd_data:  in  std_logic_vector(31 downto 0);
+            dmwr_data:  out std_logic_vector(31 downto 0);
+            dmrw_addr:  out std_logic_vector(31 downto 0);
+            dm_byte_en: out std_logic_vector(3  downto 0);
+            dmrd_en:    out std_logic; 
+            dmwr_en:    out std_logic;
+            dmld_data:  out std_logic_vector(31 downto 0)       
         );
-
     end component lsu;
 
     component id_ex_stage is
@@ -350,7 +349,7 @@ package core_pkg is
             ex_func       : out ex_func_type;
             ex_ctrl       : out ex_ctrl_type;
             dmls_dtype    : out std_logic_vector(2  downto 0);
-            dmls_ctrl     : out std_logic_vector(1  downto 0);
+            dmls_ctrl     : out dmls_ctrl_type;
             brde_mode     : out std_logic_vector(2  downto 0);
             brde_ctrl     : out std_logic_vector(1  downto 0);
             imm           : out std_logic_vector(31 downto 0)
