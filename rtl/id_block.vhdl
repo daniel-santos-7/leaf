@@ -12,8 +12,8 @@ entity id_block is
         csrs_addr     : out std_logic_vector(11 downto 0);
         csrs_mode     : out std_logic_vector(2  downto 0);
         csrs_ctrl     : out std_logic;
-        ex_func       : out std_logic_vector(9  downto 0);
-        ex_ctrl       : out std_logic_vector(5  downto 0);
+        ex_func       : out ex_func_type;
+        ex_ctrl       : out ex_ctrl_type;
         dmls_dtype    : out std_logic_vector(2  downto 0);
         dmls_ctrl     : out std_logic_vector(1  downto 0);
         brde_mode     : out std_logic_vector(2  downto 0);
@@ -53,13 +53,8 @@ begin
         opcode          => opcode,
         flush           => flush,
         int_strg_ctrl   => int_strg_ctrl,
-        ig_imm_type     => itype,
-        alu_src0        => ex_ctrl(4), 
-        alu_src1        => ex_ctrl(5), 
-        alu_opd0_pass   => ex_ctrl(2),
-        alu_opd1_pass   => ex_ctrl(3),
-        alu_op_en       => ex_ctrl(0), 
-        alu_func_type   => ex_ctrl(1),
+        ig_itype        => itype,
+        ex_ctrl         => ex_ctrl, 
         lsu_mode        => dmls_ctrl(1), 
         lsu_en          => dmls_ctrl(0),
         brd_en          => brde_ctrl(1),
@@ -69,7 +64,7 @@ begin
 
     regs_addr   <=  rs2_addr & rs1_addr & rd_addr;
     csrs_addr   <=  func7 & rs2_addr;
-    ex_func     <=  func7 & func3;
+    ex_func     <=  (func7, func3);
 
     csrs_mode   <=  func3;
     brde_mode   <=  func3;

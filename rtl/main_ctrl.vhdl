@@ -5,26 +5,20 @@ use work.core_pkg.all;
 
 entity main_ctrl is
     port (
-        opcode:        in  std_logic_vector(6 downto 0);
-        flush:         in  std_logic;
-        int_strg_ctrl: out std_logic_vector(2 downto 0);
-        ig_imm_type:   out std_logic_vector(2 downto 0);
-        alu_src0:      out std_logic; 
-        alu_src1:      out std_logic; 
-        alu_opd0_pass: out std_logic;
-        alu_opd1_pass: out std_logic;
-        alu_op_en:     out std_logic;
-        alu_func_type: out std_logic;
-        lsu_mode:      out std_logic;
-        lsu_en:        out std_logic;
-        brd_en:        out std_logic;
-        csrs_wr_en:    out std_logic;
-        if_jmp:        out std_logic
+        opcode        : in  std_logic_vector(6 downto 0);
+        flush         : in  std_logic;
+        int_strg_ctrl : out std_logic_vector(2 downto 0);
+        ig_itype      : out std_logic_vector(2 downto 0);
+        ex_ctrl       : out ex_ctrl_type;
+        lsu_mode      : out std_logic;
+        lsu_en        : out std_logic;
+        brd_en        : out std_logic;
+        csrs_wr_en    : out std_logic;
+        if_jmp        : out std_logic
     );
 end entity main_ctrl;
 
 architecture main_ctrl_arch of main_ctrl is
-    
 begin
 
     rf_ctrl: process(opcode, flush)
@@ -51,109 +45,109 @@ begin
         
         if flush = '1' then
             
-            ig_imm_type <= (others => '-');
+            ig_itype <= (others => '-');
 
         else
 
             case opcode is
-                when IMM_OPCODE | JALR_OPCODE | LOAD_OPCODE => ig_imm_type <= IMM_I_TYPE;
-                when LUI_OPCODE | AUIPC_OPCODE              => ig_imm_type <= IMM_U_TYPE;
-                when STORE_OPCODE                           => ig_imm_type <= IMM_S_TYPE;
-                when BRANCH_OPCODE                          => ig_imm_type <= IMM_B_TYPE;
-                when JAL_OPCODE                             => ig_imm_type <= IMM_J_TYPE;
-                when SYSTEM_OPCODE                          => ig_imm_type <= IMM_Z_TYPE;
-                when others                                 => ig_imm_type <= (others => '-');
+                when IMM_OPCODE | JALR_OPCODE | LOAD_OPCODE => ig_itype <= IMM_I_TYPE;
+                when LUI_OPCODE | AUIPC_OPCODE              => ig_itype <= IMM_U_TYPE;
+                when STORE_OPCODE                           => ig_itype <= IMM_S_TYPE;
+                when BRANCH_OPCODE                          => ig_itype <= IMM_B_TYPE;
+                when JAL_OPCODE                             => ig_itype <= IMM_J_TYPE;
+                when SYSTEM_OPCODE                          => ig_itype <= IMM_Z_TYPE;
+                when others                                 => ig_itype <= (others => '-');
             end case;
 
         end if;
 
     end process ig_ctrl;
 
-    alu_ctrl: process(opcode, flush)
-    
+    ex_ctrl_logic: process(opcode, flush)
     begin
-    
+
         if flush = '1' then
             
-            alu_src0      <= '0';
-            alu_src1      <= '0';
-            alu_opd0_pass <= '0';
-            alu_opd1_pass <= '0';
-            alu_op_en     <= '0';
-            alu_func_type <= '0';
+            ex_ctrl <= (
+                opd0_src_sel => '0',
+                opd1_src_sel => '0',
+                opd0_pass    => '0',
+                opd1_pass    => '0',
+                ftype        => '0',
+                op_en        => '0'
+            );
 
         else
 
             case opcode is
-
                 when RR_OPCODE =>
-                        
-                    alu_src0      <= '0';
-                    alu_src1      <= '0';
-                    alu_opd0_pass <= '1';
-                    alu_opd1_pass <= '1';
-                    alu_op_en     <= '1';
-                    alu_func_type <= '0';
-    
+                    ex_ctrl <= (
+                        opd0_src_sel => '0',
+                        opd1_src_sel => '0',
+                        opd0_pass    => '1',
+                        opd1_pass    => '1',
+                        ftype        => '0',
+                        op_en        => '1'
+                    );
                 when IMM_OPCODE =>
-                    
-                    alu_src0      <= '0';
-                    alu_src1      <= '1';
-                    alu_opd0_pass <= '1';
-                    alu_opd1_pass <= '1';
-                    alu_op_en     <= '1';
-                    alu_func_type <= '1';
-    
+                    ex_ctrl <= (
+                        opd0_src_sel => '0',
+                        opd1_src_sel => '1',
+                        opd0_pass    => '1',
+                        opd1_pass    => '1',
+                        ftype        => '1',
+                        op_en        => '1'
+                    );
                 when JALR_OPCODE => 
-    
-                    alu_src0      <= '0';
-                    alu_src1      <= '1';
-                    alu_opd0_pass <= '1';
-                    alu_opd1_pass <= '1';
-                    alu_op_en     <= '0';
-                    alu_func_type <= '0';
-    
+                    ex_ctrl <= (
+                        opd0_src_sel => '0',
+                        opd1_src_sel => '1',
+                        opd0_pass    => '1',
+                        opd1_pass    => '1',
+                        ftype        => '0',
+                        op_en        => '0'
+                    );
                 when BRANCH_OPCODE | AUIPC_OPCODE | JAL_OPCODE =>
-                        
-                    alu_src0      <= '1';
-                    alu_src1      <= '1';
-                    alu_opd0_pass <= '1';
-                    alu_opd1_pass <= '1';
-                    alu_op_en     <= '0';
-                    alu_func_type <= '0';
-    
+                    ex_ctrl <= (
+                        opd0_src_sel => '1',
+                        opd1_src_sel => '1',
+                        opd0_pass    => '1',
+                        opd1_pass    => '1',
+                        ftype        => '0',
+                        op_en        => '0'
+                    );
                 when LOAD_OPCODE | STORE_OPCODE =>
-                        
-                    alu_src0      <= '0';
-                    alu_src1      <= '1';
-                    alu_opd0_pass <= '1';
-                    alu_opd1_pass <= '1';
-                    alu_op_en     <= '0';
-                    alu_func_type <= '0';
-    
+                    ex_ctrl <= (
+                        opd0_src_sel => '0',
+                        opd1_src_sel => '1',
+                        opd0_pass    => '1',
+                        opd1_pass    => '1',
+                        ftype        => '0',
+                        op_en        => '0'
+                    );
                 when LUI_OPCODE =>
-                        
-                    alu_src0      <= '-';
-                    alu_src1      <= '1';
-                    alu_opd0_pass <= '0';
-                    alu_opd1_pass <= '1';
-                    alu_op_en     <= '0';
-                    alu_func_type <= '0';
-    
+                    ex_ctrl <= (
+                        opd0_src_sel => '-',
+                        opd1_src_sel => '1',
+                        opd0_pass    => '0',
+                        opd1_pass    => '1',
+                        ftype        => '0',
+                        op_en        => '0'
+                    );
                 when others =>
-    
-                    alu_src0      <= '0';
-                    alu_src1      <= '0';
-                    alu_opd0_pass <= '0';
-                    alu_opd1_pass <= '0';
-                    alu_op_en     <= '0';
-                    alu_func_type <= '0';
-            
+                    ex_ctrl <= (
+                        opd0_src_sel => '0',
+                        opd1_src_sel => '0',
+                        opd0_pass    => '0',
+                        opd1_pass    => '0',
+                        ftype        => '0',
+                        op_en        => '0'
+                    );
             end case;
-
+            
         end if;
 
-    end process alu_ctrl;
+    end process ex_ctrl_logic;
 
     lsu_ctrl: process(opcode, flush)
 

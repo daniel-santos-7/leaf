@@ -56,6 +56,20 @@ package core_pkg is
     constant ALU_CTRL_SUB:  std_logic_vector(9 downto 0) := b"0100000000";
     constant ALU_CTRL_SRA:  std_logic_vector(9 downto 0) := b"0100000101";
 
+    type ex_ctrl_type is record
+        opd0_src_sel : std_logic;
+        opd1_src_sel : std_logic;
+        opd0_pass    : std_logic;
+        opd1_pass    : std_logic;
+        ftype        : std_logic;
+        op_en        : std_logic;
+    end record ex_ctrl_type;
+
+    type ex_func_type is record
+        func7: std_logic_vector(6 downto 0);
+        func3: std_logic_vector(2 downto 0);
+    end record ex_func_type;
+
     -- imm types --
 
     constant IMM_I_TYPE: std_logic_vector(2 downto 0) := b"000";
@@ -106,21 +120,16 @@ package core_pkg is
 
     component main_ctrl is
         port (
-            opcode:        in  std_logic_vector(6 downto 0);
-            flush:         in  std_logic;
-            int_strg_ctrl: out std_logic_vector(2 downto 0);
-            ig_imm_type:   out std_logic_vector(2 downto 0);
-            alu_src0:      out std_logic; 
-            alu_src1:      out std_logic; 
-            alu_opd0_pass: out std_logic;
-            alu_opd1_pass: out std_logic;
-            alu_op_en:     out std_logic;
-            alu_func_type: out std_logic;
-            lsu_mode:      out std_logic;
-            lsu_en:        out std_logic;
-            brd_en:        out std_logic;
-            csrs_wr_en:    out std_logic;
-            if_jmp:        out std_logic
+            opcode        : in  std_logic_vector(6 downto 0);
+            flush         : in  std_logic;
+            int_strg_ctrl : out std_logic_vector(2 downto 0);
+            ig_itype      : out std_logic_vector(2 downto 0);
+            ex_ctrl       : out ex_ctrl_type;
+            lsu_mode      : out std_logic;
+            lsu_en        : out std_logic;
+            brd_en        : out std_logic;
+            csrs_wr_en    : out std_logic;
+            if_jmp        : out std_logic
         );
     end component main_ctrl;
 
@@ -305,13 +314,13 @@ package core_pkg is
 
     component ex_block is
         port (
-            opd0_src0: in  std_logic_vector(31 downto 0);
-            opd0_src1: in  std_logic_vector(31 downto 0);
-            opd1_src0: in  std_logic_vector(31 downto 0);
-            opd1_src1: in  std_logic_vector(31 downto 0);
-            ex_ctrl:   in  std_logic_vector(5  downto 0);     
-            ex_func:   in  std_logic_vector(9  downto 0);
-            res:       out std_logic_vector(31 downto 0)
+            opd0_src0 : in  std_logic_vector(31 downto 0);
+            opd0_src1 : in  std_logic_vector(31 downto 0);
+            opd1_src0 : in  std_logic_vector(31 downto 0);
+            opd1_src1 : in  std_logic_vector(31 downto 0);
+            ex_ctrl   : in  ex_ctrl_type;     
+            ex_func   : in  ex_func_type;
+            res       : out std_logic_vector(31 downto 0)
         );
     end component ex_block;
 
@@ -331,20 +340,20 @@ package core_pkg is
 
     component id_block is
         port (
-            instr           : in  std_logic_vector(31 downto 0);
-            flush           : in  std_logic;
-            regs_addr       : out std_logic_vector(14 downto 0);
-            csrs_addr       : out std_logic_vector(11 downto 0);
-            ex_func         : out std_logic_vector(9  downto 0);
-            csrs_mode       : out std_logic_vector(2  downto 0);
-            brde_mode       : out std_logic_vector(2  downto 0);
-            dmls_dtype      : out std_logic_vector(2  downto 0);
-            imm             : out std_logic_vector(31 downto 0);
-            int_strg_ctrl   : out std_logic_vector(2  downto 0);
-            ex_ctrl         : out std_logic_vector(5  downto 0);
-            dmls_ctrl       : out std_logic_vector(1  downto 0);
-            brde_ctrl       : out std_logic_vector(1  downto 0);
-            csrs_ctrl       : out std_logic
+            instr         : in  std_logic_vector(31 downto 0);
+            flush         : in  std_logic;
+            regs_addr     : out std_logic_vector(14 downto 0);
+            int_strg_ctrl : out std_logic_vector(2  downto 0);
+            csrs_addr     : out std_logic_vector(11 downto 0);
+            csrs_mode     : out std_logic_vector(2  downto 0);
+            csrs_ctrl     : out std_logic;
+            ex_func       : out ex_func_type;
+            ex_ctrl       : out ex_ctrl_type;
+            dmls_dtype    : out std_logic_vector(2  downto 0);
+            dmls_ctrl     : out std_logic_vector(1  downto 0);
+            brde_mode     : out std_logic_vector(2  downto 0);
+            brde_ctrl     : out std_logic_vector(1  downto 0);
+            imm           : out std_logic_vector(31 downto 0)
         );
     end component id_block;
     

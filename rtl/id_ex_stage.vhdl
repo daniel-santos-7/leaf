@@ -47,8 +47,8 @@ architecture id_ex_stage_arch of id_ex_stage is
 
     signal csrs_rd_data: std_logic_vector(31 downto 0);
 
-    signal ex_ctrl: std_logic_vector(5 downto 0);
-    signal ex_func: std_logic_vector(9 downto 0);
+    signal ex_ctrl: ex_ctrl_type;
+    signal ex_func: ex_func_type;
 
     signal alu_res:  std_logic_vector(31 downto 0);
 
