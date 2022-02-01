@@ -125,13 +125,11 @@ package core_pkg is
     end component main_ctrl;
 
     component imm_gen is
-    
         port (
             payload:  in  std_logic_vector(24 downto 0);
-            imm_type: in  std_logic_vector(2  downto 0);
+            itype:    in  std_logic_vector(2  downto 0);
             imm:      out std_logic_vector(31 downto 0)
         );
-    
     end component imm_gen;
 
     component reg_file is
