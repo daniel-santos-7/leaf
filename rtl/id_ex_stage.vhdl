@@ -20,9 +20,7 @@ entity id_ex_stage is
         wr_mem_byte_en: out std_logic_vector(3  downto 0);
         rd_mem_en:      out std_logic;
         wr_mem_en:      out std_logic;
-        branch:         out std_logic; 
-        jmp:            out std_logic; 
-        trap:           out std_logic;
+        taken :         out std_logic;
         target:         out std_logic_vector(31 downto 0)
     );
 end entity id_ex_stage;
@@ -33,9 +31,8 @@ architecture id_ex_stage_arch of id_ex_stage is
 
     signal regs_addr:     std_logic_vector(14 downto 0);
     signal int_strg_ctrl: std_logic_vector(2  downto 0);
-
-    signal rf_rd_reg_data0: std_logic_vector(31 downto 0);
-    signal rf_rd_reg_data1: std_logic_vector(31 downto 0);
+    signal ireg0_data : std_logic_vector(31 downto 0);
+    signal ireg1_data : std_logic_vector(31 downto 0);
 
     signal brde_mode:  std_logic_vector(2 downto 0);
     signal brde_ctrl:  std_logic_vector(1 downto 0);
@@ -47,10 +44,9 @@ architecture id_ex_stage_arch of id_ex_stage is
 
     signal csrs_rd_data: std_logic_vector(31 downto 0);
 
-    signal ex_ctrl: ex_ctrl_type;
-    signal ex_func: ex_func_type;
-
-    signal alu_res:  std_logic_vector(31 downto 0);
+    signal ex_ctrl : ex_ctrl_type;
+    signal ex_func : ex_func_type;
+    signal ex_res  : std_logic_vector(31 downto 0);
 
     signal dmls_addr:  std_logic_vector(31 downto 0);
     signal dmst_data:  std_logic_vector(31 downto 0);
@@ -79,19 +75,19 @@ begin
 
     stage_int_strg: int_strg port map (
         clk           => clk,
-        wr_src0       => alu_res,
+        wr_src0       => ex_res,
         wr_src1       => dmld_data,
         wr_src2       => next_pc,
         wr_src3       => csrs_rd_data,
         regs_addr     => regs_addr,
         int_strg_ctrl => int_strg_ctrl,
-        rd_data0      => rf_rd_reg_data0,
-        rd_data1      => rf_rd_reg_data1
+        rd_data0      => ireg0_data ,
+        rd_data1      => ireg1_data 
     );
 
     stage_br_detector: br_detector port map (
-        reg0   => rf_rd_reg_data0, 
-        reg1   => rf_rd_reg_data1,
+        reg0   => ireg0_data , 
+        reg1   => ireg1_data ,
         mode   => brde_mode,
         en     => brde_ctrl(1),
         branch => brd_branch
@@ -106,23 +102,23 @@ begin
         wr_mode     => csrs_mode,
         wr_en       => csrs_ctrl,
         rd_wr_addr  => csrs_addr,
-        wr_reg_data => rf_rd_reg_data0,
+        wr_reg_data => ireg0_data,
         wr_imm_data => imm,
         rd_data     => csrs_rd_data
     );
 
     stage_ex_block: ex_block port map (
-        opd0_src0 => rf_rd_reg_data0,
-        opd0_src1 => pc,
-        opd1_src0 => rf_rd_reg_data1,
+        opd0_src0 => ireg0_data,
+        opd0_src1 => pc ,
+        opd1_src0 => ireg1_data ,
         opd1_src1 => imm,
         ex_ctrl   => ex_ctrl,
         ex_func   => ex_func,
-        res       => alu_res
-    );
+        res       => ex_res
+    ); 
 
-    dmst_data <= rf_rd_reg_data1;
-    dmls_addr <= alu_res;
+    dmst_data <= ireg1_data ;
+    dmls_addr <= ex_res;
 
     stage_lsu: lsu port map (
         dmld_data  => dmld_data,
@@ -138,10 +134,11 @@ begin
         dm_byte_en => wr_mem_byte_en
     );
 
-    branch <= brd_branch;
-    target <= alu_res;
-    trap   <= '0';
+    -- branch <= brd_branch;
+    -- trap   <= '0';
+    -- jmp <= brde_ctrl(0);
 
-    jmp <= brde_ctrl(0);
+    target <= ex_res;
+    taken <= brd_branch or brde_ctrl(0);
 
 end architecture id_ex_stage_arch;

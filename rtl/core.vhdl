@@ -37,6 +37,8 @@ architecture core_arch of core is
     signal jmp:     std_logic;
     signal branch:  std_logic;
     signal trap:    std_logic;
+    signal taken:   std_logic;
+
     
     signal pc:      std_logic_vector(31 downto 0);
     signal next_pc: std_logic_vector(31 downto 0);
@@ -82,9 +84,10 @@ begin
     ) port map (
         clk               => clk,
         reset             => reset,
-        jmp               => jmp, 
-        branch            => branch, 
-        trap              => trap,
+        -- jmp               => jmp, 
+        -- branch            => branch, 
+        -- trap              => trap,
+        taken             => taken,
         target            => target,
         rd_instr_mem_data => rd_instr_mem_data,
         rd_instr_mem_addr => rd_instr_mem_addr,
@@ -110,9 +113,10 @@ begin
         ex_irq         => ex_irq,
         sw_irq         => sw_irq,
         tm_irq         => tm_irq,
-        branch         => branch, 
-        jmp            => jmp, 
-        trap           => trap,
+        -- branch         => branch, 
+        -- jmp            => jmp, 
+        -- trap           => trap,
+        taken          => taken,
         target         => target
     );
     

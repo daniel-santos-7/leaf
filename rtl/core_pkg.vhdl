@@ -71,9 +71,14 @@ package core_pkg is
     end record ex_func_type;
 
     type dmls_ctrl_type is record
-        mode: std_logic;
-        en  : std_logic;
+        mode : std_logic;
+        en   : std_logic;
     end record dmls_ctrl_type;
+
+    type bjmp_ctrl_type is record
+        mode : std_logic;
+        en   : std_logic;
+    end record bjmp_ctrl_type;
 
     -- imm types --
 
@@ -218,61 +223,46 @@ package core_pkg is
     end component lsu;
 
     component id_ex_stage is
-    
         port (
-            clk:   in std_logic;
-            reset: in std_logic;
-            
-            pc:         in std_logic_vector(31 downto 0);
-            next_pc:    in std_logic_vector(31 downto 0);
-            instr:      in std_logic_vector(31 downto 0);
-            flush:      in std_logic;
-            
+            clk:            in  std_logic;
+            reset:          in  std_logic;
+            ex_irq:         in  std_logic;
+            sw_irq:         in  std_logic;
+            tm_irq:         in  std_logic;
+            flush:          in  std_logic;
+            instr:          in  std_logic_vector(31 downto 0);
+            pc:             in  std_logic_vector(31 downto 0);
+            next_pc:        in  std_logic_vector(31 downto 0);
             rd_mem_data:    in  std_logic_vector(31 downto 0);
             wr_mem_data:    out std_logic_vector(31 downto 0);
+            rd_wr_mem_addr: out std_logic_vector(31 downto 0);
+            wr_mem_byte_en: out std_logic_vector(3  downto 0);
             rd_mem_en:      out std_logic;
             wr_mem_en:      out std_logic;
-            rd_wr_mem_addr: out std_logic_vector(31 downto 0);
-            wr_mem_byte_en: out std_logic_vector(3 downto 0);
-    
-            ex_irq: in std_logic;
-            sw_irq: in std_logic;
-            tm_irq: in std_logic;
-            
-            branch:  out std_logic; 
-            jmp:     out std_logic; 
-            trap:    out std_logic;
-            
-            target: out std_logic_vector(31 downto 0)
+            -- branch:         out std_logic; 
+            -- jmp:            out std_logic; 
+            -- trap:           out std_logic;
+            taken :         out std_logic;
+            target:         out std_logic_vector(31 downto 0)
         );
-    
     end component id_ex_stage;
     
     component if_stage is
-
         generic (
-            RESET_ADDR: std_logic_vector(31 downto 0) := (others => '0')
+            RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
         );
-    
         port (
-            clk:   in std_logic;
-            reset: in std_logic;
-    
-            jmp:     in std_logic;
-            branch:  in std_logic;
-            trap:    in std_logic;
-    
-            target: in std_logic_vector(31 downto 0);
-            
-            rd_instr_mem_data: in  std_logic_vector(31 downto 0);
-            rd_instr_mem_addr: out std_logic_vector(31 downto 0);
-            
-            pc:      out std_logic_vector(31 downto 0);
-            next_pc: out std_logic_vector(31 downto 0);
-            instr:   out std_logic_vector(31 downto 0);
-            flush:   out std_logic
+            clk               : in  std_logic;
+            reset             : in  std_logic;
+            taken             : in  std_logic;
+            target            : in  std_logic_vector(31 downto 0);
+            rd_instr_mem_data : in  std_logic_vector(31 downto 0);
+            rd_instr_mem_addr : out std_logic_vector(31 downto 0);
+            pc                : out std_logic_vector(31 downto 0);
+            next_pc           : out std_logic_vector(31 downto 0);
+            instr             : out std_logic_vector(31 downto 0);
+            flush             : out std_logic
         );
-
     end component if_stage;
 
     component core is
