@@ -78,23 +78,23 @@ begin
     );
 
     core_id_ex_stage: id_ex_stage port map (
-        clk            => clk,
-        reset          => reset,
-        pc             => pc_reg,
-        next_pc        => next_pc_reg,
-        instr          => instr_reg,
-        flush          => flush_reg,
-        rd_mem_data    => rd_mem_data,
-        wr_mem_data    => wr_mem_data,
-        rd_mem_en      => rd_mem_en,
-        wr_mem_en      => wr_mem_en,
-        rd_wr_mem_addr => rd_wr_mem_addr,
-        wr_mem_byte_en => wr_mem_byte_en,
-        ex_irq         => ex_irq,
-        sw_irq         => sw_irq,
-        tm_irq         => tm_irq,
-        taken          => taken,
-        target         => target
+        clk        => clk,
+        reset      => reset,
+        pc         => pc_reg,
+        next_pc    => next_pc_reg,
+        instr      => instr_reg,
+        flush      => flush_reg,
+        dmrd_data  => rd_mem_data,
+        dmwr_data  => wr_mem_data,
+        dmrd_en    => rd_mem_en,
+        dmwr_en    => wr_mem_en,
+        dmrw_addr  => rd_wr_mem_addr,
+        dm_byte_en => wr_mem_byte_en,
+        ex_irq     => ex_irq,
+        sw_irq     => sw_irq,
+        tm_irq     => tm_irq,
+        taken      => taken,
+        target     => target
     );
     
 end architecture core_arch;

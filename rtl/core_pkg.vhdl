@@ -224,23 +224,23 @@ package core_pkg is
 
     component id_ex_stage is
         port (
-            clk:            in  std_logic;
-            reset:          in  std_logic;
-            ex_irq:         in  std_logic;
-            sw_irq:         in  std_logic;
-            tm_irq:         in  std_logic;
-            flush:          in  std_logic;
-            instr:          in  std_logic_vector(31 downto 0);
-            pc:             in  std_logic_vector(31 downto 0);
-            next_pc:        in  std_logic_vector(31 downto 0);
-            rd_mem_data:    in  std_logic_vector(31 downto 0);
-            wr_mem_data:    out std_logic_vector(31 downto 0);
-            rd_wr_mem_addr: out std_logic_vector(31 downto 0);
-            wr_mem_byte_en: out std_logic_vector(3  downto 0);
-            rd_mem_en:      out std_logic;
-            wr_mem_en:      out std_logic;
-            taken :         out std_logic;
-            target:         out std_logic_vector(31 downto 0)
+            clk        : in  std_logic;
+            reset      : in  std_logic;
+            ex_irq     : in  std_logic;
+            sw_irq     : in  std_logic;
+            tm_irq     : in  std_logic;
+            flush      : in  std_logic;
+            instr      : in  std_logic_vector(31 downto 0);
+            pc         : in  std_logic_vector(31 downto 0);
+            next_pc    : in  std_logic_vector(31 downto 0);
+            dmrd_data  : in  std_logic_vector(31 downto 0);
+            dmwr_data  : out std_logic_vector(31 downto 0);
+            dmrw_addr  : out std_logic_vector(31 downto 0);
+            dm_byte_en : out std_logic_vector(3  downto 0);
+            dmrd_en    : out std_logic;
+            dmwr_en    : out std_logic;
+            taken      : out std_logic;
+            target     : out std_logic_vector(31 downto 0)
         );
     end component id_ex_stage;
     
