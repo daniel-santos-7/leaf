@@ -65,16 +65,16 @@ begin
     core_if_stage: if_stage generic map (
         RESET_ADDR => RESET_ADDR
     ) port map (
-        clk               => clk,
-        reset             => reset,
-        taken             => taken,
-        target            => target,
-        rd_instr_mem_data => rd_instr_mem_data,
-        rd_instr_mem_addr => rd_instr_mem_addr,
-        pc                => pc, 
-        next_pc           => next_pc,
-        instr             => instr,
-        flush             => flush
+        clk       => clk,
+        reset     => reset,
+        taken     => taken,
+        target    => target,
+        imem_data => rd_instr_mem_data,
+        imem_addr => rd_instr_mem_addr,
+        pc        => pc, 
+        next_pc   => next_pc,
+        instr     => instr,
+        flush     => flush
     );
 
     core_id_ex_stage: id_ex_stage port map (

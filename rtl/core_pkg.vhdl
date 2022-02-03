@@ -239,9 +239,6 @@ package core_pkg is
             wr_mem_byte_en: out std_logic_vector(3  downto 0);
             rd_mem_en:      out std_logic;
             wr_mem_en:      out std_logic;
-            -- branch:         out std_logic; 
-            -- jmp:            out std_logic; 
-            -- trap:           out std_logic;
             taken :         out std_logic;
             target:         out std_logic_vector(31 downto 0)
         );
@@ -252,16 +249,16 @@ package core_pkg is
             RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
         );
         port (
-            clk               : in  std_logic;
-            reset             : in  std_logic;
-            taken             : in  std_logic;
-            target            : in  std_logic_vector(31 downto 0);
-            rd_instr_mem_data : in  std_logic_vector(31 downto 0);
-            rd_instr_mem_addr : out std_logic_vector(31 downto 0);
-            pc                : out std_logic_vector(31 downto 0);
-            next_pc           : out std_logic_vector(31 downto 0);
-            instr             : out std_logic_vector(31 downto 0);
-            flush             : out std_logic
+            clk       : in  std_logic;
+            reset     : in  std_logic;
+            taken     : in  std_logic;
+            target    : in  std_logic_vector(31 downto 0);
+            imem_data : in  std_logic_vector(31 downto 0);
+            imem_addr : out std_logic_vector(31 downto 0);
+            pc        : out std_logic_vector(31 downto 0);
+            next_pc   : out std_logic_vector(31 downto 0);
+            instr     : out std_logic_vector(31 downto 0);
+            flush     : out std_logic
         );
     end component if_stage;
 

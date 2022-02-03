@@ -7,16 +7,16 @@ entity if_stage is
         RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
     );
     port (
-        clk               : in  std_logic;
-        reset             : in  std_logic;
-        taken             : in  std_logic;
-        target            : in  std_logic_vector(31 downto 0);
-        rd_instr_mem_data : in  std_logic_vector(31 downto 0);
-        rd_instr_mem_addr : out std_logic_vector(31 downto 0);
-        pc                : out std_logic_vector(31 downto 0);
-        next_pc           : out std_logic_vector(31 downto 0);
-        instr             : out std_logic_vector(31 downto 0);
-        flush             : out std_logic
+        clk       : in  std_logic;
+        reset     : in  std_logic;
+        taken     : in  std_logic;
+        target    : in  std_logic_vector(31 downto 0);
+        imem_data : in  std_logic_vector(31 downto 0);
+        imem_addr : out std_logic_vector(31 downto 0);
+        pc        : out std_logic_vector(31 downto 0);
+        next_pc   : out std_logic_vector(31 downto 0);
+        instr     : out std_logic_vector(31 downto 0);
+        flush     : out std_logic
     );
 end entity if_stage;
 
@@ -38,28 +38,27 @@ begin
         if rising_edge(clk) then
 
             if reset = '1' then
-            
+
                 pc_reg <= RESET_ADDR;
 
             elsif taken = '1' then
-                
+
                 pc_reg <= target_i;
 
             else
 
                 pc_reg <= next_pc_i;
-                
+
             end if;
 
         end if;
     
     end process pc_gen;
 
-    rd_instr_mem_addr <= pc_reg;
-
-    pc      <= pc_reg;
-    next_pc <= next_pc_i;
-    instr   <= rd_instr_mem_data;
-    flush   <= taken;
+    imem_addr <= pc_reg;
+    pc        <= pc_reg;
+    next_pc   <= next_pc_i;
+    instr     <= imem_data;
+    flush     <= taken;
 
 end architecture if_stage_arch;
