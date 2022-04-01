@@ -263,28 +263,24 @@ package core_pkg is
     end component if_stage;
 
     component core is
-    
-        port (
-            clk:   in std_logic; 
-            reset: in std_logic;
-            
-            rd_instr_mem_data: in  std_logic_vector(31 downto 0);
-            rd_instr_mem_addr: out std_logic_vector(31 downto 0);
-            
-            rd_mem_data: in  std_logic_vector(31 downto 0);
-            wr_mem_data: out std_logic_vector(31 downto 0);
-            
-            rd_mem_en: out std_logic;
-            wr_mem_en: out std_logic;
-            
-            rd_wr_mem_addr: out std_logic_vector(31 downto 0);
-            wr_mem_byte_en: out std_logic_vector(3 downto 0);
-    
-            ex_irq: in std_logic;
-            sw_irq: in std_logic;
-            tm_irq: in std_logic
+        generic (
+            RESET_ADDR: std_logic_vector(31 downto 0) := (others => '0')
         );
-    
+        port (
+            clk         : in  std_logic; 
+            reset       : in  std_logic;
+            imem_data   : in  std_logic_vector(31 downto 0);
+            imem_addr   : out std_logic_vector(31 downto 0);
+            dmrd_data   : in  std_logic_vector(31 downto 0);
+            dmwr_data   : out std_logic_vector(31 downto 0);
+            dmrd_en     : out std_logic;
+            dmwr_en     : out std_logic;
+            dmrw_addr   : out std_logic_vector(31 downto 0);
+            dm_byte_en  : out std_logic_vector(3 downto 0);
+            ex_irq      : in  std_logic;
+            sw_irq      : in  std_logic;
+            tm_irq      : in  std_logic
+        );
     end component core;
 
     ----------------------------------------------------------------

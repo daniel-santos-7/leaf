@@ -22,15 +22,15 @@ architecture core_tb_arch of core_tb is
     signal clk:     std_logic;
     signal reset:   std_logic;
 
-    signal rd_instr_mem_data: std_logic_vector(31 downto 0);
-    signal rd_instr_mem_addr: std_logic_vector(31 downto 0);
+    signal imem_data: std_logic_vector(31 downto 0);
+    signal imem_addr: std_logic_vector(31 downto 0);
 
-    signal rd_wr_mem_addr:  std_logic_vector(31 downto 0);
-    signal rd_mem_data:     std_logic_vector(31 downto 0);
-    signal wr_mem_data:     std_logic_vector(31 downto 0);
-    signal rd_mem_en:       std_logic;
-    signal wr_mem_en:       std_logic;
-    signal wr_mem_byte_en:  std_logic_vector(3  downto 0);
+    signal dmrw_addr:  std_logic_vector(31 downto 0);
+    signal dmrd_data:     std_logic_vector(31 downto 0);
+    signal dmwr_data:     std_logic_vector(31 downto 0);
+    signal dmrd_en:       std_logic;
+    signal dmwr_en:       std_logic;
+    signal dm_byte_en:  std_logic_vector(3  downto 0);
 
     signal ex_irq: std_logic := '0';
     signal sw_irq: std_logic := '0';
@@ -63,14 +63,14 @@ begin
     uut: core port map (
         clk               => clk,
         reset             => reset,
-        rd_instr_mem_data => rd_instr_mem_data,
-        rd_instr_mem_addr => rd_instr_mem_addr,
-        rd_mem_data       => rd_mem_data,
-        wr_mem_data       => wr_mem_data,
-        rd_mem_en         => rd_mem_en,
-        wr_mem_en         => wr_mem_en,
-        rd_wr_mem_addr    => rd_wr_mem_addr,
-        wr_mem_byte_en    => wr_mem_byte_en,
+        imem_data => imem_data,
+        imem_addr => imem_addr,
+        dmrd_data         => dmrd_data,
+        dmwr_data         => dmwr_data,
+        dmrd_en           => dmrd_en,
+        dmwr_en           => dmwr_en,
+        dmrw_addr         => dmrw_addr,
+        dm_byte_en        => dm_byte_en,
         ex_irq            => ex_irq,
         sw_irq            => sw_irq,
         tm_irq            => tm_irq
@@ -112,27 +112,27 @@ begin
 
             sim_started <= true;
 
-        elsif rising_edge(clk) and wr_mem_en = '1' then
+        elsif rising_edge(clk) and dmwr_en = '1' then
 
-            addr := to_integer(unsigned(rd_wr_mem_addr));
+            addr := to_integer(unsigned(dmrw_addr));
 
-            case wr_mem_byte_en is
+            case dm_byte_en is
                 
                 when b"0001" => 
                     
-                    ram(addr + 0) := wr_mem_data(7 downto 0);
+                    ram(addr + 0) := dmwr_data(7 downto 0);
                     
                 when b"0011" => 
                 
-                    ram(addr + 0) := wr_mem_data(7  downto 0);
-                    ram(addr + 1) := wr_mem_data(15 downto 8);
+                    ram(addr + 0) := dmwr_data(7  downto 0);
+                    ram(addr + 1) := dmwr_data(15 downto 8);
             
                 when others => 
                 
-                    ram(addr + 0) := wr_mem_data(7  downto 0);
-                    ram(addr + 1) := wr_mem_data(15 downto 8);
-                    ram(addr + 2) := wr_mem_data(23 downto 16);
-                    ram(addr + 3) := wr_mem_data(31 downto 24);
+                    ram(addr + 0) := dmwr_data(7  downto 0);
+                    ram(addr + 1) := dmwr_data(15 downto 8);
+                    ram(addr + 2) := dmwr_data(23 downto 16);
+                    ram(addr + 3) := dmwr_data(31 downto 24);
 
             end case;
 
@@ -140,33 +140,33 @@ begin
 
     end process mem_wr;
 
-    instr_mem_rd: process (rd_instr_mem_addr)
+    instr_mem_rd: process (imem_addr)
     
         variable addr: integer;
 
     begin
         
-        addr := to_integer(unsigned(rd_instr_mem_addr));
+        addr := to_integer(unsigned(imem_addr));
 
-        rd_instr_mem_data <= read_ram(ram, addr);
+        imem_data <= read_ram(ram, addr);
 
     end process instr_mem_rd;
 
-    data_mem_rd: process (clk, rd_mem_en, rd_mem_data)
+    data_mem_rd: process (clk, dmrd_en, dmrd_data)
     
         variable addr: integer;
 
     begin
             
-        if rd_mem_en = '1' then
+        if dmrd_en = '1' then
 
-            addr := to_integer(unsigned(rd_wr_mem_addr));
+            addr := to_integer(unsigned(dmrw_addr));
 
-            rd_mem_data <= read_ram(ram, addr);
+            dmrd_data <= read_ram(ram, addr);
 
         else
 
-            rd_mem_data <= (others => '0');
+            dmrd_data <= (others => '0');
 
         end if;
 
