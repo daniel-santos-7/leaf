@@ -44,3 +44,4 @@ compliance-test: $(WORKDIR)/work-obj93.cf
 clean:
 	rm -rf $(WORKDIR);
 	rm -rf $(WAVESDIR);
+	$(MAKE) -C $(RV_ARCH_TEST_DIR) clean;
