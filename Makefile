@@ -40,6 +40,12 @@ compliance-test: $(WORKDIR)/work-obj93.cf
     done
 	$(MAKE) -C $(RV_ARCH_TEST_DIR) verify
 
+.PHONY: sim
+sim: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
+	$(GHDL) -i $(GHDLFLAGS) sim/*.vhdl;
+	$(GHDL) -m $(GHDLFLAGS) sim;
+	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) -gOUT_FILE=$(OUT_FILE) --wave=./waves/sim.ghw;
+
 .PHONY: clean
 clean:
 	rm -rf $(WORKDIR);
