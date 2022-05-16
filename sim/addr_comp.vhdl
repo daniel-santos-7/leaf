@@ -24,6 +24,6 @@ begin
 
     acm0 <= wr_en when offset = x"000" or offset = x"001" else '0';
     acm1 <= wr_en when offset = x"002" and base = x"00000" else '0';
-    acm2 <= wr_en when offset = x"002" and base = x"00001" else '0';
+    acm2 <= wr_en when offset = x"002" and base = x"00004" else '0';
     
 end architecture addr_comp_arch;
