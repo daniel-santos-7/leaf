@@ -10,12 +10,7 @@
   .word 128;                                        \
   .align 8; .global end_regstate; end_regstate:     \
   .word 4;
-
-#define TESTUTIL_BASE 0x1FFFF3
-#define TESTUTIL_ADDR_HALT (TESTUTIL_BASE + 0x0)
-#define TESTUTIL_ADDR_BEGIN_SIGNATURE (TESTUTIL_BASE + 0x4)
-#define TESTUTIL_ADDR_END_SIGNATURE (TESTUTIL_BASE + 0x8)
-
+  
 #define OUTPUT_ADDR 0x00200000
 #define HALT_ADDR 0x00200004
 
