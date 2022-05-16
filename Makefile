@@ -10,17 +10,21 @@ $(WAVESDIR):
 
 RTL_SRC=$(wildcard ./rtl/*.vhdl)
 TBS_SRC=$(wildcard ./tbs/*.vhdl)
-COMPLIANCE_SRC=$(wildcard ./compliance/*.vhdl)
+SIM_SRC=$(wildcard ./sim/*.vhdl)
 
 GHDL=ghdl
 GHDLFLAGS=--workdir=$(WORKDIR) --ieee=synopsys
 
-$(WORKDIR)/work-obj93.cf: $(RTL_SRC) $(TBS_SRC) $(COMPLIANCE_SRC) $(WORKDIR)
-	$(GHDL) -i $(GHDLFLAGS) $(RTL_SRC) $(TBS_SRC) $(COMPLIANCE_SRC)
+$(WORKDIR)/work-obj93.cf: $(RTL_SRC) $(TBS_SRC) $(SIM_SRC) $(WORKDIR)
+	$(GHDL) -i $(GHDLFLAGS) $(RTL_SRC) $(TBS_SRC) $(SIM_SRC)
 
 $(WAVESDIR)/%.ghw: ./tbs/%.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) $*
 	$(GHDL) -r $(GHDLFLAGS) $* --ieee-asserts=disable --wave=$@
+
+$(WAVESDIR)/sim.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
+	$(GHDL) -m $(GHDLFLAGS) sim;
+	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) -gOUT_FILE=$(OUT_FILE) --wave=$@;
 
 RV_ARCH_TEST_DIR=../riscv-arch-test/
 
@@ -30,7 +34,6 @@ export RISCV_TARGET=leaf
 
 .PHONY: compliance-test
 compliance-test: $(WORKDIR)/work-obj93.cf
-	$(GHDL) -i $(GHDLFLAGS) sim/*.vhdl;
 	$(MAKE) -C $(RV_ARCH_TEST_DIR) build;
 	$(GHDL) -m $(GHDLFLAGS) sim;
 	bins=$$(find $(RV_ARCH_TEST_DIR)/work/rv32i_m/I/ -name "*.bin"); \
@@ -40,12 +43,6 @@ compliance-test: $(WORKDIR)/work-obj93.cf
         $(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$$bin -gOUT_FILE=$(RV_ARCH_TEST_DIR)/work/rv32i_m/I/$$test.signature.output; \
     done
 	$(MAKE) -C $(RV_ARCH_TEST_DIR) verify
-
-.PHONY: sim
-sim: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
-	$(GHDL) -i $(GHDLFLAGS) sim/*.vhdl;
-	$(GHDL) -m $(GHDLFLAGS) sim;
-	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) -gOUT_FILE=$(OUT_FILE) --wave=./waves/sim.ghw;
 
 .PHONY: clean
 clean:
