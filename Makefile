@@ -30,13 +30,14 @@ export RISCV_TARGET=leaf
 
 .PHONY: compliance-test
 compliance-test: $(WORKDIR)/work-obj93.cf
+	$(GHDL) -i $(GHDLFLAGS) sim/*.vhdl;
 	$(MAKE) -C $(RV_ARCH_TEST_DIR) build;
-	$(GHDL) -m $(GHDLFLAGS) compliance;
+	$(GHDL) -m $(GHDLFLAGS) sim;
 	bins=$$(find $(RV_ARCH_TEST_DIR)/work/rv32i_m/I/ -name "*.bin"); \
 	for bin in $$bins; do \
         test=$$(basename -s .elf.bin $$bin); \
         echo "running test: $$test"; \
-        $(GHDL) -r $(GHDLFLAGS) compliance --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM_FILE=$$bin -gDUMP_FILE=$(RV_ARCH_TEST_DIR)/work/rv32i_m/I/$$test.signature.output -gMEMORY_SIZE=2097152; \
+        $(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$$bin -gOUT_FILE=$(RV_ARCH_TEST_DIR)/work/rv32i_m/I/$$test.signature.output; \
     done
 	$(MAKE) -C $(RV_ARCH_TEST_DIR) verify
 
