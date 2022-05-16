@@ -16,17 +16,22 @@
 #define TESTUTIL_ADDR_BEGIN_SIGNATURE (TESTUTIL_BASE + 0x4)
 #define TESTUTIL_ADDR_END_SIGNATURE (TESTUTIL_BASE + 0x8)
 
-#define RVMODEL_HALT                    \
-  la t0, begin_signature;               \
-  li t1, TESTUTIL_ADDR_BEGIN_SIGNATURE; \
-  sw t0, 0(t1);                         \
-  la t0, end_signature;                 \
-  li t1, TESTUTIL_ADDR_END_SIGNATURE;   \
-  sw t0, 0(t1);                         \
-  li t0, 1;                             \
-  li t1, TESTUTIL_ADDR_HALT;            \
-  sw t0, 0(t1);                         \
-  self_loop:  j self_loop;
+#define OUTPUT_ADDR 0x00200000
+#define HALT_ADDR 0x00200004
+
+#define RVMODEL_HALT        \
+  li t0, OUTPUT_ADDR;       \
+  li t1, HALT_ADDR;         \
+  la t2, begin_signature;   \
+  la t3, end_signature;     \
+  write:                    \
+    lw t4, 0x0(t2);         \
+    sw t4, 0x0(t0);         \
+    addi t2, t2, 0x4;       \
+    blt t2, t3, write;      \
+  li t5, 0x1;               \
+  sw t5, 0x0(t1);           \
+  self_loop : j self_loop;
 
 #define RVMODEL_DATA_BEGIN \
   .align 4; .global begin_signature; begin_signature:
