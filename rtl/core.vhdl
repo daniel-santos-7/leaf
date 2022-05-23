@@ -1,3 +1,9 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
@@ -34,16 +40,17 @@ architecture core_arch of core is
     signal instr   : std_logic_vector(31 downto 0);
     signal flush   : std_logic;
 
-    signal pc_reg       : std_logic_vector(31 downto 0);
-    signal next_pc_reg  : std_logic_vector(31 downto 0);
-    signal instr_reg    : std_logic_vector(31 downto 0);
-    signal flush_reg    : std_logic;
+    signal pc_reg      : std_logic_vector(31 downto 0);
+    signal next_pc_reg : std_logic_vector(31 downto 0);
+    signal instr_reg   : std_logic_vector(31 downto 0);
+    signal flush_reg   : std_logic;
 
 begin
 
+    --- pipeline registers ---
+
     pipeline_regs: process(clk)
     begin
-        
         if rising_edge(clk) then
             if reset = '1' then
                 pc_reg      <= (others => '0');
@@ -57,9 +64,10 @@ begin
                 flush_reg   <= flush;
             end if;
         end if;
-
     end process pipeline_regs;
     
+    --- instruction fetch stage ---
+
     core_if_stage: if_stage generic map (
         RESET_ADDR => RESET_ADDR
     ) port map (
@@ -74,6 +82,8 @@ begin
         instr     => instr,
         flush     => flush
     );
+
+    --- instruction decode and execution stage ---
 
     core_id_ex_stage: id_ex_stage port map (
         clk        => clk,

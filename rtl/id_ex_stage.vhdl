@@ -1,3 +1,9 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
@@ -27,36 +33,36 @@ end entity id_ex_stage;
 
 architecture id_ex_stage_arch of id_ex_stage is
     
-    signal imm: std_logic_vector(31 downto 0);
+    signal imm : std_logic_vector(31 downto 0);
 
-    signal regs_addr:     std_logic_vector(14 downto 0);
-    signal int_strg_ctrl: std_logic_vector(2  downto 0);
-    signal ireg0_data : std_logic_vector(31 downto 0);
-    signal ireg1_data : std_logic_vector(31 downto 0);
+    signal regs_addr     : std_logic_vector(14 downto 0);
+    signal int_strg_ctrl : std_logic_vector(2  downto 0);
+    signal ireg0_data    : std_logic_vector(31 downto 0);
+    signal ireg1_data    : std_logic_vector(31 downto 0);
 
-    signal brde_mode:  std_logic_vector(2 downto 0);
-    signal brde_ctrl:  std_logic_vector(1 downto 0);
-    signal brd_branch: std_logic;
+    signal brde_mode  : std_logic_vector(2 downto 0);
+    signal brde_ctrl  : std_logic_vector(1 downto 0);
+    signal brd_branch : std_logic;
 
-    signal csrs_mode: std_logic_vector(2 downto 0);
-    signal csrs_ctrl: std_logic;
-    signal csrs_addr: std_logic_vector(11 downto 0);
+    signal csrs_mode : std_logic_vector(2 downto 0);
+    signal csrs_ctrl : std_logic;
+    signal csrs_addr : std_logic_vector(11 downto 0);
 
-    signal csrs_rd_data: std_logic_vector(31 downto 0);
+    signal csrs_rd_data : std_logic_vector(31 downto 0);
 
     signal ex_ctrl : ex_ctrl_type;
     signal ex_func : ex_func_type;
     signal ex_res  : std_logic_vector(31 downto 0);
 
-    signal dmls_addr:  std_logic_vector(31 downto 0);
-    signal dmst_data:  std_logic_vector(31 downto 0);
-    signal dmls_dtype: std_logic_vector(2 downto 0);
-    signal dmls_ctrl:  dmls_ctrl_type;
-    signal dmld_data:  std_logic_vector(31 downto 0);
+    signal dmls_addr  : std_logic_vector(31 downto 0);
+    signal dmst_data  : std_logic_vector(31 downto 0);
+    signal dmls_dtype : std_logic_vector(2 downto 0);
+    signal dmls_ctrl  : dmls_ctrl_type;
+    signal dmld_data  : std_logic_vector(31 downto 0);
 
 begin
 
-    uut: id_block port map (
+    stage_id_block: id_block port map (
         instr         => instr,
         flush         => flush,
         regs_addr     => regs_addr,
