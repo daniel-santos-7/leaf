@@ -1,9 +1,7 @@
-
 /work
 /waves
-/bins
 /verilog
 
-/sw/boot
-/sw/byte_test
-/sw/hello
+/sw/**/*.bin
+/sw/**/*.elf
+/sw/**/*.debug
