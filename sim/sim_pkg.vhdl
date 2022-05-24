@@ -25,12 +25,12 @@ package sim_pkg is
         port (
             clk        : in  std_logic;
             reset      : in  std_logic;
-            wr         : in  std_logic;
+            wr_en      : in  std_logic;
+            rd_en      : in  std_logic;
             wr_byte_en : in  std_logic_vector(3  downto 0);
-            wr_data    : in  std_logic_vector(31 downto 0);
-            wr_addr    : in  std_logic_vector(BITS-3 downto 0);
-            rd_addr0   : in  std_logic_vector(BITS-3 downto 0);
-            rd_addr1   : in  std_logic_vector(BITS-3 downto 0);        
+            wr_data1   : in  std_logic_vector(31 downto 0);
+            rw_addr0   : in  std_logic_vector(BITS-3 downto 0);
+            rw_addr1   : in  std_logic_vector(BITS-3 downto 0);        
             rd_data0   : out std_logic_vector(31 downto 0);
             rd_data1   : out std_logic_vector(31 downto 0)
         );

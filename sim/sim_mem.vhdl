@@ -10,12 +10,12 @@ entity sim_mem is
     port (
         clk        : in  std_logic;
         reset      : in  std_logic;
-        wr         : in  std_logic;
+        wr_en      : in  std_logic;
+        rd_en      : in  std_logic;
         wr_byte_en : in  std_logic_vector(3  downto 0);
-        wr_data    : in  std_logic_vector(31 downto 0);
-        wr_addr    : in  std_logic_vector(BITS-3 downto 0);
-        rd_addr0   : in  std_logic_vector(BITS-3 downto 0);
-        rd_addr1   : in  std_logic_vector(BITS-3 downto 0);        
+        wr_data1   : in  std_logic_vector(31 downto 0);
+        rw_addr0   : in  std_logic_vector(BITS-3 downto 0);
+        rw_addr1   : in  std_logic_vector(BITS-3 downto 0);        
         rd_data0   : out std_logic_vector(31 downto 0);
         rd_data1   : out std_logic_vector(31 downto 0)
     );
@@ -34,7 +34,7 @@ architecture sim_mem_arch of sim_mem is
 
 begin
 
-    wr_ram: process(clk)
+    wr_mem1: process(clk)
         subtype byte_type is character;
         type bin_type is file of byte_type;
 
@@ -57,13 +57,10 @@ begin
                 while not endfile(bin) and addr <= MEM_SIZE/4-1 loop
                     read(bin, byte);
                     mem0(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
-                    
                     read(bin, byte);
                     mem1(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
-                    
                     read(bin, byte);
                     mem2(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
-                    
                     read(bin, byte);
                     mem3(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
 
@@ -71,43 +68,54 @@ begin
                 end loop;
 
                 file_close(bin);
-            else
-                addr := to_integer(unsigned(wr_addr));
+            elsif wr_en = '1' then
+                addr := to_integer(unsigned(rw_addr1));
 
                 mem0_wr := wr_byte_en(0);
                 mem1_wr := wr_byte_en(1);
                 mem2_wr := wr_byte_en(2);
                 mem3_wr := wr_byte_en(3);
 
-                if wr = '1' then
-                    if mem0_wr = '1' then
-                        mem0(addr) := wr_data(7  downto 0);
-                    end if;
-
-                    if mem1_wr = '1' then
-                        mem1(addr) := wr_data(15 downto 8);
-                    end if;
-
-                    if mem2_wr = '1' then
-                        mem2(addr) := wr_data(23 downto 16);
-                    end if;
-
-                    if mem3_wr = '1' then
-                        mem3(addr) := wr_data(31 downto 24);
-                    end if;
+                if mem0_wr = '1' then
+                    mem0(addr) := wr_data1(7  downto 0);
                 end if;
+
+                if mem1_wr = '1' then
+                    mem1(addr) := wr_data1(15 downto 8);
+                end if;
+
+                if mem2_wr = '1' then
+                    mem2(addr) := wr_data1(23 downto 16);
+                end if;
+
+                if mem3_wr = '1' then
+                    mem3(addr) := wr_data1(31 downto 24);
+                end if;
+
             end if;
         end if;
-    end process wr_ram;
+    end process wr_mem1;
 
-    rd_data0(7  downto  0) <= mem0(to_integer(unsigned(rd_addr0)));
-    rd_data0(15 downto  8) <= mem1(to_integer(unsigned(rd_addr0)));
-    rd_data0(23 downto 16) <= mem2(to_integer(unsigned(rd_addr0)));
-    rd_data0(31 downto 24) <= mem3(to_integer(unsigned(rd_addr0)));
+    rd_mem0: process(rw_addr0)
+        variable addr: integer range 0 to MEM_SIZE/4-1;
+    begin
+        addr := to_integer(unsigned(rw_addr0));
 
-    rd_data1(7  downto  0) <= mem0(to_integer(unsigned(rd_addr1)));
-    rd_data1(15 downto  8) <= mem1(to_integer(unsigned(rd_addr1)));
-    rd_data1(23 downto 16) <= mem2(to_integer(unsigned(rd_addr1)));
-    rd_data1(31 downto 24) <= mem3(to_integer(unsigned(rd_addr1)));  
+        rd_data0(7  downto  0) <= mem0(addr);
+        rd_data0(15 downto  8) <= mem1(addr);
+        rd_data0(23 downto 16) <= mem2(addr);
+        rd_data0(31 downto 24) <= mem3(addr);
+    end process rd_mem0;
+
+    rd_mem1: process(rd_en, rw_addr1)
+        variable addr: integer range 0 to MEM_SIZE/4-1;
+    begin
+        addr := to_integer(unsigned(rw_addr1));
+
+        rd_data1(7  downto  0) <= mem0(addr);
+        rd_data1(15 downto  8) <= mem1(addr);
+        rd_data1(23 downto 16) <= mem2(addr);
+        rd_data1(31 downto 24) <= mem3(addr);
+    end process rd_mem1;
     
 end architecture sim_mem_arch;

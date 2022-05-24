@@ -58,12 +58,12 @@ begin
     ) port map (
         clk        => clk,
         reset      => reset,
-        wr         => mem_acm,
+        wr_en      => mem_acm,
+        rd_en      => dmrd_en,
         wr_byte_en => dm_byte_en,
-        wr_data    => dmwr_data,
-        wr_addr    => dmrw_addr(20 downto 2),
-        rd_addr0   => imem_addr(20 downto 2),
-        rd_addr1   => dmrw_addr(20 downto 2),
+        wr_data1   => dmwr_data,
+        rw_addr0   => imem_addr(20 downto 2),
+        rw_addr1   => dmrw_addr(20 downto 2),
         rd_data0   => imem_data,
         rd_data1   => dmrd_data
     );
