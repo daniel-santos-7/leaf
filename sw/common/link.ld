@@ -11,9 +11,10 @@ SECTIONS
 {
 	.text :
 	{
-		*(.init)
 		__text_begin = .;
+		*(.init)
 		*(.text*)
+		. = ALIGN(4);
 		__text_end = .;
 	} > MEM
 
@@ -21,6 +22,7 @@ SECTIONS
 	{
         __rodata_begin = .;
 		*(.rodata*)
+		. = ALIGN(4);
 		__rodata_end = .;
 	} > MEM
 
@@ -29,15 +31,17 @@ SECTIONS
 		__data_begin = .;
 		*(.data*)
 		*(.eh_frame*)
+		. = ALIGN(4);
 		__data_end = .;
 	} > MEM
 
-	.bss ALIGN(4) :
+	.bss :
 	{
 		__bss_begin = .;
 		*(.bss*)
 		*(.sbss*)
-		__bss_end = ALIGN(4);
+		. = ALIGN(4);
+		__bss_end = .;
 	} > MEM
 
 	__stack_top = 0x00200000;
