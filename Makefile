@@ -22,6 +22,8 @@ $(WAVESDIR)/%.ghw: ./tbs/%.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) $*
 	$(GHDL) -r $(GHDLFLAGS) $* --ieee-asserts=disable --wave=$@
 
+OUT_FILE ?= $(shell tty)
+
 $(WAVESDIR)/sim.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) sim;
 	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) -gOUT_FILE=$(OUT_FILE) --wave=$@;
