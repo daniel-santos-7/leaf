@@ -167,7 +167,7 @@ begin
 
     end process dmls_ctrl_logic;
 
-    br_detector_ctrl: process(opcode)
+    br_detector_ctrl: process(opcode, flush)
     begin
 
         if flush = '1' then
