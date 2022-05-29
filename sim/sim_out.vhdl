@@ -1,8 +1,6 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
-use IEEE.std_logic_textio.all;
-use std.textio.all;
 
 entity sim_out is
     generic (
@@ -19,24 +17,24 @@ end entity sim_out;
 
 architecture sim_out_arch of sim_out is
 
-    file txt_file : text;
+    type txt_file is file of integer;
+
+    file out_file : txt_file;
 
 begin
 
     main: process(clk)
-        variable word : line;
     begin
         if rising_edge(clk) then
             if reset = '1' then
-                file_open(txt_file, FILENAME, write_mode);
+                file_open(out_file, FILENAME, write_mode);
             elsif halt = '1' then
-                file_close(txt_file);
+                file_close(out_file);
             elsif wr_en = '1' then
-                hwrite(word, wr_data(31 downto 24));
-                hwrite(word, wr_data(23 downto 16));
-                hwrite(word, wr_data(15 downto 8));
-                hwrite(word, wr_data(7  downto 0));
-                writeline(txt_file, word);
+                write(out_file, to_integer(unsigned(wr_data(31 downto 24))));
+                write(out_file, to_integer(unsigned(wr_data(23 downto 16))));
+                write(out_file, to_integer(unsigned(wr_data(15 downto 8))));
+                write(out_file, to_integer(unsigned(wr_data(7  downto 0))));
             end if;
         end if;
     end process main;

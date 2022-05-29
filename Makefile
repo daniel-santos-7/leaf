@@ -28,6 +28,11 @@ $(WAVESDIR)/sim.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) sim;
 	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) -gOUT_FILE=$(OUT_FILE) --wave=$@;
 
+.PHONY: sim
+sim: $(WORKDIR)/work-obj93.cf
+	$(GHDL) -m $(GHDLFLAGS) sim;
+	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) -gOUT_FILE=$(OUT_FILE);
+
 RV_ARCH_TEST_DIR=../riscv-arch-test/
 
 export TARGETDIR ?= $(shell pwd)/compliance/
