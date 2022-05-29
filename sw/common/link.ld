@@ -45,6 +45,7 @@ SECTIONS
 	} > MEM
 
 	__stack_top = 0x00200000;
+	__end = .;
 
 	/DISCARD/ :
 	{

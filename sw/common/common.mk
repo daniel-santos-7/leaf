@@ -8,5 +8,6 @@ MABI  ?= ilp32
 
 LD_SCRIPT ?= ../common/link.ld
 STARTUP   ?= ../common/crt0.S
+SYSCALLS  ?= ../common/syscalls.c
 
-RISCV_GCC_OPTS ?= -nostdlib -O0 -march=$(MARCH) -mabi=$(MABI) -T $(LD_SCRIPT)
+RISCV_GCC_OPTS ?= -nostartfiles -O0 -march=$(MARCH) -mabi=$(MABI) -T $(LD_SCRIPT)
