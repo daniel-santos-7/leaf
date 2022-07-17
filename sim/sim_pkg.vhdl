@@ -37,15 +37,13 @@ package sim_pkg is
     end component sim_mem;
 
     component sim_out is
-        generic (
-            FILENAME : string
-        );
         port (
-            halt    : in std_logic;
-            clk     : in std_logic;
-            reset   : in std_logic;
-            wr_en   : in std_logic;
-            wr_data : in std_logic_vector(31 downto 0)
+            halt       : in std_logic;
+            clk        : in std_logic;
+            reset      : in std_logic;
+            wr_en      : in std_logic;
+            wr_byte_en : in std_logic_vector(3  downto 0);
+            wr_data    : in std_logic_vector(31 downto 0)
         );
     end component sim_out;
 

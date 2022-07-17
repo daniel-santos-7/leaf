@@ -7,8 +7,7 @@ use work.sim_pkg.all;
 
 entity sim is
     generic (
-        BIN_FILE : string;
-        OUT_FILE : string
+        BIN_FILE : string
     );
 end entity sim;
 
@@ -68,13 +67,12 @@ begin
         rd_data1   => dmrd_data
     );
 
-    output: sim_out generic map (
-        FILENAME => OUT_FILE
-    ) port map (
+    output: sim_out port map (
         halt    => halt,
         clk     => clk,
         reset   => reset,
         wr_en   => out_acm,
+        wr_byte_en => dm_byte_en,
         wr_data => dmwr_data
     );
 
