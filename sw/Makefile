@@ -10,7 +10,7 @@ LD_SCRIPT = common/link.ld
 STARTUP   = common/crt0.S
 SYSCALLS  = common/syscalls.c
 
-RISCV_GCC_OPTS = -nostartfiles -T $(LD_SCRIPT) -march=$(MARCH) -mabi=$(MABI)
+RISCV_GCC_OPTS = -nostartfiles -T $(LD_SCRIPT) -march=$(MARCH) -mabi=$(MABI) -O2
 
 BUILD_DIR = build
 
@@ -25,6 +25,9 @@ $(BUILD_DIR)/%.debug: $(BUILD_DIR)/%.elf
 
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 	$(RISCV_OBJCOPY) -O binary $^ $@
+
+$(BUILD_DIR)/coremark.elf: $(STARTUP) $(SYSCALLS) $(wildcard coremark/*.c)
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $^ -DPERFORMANCE_RUN=1 -DITERATIONS=80 -o $@
 
 .PHONY: clean
 clean:
