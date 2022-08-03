@@ -1,6 +1,7 @@
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 use work.core_pkg.all;
 
 entity csrs is
@@ -52,12 +53,20 @@ architecture csrs_arch of csrs is
     signal mip_mtip: std_logic;
     signal mip_msip: std_logic;
 
+    -- counters --
+
+    signal cycle    : std_logic_vector(63 downto 0);
+    -- signal time     : std_logic_vector(63 downto 0);
+    -- signal instret  : std_logic_vector(63 downto 0);
+
+    -----------------------------------------------
+
     signal wr_data_i: std_logic_vector(31 downto 0);
     signal rd_data_i: std_logic_vector(31 downto 0);
     
 begin
     
-    read_csr: process(rd_wr_addr, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip)
+    read_csr: process(rd_wr_addr, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle)
     
     begin
             
@@ -103,9 +112,10 @@ begin
 
                 rd_data_i <= (11 => mip_meip, 7 => mip_mtip, 3 => mip_msip, others => '0');
 
-            when others => 
-            
-                rd_data_i <= (others => '0');
+            when CSR_ADDR_CYCLE  => rd_data_i <= cycle(31 downto  0);
+            when CSR_ADDR_CYCLEH => rd_data_i <= cycle(63 downto 32);
+
+            when others => rd_data_i <= (others => '0');
         
         end case;
 
@@ -320,6 +330,17 @@ begin
         end if;
 
     end process write_mip;
+
+    write_cycle: process(clk)
+    begin
+        if rising_edge(clk) then
+            if reset = '1' then
+                cycle <= (others => '0');
+            else
+                cycle <= std_logic_vector(unsigned(cycle) + 1);
+            end if;
+        end if;
+    end process write_cycle;
     
     rd_data <= rd_data_i;
 
