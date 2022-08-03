@@ -22,16 +22,14 @@ $(WAVESDIR)/%.ghw: ./tbs/%.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) $*
 	$(GHDL) -r $(GHDLFLAGS) $* --ieee-asserts=disable --wave=$@
 
-OUT_FILE ?= $(shell tty)
-
 $(WAVESDIR)/sim.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) sim;
-	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) -gOUT_FILE=$(OUT_FILE) --wave=$@;
+	$(GHDL) -r $(GHDLFLAGS) sim --stop-time=50us --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) --wave=$@;
 
 .PHONY: sim
 sim: $(WORKDIR)/work-obj93.cf
 	$(GHDL) -m $(GHDLFLAGS) sim;
-	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) -gOUT_FILE=$(OUT_FILE) > out;
+	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE);
 
 RV_ARCH_TEST_DIR=../riscv-arch-test/
 
