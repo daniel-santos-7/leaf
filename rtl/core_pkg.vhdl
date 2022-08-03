@@ -30,6 +30,9 @@ package core_pkg is
     constant CSR_ADDR_MTVAL:    std_logic_vector(11 downto 0) := x"343";
     constant CSR_ADDR_MIP:      std_logic_vector(11 downto 0) := x"344";
 
+    constant CSR_ADDR_CYCLE:    std_logic_vector(11 downto 0) := x"C00";
+    constant CSR_ADDR_CYCLEH:   std_logic_vector(11 downto 0) := x"C80";
+
     -- ALU op --
 
     constant ALU_ADD:  std_logic_vector(5 downto 0) := b"001111";
@@ -105,6 +108,24 @@ package core_pkg is
     constant LSU_HALF:  std_logic_vector(2 downto 0) := b"001";
     constant LSU_HALFU: std_logic_vector(2 downto 0) := b"101";
     constant LSU_WORD:  std_logic_vector(2 downto 0) := b"010";
+
+    component if_stage is
+        generic (
+            RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
+        );
+        port (
+            clk       : in  std_logic;
+            reset     : in  std_logic;
+            taken     : in  std_logic;
+            target    : in  std_logic_vector(31 downto 0);
+            imem_data : in  std_logic_vector(31 downto 0);
+            imem_addr : out std_logic_vector(31 downto 0);
+            pc        : out std_logic_vector(31 downto 0);
+            next_pc   : out std_logic_vector(31 downto 0);
+            instr     : out std_logic_vector(31 downto 0);
+            flush     : out std_logic
+        );
+    end component if_stage;
 
     component alu is
 
@@ -243,24 +264,6 @@ package core_pkg is
             target     : out std_logic_vector(31 downto 0)
         );
     end component id_ex_stage;
-    
-    component if_stage is
-        generic (
-            RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
-        );
-        port (
-            clk       : in  std_logic;
-            reset     : in  std_logic;
-            taken     : in  std_logic;
-            target    : in  std_logic_vector(31 downto 0);
-            imem_data : in  std_logic_vector(31 downto 0);
-            imem_addr : out std_logic_vector(31 downto 0);
-            pc        : out std_logic_vector(31 downto 0);
-            next_pc   : out std_logic_vector(31 downto 0);
-            instr     : out std_logic_vector(31 downto 0);
-            flush     : out std_logic
-        );
-    end component if_stage;
 
     component core is
         generic (

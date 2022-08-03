@@ -5,7 +5,7 @@ package tbs_pkg is
 
     constant CLK_PERIOD: time := 20 ns;
 
-    procedure tick(signal clk: inout std_logic);
+    procedure tick(signal clk: out std_logic);
     procedure tickn(signal clk: inout std_logic; constant N: natural);
 
     function r_instr(
@@ -81,24 +81,20 @@ end package tbs_pkg;
 
 package body tbs_pkg is
 
-    procedure tick(signal clk: inout std_logic) is
+    procedure tick(signal clk: out std_logic) is
     begin
-
-        clk <= not clk;
+        clk <= '0';
         wait for CLK_PERIOD/2;
 
-        clk <= not clk;
+        clk <= '1';
         wait for CLK_PERIOD/2;
-        
     end procedure;
 
     procedure tickn(signal clk: inout std_logic; constant N: natural) is
     begin
-
         for i in 0 to N loop
             tick(clk);
         end loop;
-
     end procedure;
 
     function r_instr(
