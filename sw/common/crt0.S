@@ -21,12 +21,6 @@ init_stack:
 .hidden call_main
 call_main:
 	call main
-
-.hidden halt
-halt:
-    li t0, 0x00000001
-    li t1, 0x00200004   # halt simulation register address
-    sw t0, 0x0(t1)
-
+	
 1:
 	j 1b
