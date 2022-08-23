@@ -13,83 +13,105 @@ end entity sim;
 
 architecture sim_arch of sim is
     
-    signal clk        : std_logic;
-    signal reset      : std_logic;
-    signal imem_data  : std_logic_vector(31 downto 0);
-    signal imem_addr  : std_logic_vector(31 downto 0);
-    signal dmrw_addr  : std_logic_vector(31 downto 0);
-    signal dmrd_data  : std_logic_vector(31 downto 0);
-    signal dmwr_data  : std_logic_vector(31 downto 0);
-    signal dmrd_en    : std_logic;
-    signal dmwr_en    : std_logic;
-    signal dm_byte_en : std_logic_vector(3  downto 0);
-    signal ex_irq     : std_logic := '0';
-    signal sw_irq     : std_logic := '0';
-    signal tm_irq     : std_logic := '0';
-
     signal halt : std_logic;
+    signal clk  : std_logic;
+    signal rst  : std_logic;
 
-    signal mem_acm : std_logic;
-    signal out_acm : std_logic;
-    signal ctr_acm : std_logic;
+    signal halt_acmp : std_logic;
+    signal out_acmp  : std_logic;
+    signal mem_acmp  : std_logic;
+
+    signal cpu_ack : std_logic;
+    signal cpu_cyc : std_logic;
+    signal cpu_stb : std_logic;
+    signal cpu_we  : std_logic;
+    signal cpu_sel : std_logic_vector(3  downto 0);
+    signal cpu_adr : std_logic_vector(31 downto 0);
+    signal cpu_drd : std_logic_vector(31 downto 0);
+    signal cpu_dwr : std_logic_vector(31 downto 0);
+
+    signal halt_stb : std_logic;
+    signal out_stb  : std_logic;
+    signal mem_stb  : std_logic;
+
+    signal halt_ack : std_logic;
+    signal out_ack  : std_logic;
+    signal mem_ack  : std_logic;
 
 begin
     
-    cpu: core port map (
-        clk        => clk,
-        reset      => reset,
-        imem_data  => imem_data,
-        imem_addr  => imem_addr,
-        dmrd_data  => dmrd_data,
-        dmwr_data  => dmwr_data,
-        dmrd_en    => dmrd_en,
-        dmwr_en    => dmwr_en,
-        dmrw_addr  => dmrw_addr,
-        dm_byte_en => dm_byte_en,
-        ex_irq     => ex_irq,
-        sw_irq     => sw_irq,
-        tm_irq     => tm_irq
+    halt_stb <= halt_acmp and cpu_cyc and cpu_stb;
+    out_stb  <= out_acmp  and cpu_cyc and cpu_stb;
+    mem_stb  <= mem_acmp  and cpu_cyc and cpu_stb;
+
+    cpu_ack <= halt_ack or out_ack or mem_ack;
+
+    control: syscon port map (
+        halt_i => halt,
+        clk_o  => clk,
+        rst_o  => rst
     );
 
-    memory: sim_mem generic map (
-        BITS    => 21,
-        PROGRAM => BIN_FILE
+    cpu: leaf generic map (
+        RESET_ADDR => x"00400000"
     ) port map (
-        clk        => clk,
-        reset      => reset,
-        wr_en      => mem_acm,
-        rd_en      => dmrd_en,
-        wr_byte_en => dm_byte_en,
-        wr_data1   => dmwr_data,
-        rw_addr0   => imem_addr(20 downto 2),
-        rw_addr1   => dmrw_addr(20 downto 2),
-        rd_data0   => imem_data,
-        rd_data1   => dmrd_data
-    );
-
-    output: sim_out port map (
-        halt    => halt,
-        clk     => clk,
-        reset   => reset,
-        wr_en   => out_acm,
-        wr_byte_en => dm_byte_en,
-        wr_data => dmwr_data
-    );
-
-    control: sim_ctrl port map (
-        wr_en   => ctr_acm,
-        wr_data => dmwr_data,
-        halt    => halt,
-        clk     => clk,
-        reset   => reset
+        clk_i => clk,
+        rst_i => rst,
+        ack_i => cpu_ack,
+        dat_i => cpu_drd,
+        cyc_o => cpu_cyc,
+        stb_o => cpu_stb,
+        we_o  => cpu_we,
+        sel_o => cpu_sel,
+        adr_o => cpu_adr,
+        dat_o => cpu_dwr
     );
 
     address: addr_comp port map (
-        addr  => dmrw_addr,
-        wr_en => dmwr_en,
-        acm0  => mem_acm,
-        acm1  => out_acm,
-        acm2  => ctr_acm
+        addr   => cpu_adr,
+        acmp0  => halt_acmp,
+        acmp1  => out_acmp,
+        acmp2  => mem_acmp
+    );
+
+    haltsim: halt_gen port map (
+        clk_i  => clk,
+        rst_i  => rst,
+        dat_i  => cpu_dwr,
+        cyc_i  => cpu_cyc,
+        stb_i  => halt_stb,
+        we_i   => cpu_we,
+        ack_o  => halt_ack,
+        halt_o => halt
+    );
+
+    output: sim_out port map (
+        halt_i => halt,
+        clk_i  => clk,
+        rst_i  => rst,
+        dat_i  => cpu_dwr,
+        cyc_i  => cpu_cyc,
+        stb_i  => out_stb,
+        we_i   => cpu_we,
+        sel_i  => cpu_sel,     
+        ack_o  => out_ack
+    );
+
+    -- memory 4 MB --
+    memory: sim_mem generic map (
+        BITS    => 22,
+        PROGRAM => BIN_FILE
+    ) port map (
+        clk_i => clk,
+        rst_i => rst,
+        dat_i => cpu_dwr,
+        cyc_i => cpu_cyc,
+        stb_i => mem_stb,
+        we_i  => cpu_we,
+        sel_i => cpu_sel,
+        adr_i => cpu_adr(21 downto 2),
+        ack_o => mem_ack,
+        dat_o => cpu_drd
     );
 
 end architecture sim_arch;

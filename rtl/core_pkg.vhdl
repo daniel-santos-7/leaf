@@ -341,5 +341,23 @@ package core_pkg is
             imm           : out std_logic_vector(31 downto 0)
         );
     end component id_block;
+
+    component leaf is
+        generic (
+            RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
+        );
+        port (
+            clk_i : in  std_logic;
+            rst_i : in  std_logic;
+            ack_i : in  std_logic;
+            dat_i : in  std_logic_vector(31 downto 0);
+            cyc_o : out std_logic;
+            stb_o : out std_logic;
+            we_o  : out std_logic;
+            sel_o : out std_logic_vector(3  downto 0);
+            adr_o : out std_logic_vector(31 downto 0);
+            dat_o : out std_logic_vector(31 downto 0)
+        );
+    end component leaf;
     
 end package core_pkg;

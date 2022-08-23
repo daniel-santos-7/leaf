@@ -29,6 +29,9 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 $(BUILD_DIR)/coremark.elf: $(STARTUP) $(SYSCALLS) $(wildcard coremark/*.c)
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $^ -DPERFORMANCE_RUN=1 -DITERATIONS=80 -o $@
 
+$(BUILD_DIR)/tests_asm.elf: tests_asm/tests_asm.S
+	$(RISCV_GCC) -c $^ -o $@
+
 .PHONY: clean
 clean:
 	rm -rf build

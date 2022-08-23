@@ -4,16 +4,22 @@ use IEEE.numeric_std.all;
 
 entity sim_out is
     port (
-        halt       : in std_logic;
-        clk        : in std_logic;
-        reset      : in std_logic;
-        wr_en      : in std_logic;
-        wr_byte_en : in std_logic_vector(3  downto 0);
-        wr_data    : in std_logic_vector(31 downto 0)
+        halt_i : in  std_logic;
+        clk_i  : in  std_logic;
+        rst_i  : in  std_logic;
+        dat_i  : in  std_logic_vector(31 downto 0);
+        cyc_i  : in  std_logic;
+        stb_i  : in  std_logic;
+        we_i   : in  std_logic;
+        sel_i  : in  std_logic_vector(3  downto 0);        
+        ack_o  : out std_logic
     );
 end entity sim_out;
 
 architecture sim_out_arch of sim_out is
+
+    signal ack : std_logic;
+    signal we  : std_logic;
 
     type charfile is file of character;
     
@@ -21,31 +27,36 @@ architecture sim_out_arch of sim_out is
 
 begin
 
-    main: process(clk)
+    ack <= cyc_i and stb_i;
+    we  <= ack and we_i;
+
+    wr_data: process(clk_i)
     begin
-        if rising_edge(clk) then
-            if reset = '1' then
+        if rising_edge(clk_i) then
+            if rst_i = '1' then
                 file_open(out_file, "STD_OUTPUT", write_mode);
-            elsif halt = '1' then
+            elsif halt_i = '1' then
                 file_close(out_file);
-            elsif wr_en = '1' then
-                if wr_byte_en(3) = '1' then
-                    write(out_file, character'val(to_integer(unsigned(wr_data(31 downto 24)))));
+            elsif we = '1' then
+                if sel_i(3) = '1' then
+                    write(out_file, character'val(to_integer(unsigned(dat_i(31 downto 24)))));
                 end if;
                 
-                if wr_byte_en(2) = '1' then
-                    write(out_file, character'val(to_integer(unsigned(wr_data(23 downto 16)))));
+                if sel_i(2) = '1' then
+                    write(out_file, character'val(to_integer(unsigned(dat_i(23 downto 16)))));
                 end if;
 
-                if wr_byte_en(1) = '1' then
-                    write(out_file, character'val(to_integer(unsigned(wr_data(15 downto 8)))));
+                if sel_i(1) = '1' then
+                    write(out_file, character'val(to_integer(unsigned(dat_i(15 downto 8)))));
                 end if;
 
-                if wr_byte_en(0) = '1' then
-                    write(out_file, character'val(to_integer(unsigned(wr_data(7  downto 0)))));
+                if sel_i(0) = '1' then
+                    write(out_file, character'val(to_integer(unsigned(dat_i(7  downto 0)))));
                 end if;
             end if;
         end if;
-    end process main;
+    end process wr_data;
+
+    ack_o <= ack and not rst_i;
     
 end architecture sim_out_arch;
