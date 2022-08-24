@@ -11,8 +11,8 @@
   .align 8; .global end_regstate; end_regstate:     \
   .word 4;
   
-#define OUTPUT_ADDR 0x00200000
-#define HALT_ADDR 0x00200004
+#define OUTPUT_ADDR 0x00000004
+#define HALT_ADDR 0x00000000
 
 #define RVMODEL_HALT        \
   li t0, OUTPUT_ADDR;       \

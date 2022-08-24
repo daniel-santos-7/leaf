@@ -24,7 +24,7 @@ $(WAVESDIR)/%.ghw: ./tbs/%.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 
 $(WAVESDIR)/sim.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) sim;
-	$(GHDL) -r $(GHDLFLAGS) sim --stop-time=50us --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) --wave=$@;
+	$(GHDL) -r $(GHDLFLAGS) sim --stop-time=500us --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE) --wave=$@;
 
 .PHONY: sim
 sim: $(WORKDIR)/work-obj93.cf

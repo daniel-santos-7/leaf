@@ -1,3 +1,10 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: leaf cpu with wishbone interface
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
@@ -29,8 +36,9 @@ architecture leaf_arch of leaf is
     signal reset : std_logic;
 
     -- instruction memory signals --
-    signal imem_data : std_logic_vector(31 downto 0);
-    signal imem_addr : std_logic_vector(31 downto 0);
+    signal imrd_data : std_logic_vector(31 downto 0);
+    signal imrd_addr : std_logic_vector(31 downto 0);
+    signal imrd_en   : std_logic;
 
     -- data memory signals --
     signal dmrd_data : std_logic_vector(31 downto 0);
@@ -38,115 +46,58 @@ architecture leaf_arch of leaf is
     signal dmrd_en   : std_logic;
     signal dmwr_en   : std_logic;
     signal dmrw_addr : std_logic_vector(31 downto 0);
-    signal dm_byte_en: std_logic_vector(3  downto 0);
+    signal dmrw_be: std_logic_vector(3  downto 0);
 
     -- interruptions --
     signal ex_irq : std_logic;
     signal sw_irq : std_logic;
     signal tm_irq : std_logic;
 
-    type state is (START, READ_INSTR, BRD_CYCLE, READ_DATA, RMW_CYCLE, WRITE_DATA, EXECUTE);
-
-    signal curr_state: state;
-    signal next_state: state;  
-
-    signal tclk : std_logic;
-
 begin
 
-    fsm: process(clk_i, rst_i)
-    begin
-        if rst_i = '1' then
-            curr_state <= START;
-        elsif rising_edge(clk_i) then
-            curr_state <= next_state;
-        end if;
-    end process fsm;
+    imrd_en <= not rst_i;
 
-    fsm_next_state: process(curr_state, ack_i, dmrd_en, dmwr_en)
-    begin
-        case curr_state is
-            when START => 
-                next_state <= READ_INSTR;
-            when READ_INSTR =>
-                if ack_i = '1' then
-                    if dmrd_en = '1' then
-                        next_state <= BRD_CYCLE;
-                    elsif dmwr_en = '1' then
-                        next_state <= RMW_CYCLE;
-                    else
-                        next_state <= EXECUTE;
-                    end if;
-                else
-                    next_state <= READ_INSTR;
-                end if;
-            when BRD_CYCLE =>
-                next_state <= READ_DATA;
-            when READ_DATA =>
-                if ack_i = '1' then
-                    next_state <= EXECUTE;
-                else
-                    next_state <= READ_DATA;
-                end if;
-            when RMW_CYCLE =>
-                next_state <= WRITE_DATA;
-            when WRITE_DATA =>
-                if ack_i = '1' then
-                    next_state <= EXECUTE;
-                else
-                    next_state <= WRITE_DATA;
-                end if;
-            when EXECUTE =>
-                next_state <= READ_INSTR;
-        end case;
-    end process fsm_next_state;
-
-    cyc_o <= '0' when curr_state = EXECUTE or curr_state = START else '1';
-    stb_o <= '1' when curr_state = READ_INSTR or curr_state = READ_DATA or curr_state = WRITE_DATA else '0';
-    we_o  <= '1' when curr_state = WRITE_DATA else '0';
-    sel_o <= dm_byte_en when curr_state = WRITE_DATA else (others => '0');
-    
-    adr_o <= dmrw_addr when curr_state = READ_DATA or curr_state = WRITE_DATA else imem_addr;
-    dat_o <= dmwr_data;
-
-    clk   <= clk_i when curr_state = START or curr_state = EXECUTE;
-    reset <= '1' when curr_state = START else '0';
-        
     ex_irq <= '0';
     sw_irq <= '0';
     tm_irq <= '0';
 
-    wr_imem_data: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if ack_i = '1' and curr_state = READ_INSTR then
-                imem_data <= dat_i;
-            end if;
-        end if;
-    end process wr_imem_data;
-
-    wr_dmwr_data: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if ack_i = '1' and curr_state = READ_DATA then
-                dmrd_data <= dat_i;
-            end if;
-        end if;
-    end process wr_dmwr_data;
+    leaf_master: wb_ctrl port map (
+        clk_i     => clk_i,
+        rst_i     => rst_i,
+        ack_i     => ack_i,
+        dat_i     => dat_i,
+        imrd_en   => imrd_en,
+        dmrd_en   => dmrd_en,
+        dmwr_en   => dmwr_en,
+        dmrw_be   => dmrw_be,
+        imrd_addr => imrd_addr,
+        dmrw_addr => dmrw_addr,
+        dmwr_data => dmwr_data,
+        cyc_o     => cyc_o,
+        stb_o     => stb_o,
+        we_o      => we_o,
+        sel_o     => sel_o,
+        adr_o     => adr_o,
+        dat_o     => dat_o,
+        clk       => clk,
+        reset     => reset,
+        imrd_data => imrd_data,
+        dmrd_data => dmrd_data
+    );
     
     leaf_core: core generic map (
         RESET_ADDR  => RESET_ADDR
     ) port map (
         clk         => clk, 
         reset       => reset,
-        imem_data   => imem_data,
-        imem_addr   => imem_addr,
+        imem_data   => imrd_data,
+        imem_addr   => imrd_addr,
         dmrd_data   => dmrd_data,
         dmwr_data   => dmwr_data,
         dmrd_en     => dmrd_en,
         dmwr_en     => dmwr_en,
         dmrw_addr   => dmrw_addr,
-        dm_byte_en  => dm_byte_en,
+        dm_byte_en  => dmrw_be,
         ex_irq      => ex_irq,
         sw_irq      => sw_irq,
         tm_irq      => tm_irq
