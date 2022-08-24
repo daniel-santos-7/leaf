@@ -5,8 +5,8 @@
 #undef errno
 extern int errno;
 
-#define OUTPUT_ADDR 0x00200000
-#define HALT_ADDR 0x00200004
+#define OUTPUT_ADDR 0x00000004
+#define HALT_ADDR 0x00000000
 
 void _exit(int n) {
   int volatile *halt = (int *) HALT_ADDR;

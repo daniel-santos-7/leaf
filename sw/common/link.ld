@@ -3,8 +3,8 @@ ENTRY(_start)
 
 MEMORY
 {
-    MEM (rwx) : ORIGIN = 0x00000000, LENGTH = 0x00200000
-    IOP (w)   : ORIGIN = 0x00200000, LENGTH = 0x00000008
+    IOP (w)   : ORIGIN = 0x00000000, LENGTH = 0x00000008
+    MEM (rwx) : ORIGIN = 0x00400000, LENGTH = 0x00400000
 }
 
 SECTIONS
@@ -44,7 +44,7 @@ SECTIONS
 		__bss_end = .;
 	} > MEM
 
-	__stack_top = 0x00200000;
+	__stack_top = 0x00800000;
 	__end = .;
 
 	/DISCARD/ :
