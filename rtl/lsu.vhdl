@@ -44,22 +44,7 @@ begin
     dmem_rd <= not mode and en;
     dmem_wr <= mode and en;
 
-    -- read_dmem: process(dmem_rd, dmls_dtype, dmrd_data)
-    -- begin
-    --     if dmem_rd = '1' then
-    --         case dmls_dtype is
-    --             when LSU_BYTE  => dmld_data <= std_logic_vector(resize(signed(dmrd_data(7 downto 0)), 32));
-    --             when LSU_BYTEU => dmld_data <= std_logic_vector(resize(unsigned(dmrd_data(7 downto 0)), 32));
-    --             when LSU_HALF  => dmld_data <= std_logic_vector(resize(signed(dmrd_data(15 downto 0)), 32));
-    --             when LSU_HALFU => dmld_data <= std_logic_vector(resize(unsigned(dmrd_data(15 downto 0)), 32));
-    --             when others    => dmld_data <= dmrd_data;
-    --         end case;
-    --     else
-    --         dmld_data <= (others => '0');
-    --     end if;
-    -- end process read_dmem;
-
-    read_dmem: process(dmem_rd, dmls_dtype, dmrd_data)
+    read_dmem: process(dmem_rd, dmls_dtype, dmls_addr, dmrd_data)
         variable addr_align : std_logic_vector(1 downto 0);
     begin
         if dmem_rd = '1' then
