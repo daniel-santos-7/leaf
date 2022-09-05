@@ -11,16 +11,26 @@ $(WAVESDIR):
 RTL_SRC=$(wildcard ./rtl/*.vhdl)
 TBS_SRC=$(wildcard ./tbs/*.vhdl)
 SIM_SRC=$(wildcard ./sim/*.vhdl)
+SOC_SRC=$(wildcard ./soc/*.vhdl)
 
 GHDL=ghdl
 GHDLFLAGS=--workdir=$(WORKDIR) --ieee=synopsys
 
-$(WORKDIR)/work-obj93.cf: $(RTL_SRC) $(TBS_SRC) $(SIM_SRC) $(WORKDIR)
-	$(GHDL) -i $(GHDLFLAGS) $(RTL_SRC) $(TBS_SRC) $(SIM_SRC)
+$(WORKDIR)/work-obj93.cf: $(RTL_SRC) $(TBS_SRC) $(SIM_SRC) $(SOC_SRC) $(WORKDIR)
+	$(GHDL) -i $(GHDLFLAGS) $(RTL_SRC) $(TBS_SRC) $(SIM_SRC) $(SOC_SRC)
 
 $(WAVESDIR)/%.ghw: ./tbs/%.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) $*
-	$(GHDL) -r $(GHDLFLAGS) $* --ieee-asserts=disable --wave=$@
+	$(GHDL) -r $(GHDLFLAGS) $* --stop-time=50us --ieee-asserts=disable --wave=$@
+
+$(WAVESDIR)/soc_tb.ghw: ./tbs/soc_tb.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
+	$(GHDL) -m $(GHDLFLAGS) soc_tb
+	$(GHDL) -r $(GHDLFLAGS) soc_tb --stop-time=1500ms --ieee-asserts=disable -gPROGRAM=sw/build/hello_world.bin --wave=$@
+
+.PHONY: soc_tb
+soc_tb: ./tbs/soc_tb.vhdl $(WORKDIR)/work-obj93.cf
+	$(GHDL) -m $(GHDLFLAGS) soc_tb
+	$(GHDL) -r $(GHDLFLAGS) soc_tb --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM=$(BIN_FILE)
 
 $(WAVESDIR)/sim.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) sim;
