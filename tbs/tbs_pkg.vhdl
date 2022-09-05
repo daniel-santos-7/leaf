@@ -7,7 +7,7 @@ package tbs_pkg is
 
     procedure tick(signal clk: out std_logic);
     procedure tickn(signal clk: inout std_logic; constant N: natural);
-
+    
     function r_instr(
         opcode: in std_logic_vector(6 downto 0);
         rd: in std_logic_vector(4 downto 0);
