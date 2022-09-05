@@ -1,17 +1,25 @@
-.equ OUT_ADDR, 0x00000004
-
+.globl _start
 _start:
+    
+loop:
+    li a0, 'L'
+    call uart_write
+    li a0, 'e'
+    call uart_write
+    li a0, 'a'
+    call uart_write
+    li a0, 'f'
+    call uart_write    
+    li a0, '\n'
+    call uart_write
+    j loop
 
-    li t0, 0xFFFFFFFF
-    li t1, 0x00800000
-    sw t0, -0x4(t1)
-    lw t2, -0x4(t1)
-
-    li t0, 'L'
-    li t1, OUT_ADDR
-    sw t0, 0x0(t1)
-
-    # halt program
-    li t0, 0x00000001
-    li t1, 0x00000000
-    sw t0, 0x0(t1)
+uart_write:
+    li t2, 0x0
+    li t3, 0x20
+wait:
+    lbu t2, 0x0(x0)
+    andi t2, t2, 0x20
+    bne t2, t3, wait
+    sb a0, 0xC(x0)
+    ret

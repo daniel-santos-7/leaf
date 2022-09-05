@@ -5,13 +5,13 @@
 #undef errno
 extern int errno;
 
-#define OUTPUT_ADDR 0x00000004
-#define HALT_ADDR 0x00000000
+// #define OUTPUT_ADDR 0xC
+// #define HALT_ADDR 0x00000000
 
 void _exit(int n) {
-  int volatile *halt = (int *) HALT_ADDR;
-  (*halt) = 1;
-  _exit(n);
+  // int volatile *halt = (int *) HALT_ADDR;
+  // (*halt) = 1;
+  // _exit(n);
 }
 
 int _close(int file) {
@@ -102,13 +102,21 @@ int _wait(int *status) {
 int _write(int file, char *ptr, int len) {
   int todo;
 
-  if ((file != 1) && (file != 2) && (file != 3)) {
-    return -1;
-  }
+  // if ((file != 1) && (file != 2) && (file != 3)) {
+  //   return -1;
+  // }
   
-  char volatile *out = (char *) OUTPUT_ADDR;
+  // char volatile *out = (char *) OUTPUT_ADDR;
 
-  for (todo = 0; todo < len; todo++) {
+  // for (todo = 0; todo < len; todo++) {
+  //   (*out) = *ptr++;
+  // }
+
+  char volatile *flag = (char *) 0x0;
+  char volatile *out = (char *) 0xC;
+  
+  for(todo = 0; todo < len; todo++) {
+    while(((*flag) & 0x20) != 0x20);
     (*out) = *ptr++;
   }
 

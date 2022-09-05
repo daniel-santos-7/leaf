@@ -662,7 +662,13 @@ ee_vsprintf(char *buf, const char *fmt, va_list args)
 void
 uart_send_char(char c)
 {
-    char volatile *out = (char *) 0x00200000;
+    // char volatile *out = (char *) 0x00200000;
+    // (*out) = c;
+    
+    char volatile *flag = (char *) 0x0;
+    char volatile *out = (char *) 0xC;
+
+    while(((*flag) & 0x20) != 0x20);
     (*out) = c;
     
 // #error "You must implement the method uart_send_char to use this file!\n";

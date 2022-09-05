@@ -26,11 +26,20 @@ $(BUILD_DIR)/%.debug: $(BUILD_DIR)/%.elf
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 	$(RISCV_OBJCOPY) -O binary $^ $@
 
-$(BUILD_DIR)/coremark.elf: $(STARTUP) $(SYSCALLS) $(wildcard coremark/*.c)
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $^ -DPERFORMANCE_RUN=1 -DITERATIONS=80 -o $@
+# $(BUILD_DIR)/coremark.elf: $(STARTUP) $(SYSCALLS) $(wildcard coremark/*.c)
+# 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $^ -DPERFORMANCE_RUN=1 -DCORE_DEBUG=1 -DITERATIONS=10 -o $@
+
+$(BUILD_DIR)/coremark.elf: $(wildcard coremark/*.c)
+	$(RISCV_GCC) -nostartfiles -T $(LD_SCRIPT) $(STARTUP) $^ -DPERFORMANCE_RUN=1 -DCORE_DEBUG=1 -DITERATIONS=10 -o $@
 
 $(BUILD_DIR)/tests_asm.elf: tests_asm/tests_asm.S
-	$(RISCV_GCC) -c $^ -o $@
+	$(RISCV_GCC) -nostartfiles -nostdlib -Ttext 0x00010000 $^ -o $@
+
+$(BUILD_DIR)/boot.elf: boot/start.S
+	$(RISCV_GCC) -nostartfiles -nostdlib -Ttext 0x00000100 $^ -o $@
+
+$(BUILD_DIR)/tests_c.elf: tests_c/main.c 
+	$(RISCV_GCC) -nostartfiles -nostdlib -T $(LD_SCRIPT) $(STARTUP) $^ -o $@
 
 .PHONY: clean
 clean:
