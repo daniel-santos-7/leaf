@@ -1,23 +1,22 @@
 WORKDIR=work
-
-$(WORKDIR):
-	mkdir $@
-
 WAVESDIR=waves
 
-$(WAVESDIR):
-	mkdir $@
-
-RTL_SRC=$(wildcard ./rtl/*.vhdl)
-TBS_SRC=$(wildcard ./tbs/*.vhdl)
+CPU_RTL_SRC=$(wildcard ./cpu/rtl/*.vhdl)
+CPU_TBS_SRC=$(wildcard ./cpu/tbs/*.vhdl)
 SIM_SRC=$(wildcard ./sim/*.vhdl)
 SOC_SRC=$(wildcard ./soc/*.vhdl)
 
 GHDL=ghdl
 GHDLFLAGS=--workdir=$(WORKDIR) --ieee=synopsys
 
-$(WORKDIR)/work-obj93.cf: $(RTL_SRC) $(TBS_SRC) $(SIM_SRC) $(SOC_SRC) $(WORKDIR)
-	$(GHDL) -i $(GHDLFLAGS) $(RTL_SRC) $(TBS_SRC) $(SIM_SRC) $(SOC_SRC)
+$(WORKDIR):
+	mkdir $@
+
+$(WAVESDIR):
+	mkdir $@
+
+$(WORKDIR)/work-obj93.cf: $(CPU_RTL_SRC) $(CPU_TBS_SRC) $(SIM_SRC) $(SOC_SRC) $(WORKDIR)
+	$(GHDL) -i $(GHDLFLAGS) $(CPU_RTL_SRC) $(CPU_TBS_SRC) $(SIM_SRC) $(SOC_SRC)
 
 $(WAVESDIR)/%.ghw: ./tbs/%.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) $*
@@ -42,7 +41,6 @@ sim: $(WORKDIR)/work-obj93.cf
 	$(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$(BIN_FILE);
 
 RV_ARCH_TEST_DIR=../riscv-arch-test/
-
 export TARGETDIR ?= $(shell pwd)/compliance/
 export XLEN=32
 export RISCV_TARGET=leaf
@@ -61,6 +59,5 @@ compliance-test: $(WORKDIR)/work-obj93.cf
 
 .PHONY: clean
 clean:
-	rm -rf $(WORKDIR);
-	rm -rf $(WAVESDIR);
+	rm -rf $(WORKDIR) $(WAVESDIR)
 	$(MAKE) -C $(RV_ARCH_TEST_DIR) clean;
