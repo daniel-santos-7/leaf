@@ -5,7 +5,7 @@
 #undef errno
 extern int errno;
 
-// #define OUTPUT_ADDR 0xC
+#define OUTPUT_ADDR 0xC
 // #define HALT_ADDR 0x00000000
 
 void _exit(int n) {
@@ -102,9 +102,9 @@ int _wait(int *status) {
 int _write(int file, char *ptr, int len) {
   int todo;
 
-  // if ((file != 1) && (file != 2) && (file != 3)) {
-  //   return -1;
-  // }
+  if ((file != 1) && (file != 2) && (file != 3)) {
+    return -1;
+  }
   
   // char volatile *out = (char *) OUTPUT_ADDR;
 
@@ -113,7 +113,7 @@ int _write(int file, char *ptr, int len) {
   // }
 
   char volatile *flag = (char *) 0x0;
-  char volatile *out = (char *) 0xC;
+  char volatile *out = (char *) OUTPUT_ADDR;
   
   for(todo = 0; todo < len; todo++) {
     while(((*flag) & 0x20) != 0x20);

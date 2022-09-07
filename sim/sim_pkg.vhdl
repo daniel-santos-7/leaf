@@ -1,6 +1,5 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
-use IEEE.numeric_std.all;
 
 package sim_pkg is
     
@@ -9,7 +8,6 @@ package sim_pkg is
             CLK_PERIOD : time := 20 ns
         );
         port (
-            halt_i : in  std_logic;
             clk_o  : out std_logic;
             rst_o  : out std_logic
         );
@@ -19,8 +17,7 @@ package sim_pkg is
         port (
             addr  : in  std_logic_vector(31 downto 0);
             acmp0 : out std_logic;
-            acmp1 : out std_logic;
-            acmp2 : out std_logic
+            acmp1 : out std_logic
         );
     end component addr_comp;
 
@@ -39,15 +36,16 @@ package sim_pkg is
 
     component sim_out is
         port (
-            halt_i: in  std_logic;
             clk_i : in  std_logic;
             rst_i : in  std_logic;
             dat_i : in  std_logic_vector(31 downto 0);
             cyc_i : in  std_logic;
             stb_i : in  std_logic;
             we_i  : in  std_logic;
-            sel_i : in  std_logic_vector(3  downto 0);        
-            ack_o : out std_logic
+            sel_i : in  std_logic_vector(3  downto 0);
+            adr_i : in  std_logic_vector(1  downto 0);
+            ack_o : out std_logic;
+            dat_o : out std_logic_vector(31 downto 0)
         );
     end component sim_out;
 

@@ -10,7 +10,7 @@ LD_SCRIPT = common/link.ld
 STARTUP   = common/crt0.S
 SYSCALLS  = common/syscalls.c
 
-RISCV_GCC_OPTS = -nostartfiles -T $(LD_SCRIPT) -march=$(MARCH) -mabi=$(MABI) -O2
+RISCV_GCC_OPTS = -nostartfiles -T $(LD_SCRIPT) -march=$(MARCH) -mabi=$(MABI) -O0
 
 BUILD_DIR = build
 
@@ -30,7 +30,7 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 # 	$(RISCV_GCC) $(RISCV_GCC_OPTS) $^ -DPERFORMANCE_RUN=1 -DCORE_DEBUG=1 -DITERATIONS=10 -o $@
 
 $(BUILD_DIR)/coremark.elf: $(wildcard coremark/*.c)
-	$(RISCV_GCC) -nostartfiles -T $(LD_SCRIPT) $(STARTUP) $^ -DPERFORMANCE_RUN=1 -DCORE_DEBUG=1 -DITERATIONS=10 -o $@
+	$(RISCV_GCC) -nostartfiles -T $(LD_SCRIPT) $(STARTUP) $^ -DPERFORMANCE_RUN=1 -DITERATIONS=1000 -o $@
 
 $(BUILD_DIR)/tests_asm.elf: tests_asm/tests_asm.S
 	$(RISCV_GCC) -nostartfiles -nostdlib -Ttext 0x00010000 $^ -o $@
