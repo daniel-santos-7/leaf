@@ -11,8 +11,8 @@
   .align 8; .global end_regstate; end_regstate:     \
   .word 4;
   
-#define OUTPUT_ADDR 0x00000004
-#define HALT_ADDR 0x00000000
+#define OUTPUT_ADDR 0x0000000C
+#define HALT_ADDR 0x00000010
 
 #define RVMODEL_HALT        \
   li t0, OUTPUT_ADDR;       \
@@ -20,13 +20,18 @@
   la t2, begin_signature;   \
   la t3, end_signature;     \
   write:                    \
-    lw t4, 0x0(t2);         \
-    sw t4, 0x0(t0);         \
+    lb t4, 0x3(t2);         \
+    sb t4, 0x0(t0);         \
+    lb t4, 0x2(t2);         \
+    sb t4, 0x0(t0);         \
+    lb t4, 0x1(t2);         \
+    sb t4, 0x0(t0);         \
+    lb t4, 0x0(t2);         \
+    sb t4, 0x0(t0);         \
     addi t2, t2, 0x4;       \
     blt t2, t3, write;      \
   li t5, 0x1;               \
-  sw t5, 0x0(t1);           \
-  self_loop : j self_loop;
+  sw t5, 0x0(t1);           
 
 #define RVMODEL_DATA_BEGIN \
   .align 4; .global begin_signature; begin_signature:

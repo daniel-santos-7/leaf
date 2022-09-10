@@ -1,13 +1,14 @@
-WORKDIR=work
-WAVESDIR=waves
+WORKDIR  ?= work
+WAVESDIR ?= waves
 
-CPU_RTL_SRC=$(wildcard ./cpu/rtl/*.vhdl)
-CPU_TBS_SRC=$(wildcard ./cpu/tbs/*.vhdl)
-SIM_SRC=$(wildcard ./sim/*.vhdl)
-SOC_SRC=$(wildcard ./soc/*.vhdl)
+CPU_RTL_SRC = $(wildcard ./cpu/rtl/*.vhdl)
+CPU_TBS_SRC = $(wildcard ./cpu/tbs/*.vhdl)
+SIM_RTL_SRC = $(wildcard ./sim/rtl/*.vhdl)
 
-GHDL=ghdl
-GHDLFLAGS=--workdir=$(WORKDIR) --ieee=synopsys
+SOC_SRC = $(wildcard ./soc/*.vhdl)
+
+GHDL = ghdl
+GHDLFLAGS = --workdir=$(WORKDIR) --ieee=synopsys
 
 $(WORKDIR):
 	mkdir $@
@@ -15,8 +16,8 @@ $(WORKDIR):
 $(WAVESDIR):
 	mkdir $@
 
-$(WORKDIR)/work-obj93.cf: $(CPU_RTL_SRC) $(CPU_TBS_SRC) $(SIM_SRC) $(SOC_SRC) $(WORKDIR)
-	$(GHDL) -i $(GHDLFLAGS) $(CPU_RTL_SRC) $(CPU_TBS_SRC) $(SIM_SRC) $(SOC_SRC)
+$(WORKDIR)/work-obj93.cf: $(CPU_RTL_SRC) $(CPU_TBS_SRC) $(SIM_RTL_SRC) $(SOC_SRC) $(WORKDIR)
+	$(GHDL) -i $(GHDLFLAGS) $(CPU_RTL_SRC) $(CPU_TBS_SRC) $(SIM_RTL_SRC) $(SOC_SRC)
 
 $(WAVESDIR)/%.ghw: ./tbs/%.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) $*
@@ -53,7 +54,7 @@ compliance-test: $(WORKDIR)/work-obj93.cf
 	for bin in $$bins; do \
         test=$$(basename -s .elf.bin $$bin); \
         echo "running test: $$test"; \
-        $(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$$bin | xxd -c 4 -ps > $(RV_ARCH_TEST_DIR)/work/rv32i_m/I/$$test.signature.output; \
+        $(GHDL) -r $(GHDLFLAGS) sim --max-stack-alloc=0 --ieee-asserts=disable -gBIN_FILE=$$bin | xxd -c 4 -p > $(RV_ARCH_TEST_DIR)/work/rv32i_m/I/$$test.signature.output; \
     done
 	$(MAKE) -C $(RV_ARCH_TEST_DIR) verify
 
