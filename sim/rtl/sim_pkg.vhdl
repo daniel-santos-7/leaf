@@ -8,29 +8,22 @@ package sim_pkg is
             CLK_PERIOD : time := 20 ns
         );
         port (
+            halt   : in  std_logic;
             clk_o  : out std_logic;
             rst_o  : out std_logic
         );
     end component syscon;
 
-    component addr_comp is
-        port (
-            addr  : in  std_logic_vector(31 downto 0);
-            acmp0 : out std_logic;
-            acmp1 : out std_logic
-        );
-    end component addr_comp;
-
     component halt_gen is
         port (
-            clk_i  : in  std_logic;
-            rst_i  : in  std_logic;
-            dat_i  : in  std_logic_vector(31 downto 0);
-            cyc_i  : in  std_logic;
-            stb_i  : in  std_logic;
-            we_i   : in  std_logic;
-            ack_o  : out std_logic;
-            halt_o : out std_logic
+            clk_i : in  std_logic;
+            rst_i : in  std_logic;
+            dat_i : in  std_logic_vector(31 downto 0);
+            cyc_i : in  std_logic;
+            stb_i : in  std_logic;
+            we_i  : in  std_logic;
+            ack_o : out std_logic;
+            halt  : out std_logic
         );
     end component halt_gen;
 
@@ -38,6 +31,7 @@ package sim_pkg is
         port (
             clk_i : in  std_logic;
             rst_i : in  std_logic;
+            halt  : in  std_logic;
             dat_i : in  std_logic_vector(31 downto 0);
             cyc_i : in  std_logic;
             stb_i : in  std_logic;

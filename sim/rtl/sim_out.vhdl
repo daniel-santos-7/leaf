@@ -6,6 +6,7 @@ entity sim_out is
     port (
         clk_i : in  std_logic;
         rst_i : in  std_logic;
+        halt  : in  std_logic;
         dat_i : in  std_logic_vector(31 downto 0);
         cyc_i : in  std_logic;
         stb_i : in  std_logic;
@@ -17,12 +18,12 @@ entity sim_out is
     );
 end entity sim_out;
 
-architecture sim_out_arch of sim_out is
+architecture rtl of sim_out is
 
-    constant STAT_ADDR: std_logic_vector(1 downto 0) := b"00";
-    constant CTRL_ADDR: std_logic_vector(1 downto 0) := b"01";
-    constant BRDV_ADDR: std_logic_vector(1 downto 0) := b"10";
-    constant TXRX_ADDR: std_logic_vector(1 downto 0) := b"11";
+    constant STAT_ADDR : std_logic_vector(1 downto 0) := b"00";
+    constant CTRL_ADDR : std_logic_vector(1 downto 0) := b"01";
+    constant BRDV_ADDR : std_logic_vector(1 downto 0) := b"10";
+    constant TXRX_ADDR : std_logic_vector(1 downto 0) := b"11";
 
     signal ack : std_logic;
     signal we  : std_logic;
@@ -53,13 +54,14 @@ begin
         if rising_edge(clk_i) then
             if rst_i = '1' then
                 file_open(out_file, "STD_OUTPUT", write_mode);
+            elsif halt = '1' then
+               file_close(out_file);
             elsif we = '1' then
                 write(out_file, character'val(to_integer(unsigned(dat_i(7 downto 0)))));
-                -- file_close(out_file);
             end if;
         end if;
     end process wr_data;
 
     ack_o <= ack and not rst_i;
     
-end architecture sim_out_arch;
+end architecture rtl;
