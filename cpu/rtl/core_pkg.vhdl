@@ -288,15 +288,6 @@ package core_pkg is
 
     ----------------------------------------------------------------
 
-    component logic_unit is
-        port (
-            opd0:   in  std_logic_vector(31 downto 0);
-            opd1:   in  std_logic_vector(31 downto 0);
-            op:     in  std_logic_vector(1  downto 0);
-            res:    out std_logic_vector(31 downto 0)
-        );
-    end component logic_unit;
-
     component ex_block is
         port (
             opd0_src0 : in  std_logic_vector(31 downto 0);
