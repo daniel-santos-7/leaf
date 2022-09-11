@@ -1,7 +1,6 @@
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
-use IEEE.numeric_std.all;
 use work.core_pkg.all;
 use work.soc_pkg.all;
 
