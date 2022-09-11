@@ -1,11 +1,13 @@
-WORKDIR  ?= work
-WAVESDIR ?= waves
+WORKDIR  = work
+WAVESDIR = waves
 
-CPU_RTL_SRC = $(wildcard ./cpu/rtl/*.vhdl)
-CPU_TBS_SRC = $(wildcard ./cpu/tbs/*.vhdl)
-SIM_RTL_SRC = $(wildcard ./sim/rtl/*.vhdl)
-
-SOC_SRC = $(wildcard ./soc/*.vhdl)
+CPU_RTL  = $(wildcard ./cpu/rtl/*.vhdl)
+CPU_TBS  = $(wildcard ./cpu/tbs/*.vhdl)
+SIM_RTL  = $(wildcard ./sim/rtl/*.vhdl)
+SOC_RTL  = $(wildcard ./soc/rtl/*.vhdl)
+SOC_TBS  = $(wildcard ./soc/tbs/*.vhdl)
+UART_RTL = $(wildcard ./uart/rtl/*.vhdl)
+UART_TBS = $(wildcard ./uart/rtl/*.vhdl)
 
 GHDL = ghdl
 GHDLFLAGS = --workdir=$(WORKDIR) --ieee=synopsys
@@ -16,8 +18,8 @@ $(WORKDIR):
 $(WAVESDIR):
 	mkdir $@
 
-$(WORKDIR)/work-obj93.cf: $(CPU_RTL_SRC) $(CPU_TBS_SRC) $(SIM_RTL_SRC) $(SOC_SRC) $(WORKDIR)
-	$(GHDL) -i $(GHDLFLAGS) $(CPU_RTL_SRC) $(CPU_TBS_SRC) $(SIM_RTL_SRC) $(SOC_SRC)
+$(WORKDIR)/work-obj93.cf: $(CPU_RTL) $(CPU_TBS) $(SIM_RTL) $(SOC_RTL) $(SOC_TBS) $(UART_RTL) $(UART_TBS) $(WORKDIR)
+	$(GHDL) -i $(GHDLFLAGS) $(CPU_RTL) $(CPU_TBS) $(SIM_RTL) $(SOC_RTL) $(SOC_TBS) $(UART_RTL) $(UART_TBS)
 
 $(WAVESDIR)/%.ghw: ./tbs/%.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) $*
@@ -28,7 +30,7 @@ $(WAVESDIR)/soc_tb.ghw: ./tbs/soc_tb.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -r $(GHDLFLAGS) soc_tb --stop-time=1500ms --ieee-asserts=disable -gPROGRAM=sw/build/hello_world.bin --wave=$@
 
 .PHONY: soc_tb
-soc_tb: ./tbs/soc_tb.vhdl $(WORKDIR)/work-obj93.cf
+soc_tb: ./soc/tbs/soc_tb.vhdl $(WORKDIR)/work-obj93.cf
 	$(GHDL) -m $(GHDLFLAGS) soc_tb
 	$(GHDL) -r $(GHDLFLAGS) soc_tb --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM=$(BIN_FILE)
 

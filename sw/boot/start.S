@@ -1,5 +1,5 @@
 .equ WM_CMD, 0x31
-.equ UART_BRDV,0x23
+.equ UART_BRDV,0x1B2
 .equ RAM_BASE, 0x10000
 .equ RAM_SIZE, 0x10000
 
