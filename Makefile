@@ -29,10 +29,10 @@ $(WAVESDIR)/soc_tb.ghw: ./tbs/soc_tb.vhdl $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) soc_tb
 	$(GHDL) -r $(GHDLFLAGS) soc_tb --stop-time=1500ms --ieee-asserts=disable -gPROGRAM=sw/build/hello_world.bin --wave=$@
 
-.PHONY: soc_tb
-soc_tb: ./soc/tbs/soc_tb.vhdl $(WORKDIR)/work-obj93.cf
-	$(GHDL) -m $(GHDLFLAGS) soc_tb
-	$(GHDL) -r $(GHDLFLAGS) soc_tb --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM=$(BIN_FILE)
+.PHONY: leaf_soc_tb
+leaf_soc_tb: ./soc/tbs/leaf_soc_tb.vhdl $(WORKDIR)/work-obj93.cf
+	$(GHDL) -m $(GHDLFLAGS) leaf_soc_tb
+	$(GHDL) -r $(GHDLFLAGS) leaf_soc_tb --max-stack-alloc=0 --ieee-asserts=disable -gPROGRAM=$(BIN_FILE)
 
 $(WAVESDIR)/sim.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	$(GHDL) -m $(GHDLFLAGS) sim;
