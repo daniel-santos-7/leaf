@@ -92,7 +92,7 @@ begin
     cyc_o <= '0' when curr_state = EXECUTE or curr_state = START else '1';
     stb_o <= '1' when curr_state = READ_INSTR or curr_state = READ_DATA or curr_state = WRITE_DATA else '0';
     we_o  <= '1' when curr_state = WRITE_DATA else '0';
-    sel_o <= dmrw_be;
+    sel_o <= dmrw_be when curr_state = WRITE_DATA else (others => '1');
     
     adr_o <= dmrw_addr when (curr_state = READ_DATA or curr_state = WRITE_DATA) else imrd_addr;
     dat_o <= dmwr_data;
