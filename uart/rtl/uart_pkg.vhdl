@@ -110,5 +110,22 @@ package uart_pkg is
             tx: out std_logic
         );
     end component uart;
+
+    component uart_wbsl is
+        port (
+            clk_i : in  std_logic;
+            rst_i : in  std_logic;
+            dat_i : in  std_logic_vector(31 downto 0);
+            cyc_i : in  std_logic;
+            stb_i : in  std_logic;
+            we_i  : in  std_logic;
+            sel_i : in  std_logic_vector(3  downto 0);        
+            adr_i : in  std_logic_vector(1 downto 0);
+            rx    : in  std_logic;
+            ack_o : out std_logic;
+            dat_o : out std_logic_vector(31 downto 0);
+            tx    : out std_logic
+        );
+    end component uart_wbsl;
     
 end package uart_pkg;
