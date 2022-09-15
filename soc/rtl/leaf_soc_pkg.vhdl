@@ -3,6 +3,15 @@ use IEEE.std_logic_1164.all;
 
 package leaf_soc_pkg is
     
+    component soc_syscon is
+        port (
+            clk   : in  std_logic;
+            rst   : in  std_logic;
+            clk_o : out std_logic;
+            rst_o : out std_logic
+        );
+    end component soc_syscon;
+
     component ram is
         generic (
             BITS : natural := 8
@@ -38,10 +47,10 @@ package leaf_soc_pkg is
 
     component leaf_soc is
         port (
-            clk: in  std_logic;
-            rst: in  std_logic;
-            rx : in  std_logic;
-            tx : out std_logic
+            clk : in  std_logic;
+            rst : in  std_logic;
+            rx  : in  std_logic;
+            tx  : out std_logic
         );
     end component leaf_soc;
     
