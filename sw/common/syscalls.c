@@ -63,7 +63,18 @@ int _open(const char *name, int flags, int mode) {
 }
 
 int _read(int file, char *ptr, int len) {
-  return 0;
+  
+  char volatile *iostatus = (char *) 0x0;
+  char volatile *iodata = (char *) 0xC;
+
+  int i;
+  for (i = 0; i < len; i++) {
+    while((*iostatus & 0x4) != 0x4);
+    ptr[i] = *iodata;
+    if (ptr[i] == '\n') return i+1;
+  }
+
+  return i;
 }
 
 caddr_t _sbrk(int incr) {
