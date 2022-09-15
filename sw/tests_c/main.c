@@ -1,16 +1,37 @@
-void uart_send_string(const char* str, const int len) {
-  char volatile *flag = (char *) 0x0;
-  char volatile *out = (char *) 0xC;
-  
-  for(int i = 0; i < len; i++) {
-    while(((*flag) & 0x20) != 0x20);
-    (*out) = str[i];
+char volatile *iostatus = (char *) 0x0;
+char volatile *iodata = (char *) 0xC;
+
+void uart_send_string(char *str) {
+  for(int i = 0; str[i] != '\0'; i++) {
+    while((*iostatus & 0x20) != 0x20);
+    *iodata = str[i];
   }
 }
 
-int main() {
-  while(1) {
-    uart_send_string("Hello World!\n", 13);
+void uart_receive_string(char *str) {
+  for (int i = 0; str[i] != '\0'; i++) {  
+    while((*iostatus & 0x4) != 0x4);
+    str[i] = *iodata;
   }
-  return 0;
+}
+
+void uart_send_char(char c) {
+  while((*iostatus & 0x20) != 0x20);
+  *iodata = c;
+}
+
+char uart_receive_char() {
+  while((*iostatus & 0x4) != 0x4);
+  return *iodata;
+}
+
+void main() {
+  
+  char str[] = "00000";
+
+  uart_receive_string(str);
+  uart_send_string(str);
+
+  char *halt = (char *) 0x10;
+  *halt = 0x1;
 }
