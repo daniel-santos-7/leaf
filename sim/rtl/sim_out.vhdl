@@ -26,42 +26,56 @@ architecture rtl of sim_out is
     constant TXRX_ADDR : std_logic_vector(1 downto 0) := b"11";
 
     signal ack : std_logic;
-    signal we  : std_logic;
 
     type charfile is file of character;
-    file out_file: charfile;
+    
+    file out_file : charfile;
+    file in_file  : charfile;
 
 begin
 
-    ack <= cyc_i and stb_i;
-    we  <= ack and we_i;
-
-    rd_data: process(ack, adr_i)
-    begin
-        if ack = '1' then
-            case adr_i is
-                when STAT_ADDR => dat_o <= (31 downto 6 => '1') & b"111100";
-                when CTRL_ADDR => dat_o <= (31 downto 0 => '1');
-                when BRDV_ADDR => dat_o <= (31 downto 0 => '1');
-                when TXRX_ADDR => dat_o <= (31 downto 0 => '1');
-                when others => null;
-            end case;
-        end if;
-    end process rd_data;
-
-    wr_data: process(clk_i)
+    main: process(clk_i)
+        variable char : character;
     begin
         if rising_edge(clk_i) then
             if rst_i = '1' then
                 file_open(out_file, "STD_OUTPUT", write_mode);
+                file_open(in_file, "STD_INPUT", read_mode);
             elsif halt = '1' then
-               file_close(out_file);
-            elsif we = '1' then
-                write(out_file, character'val(to_integer(unsigned(dat_i(7 downto 0)))));
+                file_close(out_file);
+                file_close(in_file);
+            elsif ack = '0' and cyc_i = '1' and stb_i = '1' then
+                if we_i = '1' then
+                    if adr_i = TXRX_ADDR then
+                        write(out_file, character'val(to_integer(unsigned(dat_i(7 downto 0)))));
+                    end if;
+                else
+                    if adr_i = STAT_ADDR then
+                        dat_o <= (31 downto 6 => '1') & b"111100";
+                    elsif adr_i = TXRX_ADDR then
+                        read(in_file, char);
+                        dat_o <= (31 downto 8 => '0') & std_logic_vector(to_unsigned(character'pos(char), 8));
+                    else
+                        dat_o <= (31 downto 0 => '1');
+                    end if;
+                end if;
             end if;
         end if;
-    end process wr_data;
+    end process main;
 
-    ack_o <= ack and not rst_i;
-    
+    ack_reg: process(clk_i)
+    begin
+        if rising_edge(clk_i) then
+            if rst_i = '1' then
+                ack <= '0';
+            elsif ack = '1' then
+                ack <= not ack;
+            else
+                ack <= cyc_i and stb_i;
+            end if;
+        end if;
+    end process ack_reg;
+
+    ack_o <= ack;
+
 end architecture rtl;

@@ -55,7 +55,7 @@ begin
     halt_stb <= halt_acmp and cpu_cyc and cpu_stb;
     mem_stb  <= mem_acmp and cpu_cyc and cpu_stb;
 
-    out_adr <= cpu_adr(1  downto 0);
+    out_adr <= cpu_adr(3  downto 2);
     mem_adr <= cpu_adr(21 downto 2);
 
     control: syscon port map (
