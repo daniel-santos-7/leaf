@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int main() {
+void main() {
   int arr[] = {0, 23, 14, 12, 9};
 
   int len = sizeof(arr)/sizeof(int);
@@ -22,5 +22,4 @@ int main() {
   }
 
   printf("\n");
-  return 0;
 }

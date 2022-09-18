@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int main() {
+void main() {
     int n = 10;
     printf("%d! = ", n);
 
@@ -15,5 +15,4 @@ int main() {
     }
 
     printf("%d\n", result);
-    return 0;
 }
