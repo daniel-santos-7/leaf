@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------
 -- Leaf project
 -- developed by: Daniel Santos
--- module: memory (simulator) with wishbone interface
+-- module: simulator memory with wishbone interface
 -- 2022
 ----------------------------------------------------------------------
 
@@ -28,128 +28,122 @@ entity sim_mem is
     );
 end entity sim_mem;
 
-architecture sim_mem_arch of sim_mem is
+architecture arch of sim_mem is
     
-    constant MEM_SIZE: natural := 2**BITS;
+    constant MEM_SIZE : natural := 2**BITS;
 
-    type byte_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(7 downto 0);
+    type mem_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(7 downto 0);
 
-    shared variable mem0: byte_array;
-    shared variable mem1: byte_array;
-    shared variable mem2: byte_array;
-    shared variable mem3: byte_array;
+    -- memory blocks --
+    shared variable mem0 : mem_array;
+    shared variable mem1 : mem_array;
+    shared variable mem2 : mem_array;
+    shared variable mem3 : mem_array;
 
-    signal ack : std_logic;
+    -- idle state --
+    signal idle : std_logic;
 
-    type state is (START, IDLE, ACKNOWLEDGEMENT);
+    -- enable signals --
+    signal mem0_en : std_logic;
+    signal mem1_en : std_logic;
+    signal mem2_en : std_logic;
+    signal mem3_en : std_logic;
 
-    signal curr_state : state;
-    signal next_state : state;
+    -- write enable signals --
+    signal mem0_we : std_logic;
+    signal mem1_we : std_logic;
+    signal mem2_we : std_logic;
+    signal mem3_we : std_logic;
+
+    -- read enable signals --
+    signal mem0_re : std_logic;
+    signal mem1_re : std_logic;
+    signal mem2_re : std_logic;
+    signal mem3_re : std_logic;
 
 begin
 
-    fsm: process(clk_i)
+    idle_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if rst_i = '1' then
-                curr_state <= START;
+                idle <= '1';
+            elsif idle = '1' then
+                idle <= not (cyc_i and stb_i);
             else
-                curr_state <= next_state;
+                idle <= '1';
             end if;
         end if;
-    end process fsm;
+    end process idle_reg;
 
-    fsm_next_state: process(curr_state, cyc_i, stb_i)
-    begin
-        case curr_state is
-            when START =>
-                next_state <= IDLE;
-            when IDLE =>
-                if cyc_i = '1' and stb_i = '1' then
-                    next_state <= ACKNOWLEDGEMENT;
-                else
-                    next_state <= IDLE;
-                end if;
-            when ACKNOWLEDGEMENT =>
-                if cyc_i = '1' and stb_i = '1' then
-                    next_state <= IDLE;
-                else
-                    next_state <= ACKNOWLEDGEMENT;
-                end if;
-        end case;
-    end process fsm_next_state;
+    mem0_en <= idle and cyc_i and stb_i and sel_i(0);
+    mem1_en <= idle and cyc_i and stb_i and sel_i(1);
+    mem2_en <= idle and cyc_i and stb_i and sel_i(2);
+    mem3_en <= idle and cyc_i and stb_i and sel_i(3);
 
-    wr_data: process(clk_i)
-        subtype byte_type is character;
-        type bin_type is file of byte_type;
+    mem0_we <= mem0_en and we_i;
+    mem1_we <= mem1_en and we_i;
+    mem2_we <= mem2_en and we_i;
+    mem3_we <= mem3_en and we_i;
 
-        file bin: bin_type;
-        variable byte: byte_type;
+    mem0_re <= mem0_en and not we_i;
+    mem1_re <= mem1_en and not we_i;
+    mem2_re <= mem2_en and not we_i;
+    mem3_re <= mem3_en and not we_i;
 
-        variable addr: integer range 0 to MEM_SIZE/4-1;
+    main: process(clk_i)
+        type sw_type is file of character;
+        file sw_file : sw_type;
 
-        variable mem0_wr: std_logic;
-        variable mem1_wr: std_logic;
-        variable mem2_wr: std_logic;
-        variable mem3_wr: std_logic;
+        variable byte : character;
+        variable addr : integer range 0 to MEM_SIZE/4-1;
     begin
         if rising_edge(clk_i) then
             if rst_i = '1' then
-                file_open(bin, PROGRAM);
+                file_open(sw_file, PROGRAM);
                 addr := 0;
-                while not endfile(bin) and addr <= MEM_SIZE/4-1 loop
-                    read(bin, byte);
-                    mem0(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
-                    read(bin, byte);
-                    mem1(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
-                    read(bin, byte);
-                    mem2(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
-                    read(bin, byte);
-                    mem3(addr) := std_logic_vector(to_unsigned(byte_type'pos(byte), 8));
+                while not endfile(sw_file) and addr <= MEM_SIZE/4-1 loop
+                    read(sw_file, byte);
+                    mem0(addr) := std_logic_vector(to_unsigned(character'pos(byte), 8));
+                    read(sw_file, byte);
+                    mem1(addr) := std_logic_vector(to_unsigned(character'pos(byte), 8));
+                    read(sw_file, byte);
+                    mem2(addr) := std_logic_vector(to_unsigned(character'pos(byte), 8));
+                    read(sw_file, byte);
+                    mem3(addr) := std_logic_vector(to_unsigned(character'pos(byte), 8));
                     addr := addr + 1;
                 end loop;
-                file_close(bin);
-            elsif next_state = ACKNOWLEDGEMENT and we_i = '1' then
+                file_close(sw_file);
+            else 
                 addr := to_integer(unsigned(adr_i));
-
-                mem0_wr := sel_i(0);
-                mem1_wr := sel_i(1);
-                mem2_wr := sel_i(2);
-                mem3_wr := sel_i(3);
-
-                if mem0_wr = '1' then
+                if mem0_we = '1' then
                     mem0(addr) := dat_i(7  downto 0);
                 end if;
-
-                if mem1_wr = '1' then
+                if mem1_we = '1' then
                     mem1(addr) := dat_i(15 downto 8);
                 end if;
-
-                if mem2_wr = '1' then
+                if mem2_we = '1' then
                     mem2(addr) := dat_i(23 downto 16);
                 end if;
-
-                if mem3_wr = '1' then
+                if mem3_we = '1' then
                     mem3(addr) := dat_i(31 downto 24);
+                end if;
+                if mem0_re = '1' then
+                    dat_o(7  downto  0) <= mem0(addr);                        
+                end if;
+                if mem1_re = '1' then
+                    dat_o(15 downto  8) <= mem1(addr);                        
+                end if;
+                if mem2_re = '1' then
+                    dat_o(23 downto 16) <= mem2(addr);                        
+                end if;
+                if mem3_re = '1' then
+                    dat_o(31 downto 24) <= mem3(addr);                        
                 end if;
             end if;
         end if;
-    end process wr_data;
+    end process main;
 
-    rd_data: process(clk_i)
-        variable addr: integer range 0 to MEM_SIZE/4-1;
-    begin
-        addr := to_integer(unsigned(adr_i));
-        if rising_edge(clk_i) then
-            if next_state = ACKNOWLEDGEMENT and we_i = '0' then
-                dat_o(7  downto  0) <= mem0(addr);
-                dat_o(15 downto  8) <= mem1(addr);
-                dat_o(23 downto 16) <= mem2(addr);
-                dat_o(31 downto 24) <= mem3(addr);
-            end if;
-        end if;
-    end process rd_data;
+    ack_o <= not idle;
 
-    ack_o <= '1' when curr_state = ACKNOWLEDGEMENT else '0';
-
-end architecture sim_mem_arch;
+end architecture arch;

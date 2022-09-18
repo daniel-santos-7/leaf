@@ -1,21 +1,30 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: leaf system simulator
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
 use work.core_pkg.all;
-use work.sim_pkg.all;
+use work.leaf_sim_pkg.all;
 
-entity sim is
+entity leaf_sim is
     generic (
-        BIN_FILE : string
+        PROGRAM : string
     );
-end entity sim;
+end entity leaf_sim;
 
-architecture rtl of sim is
+architecture arch of leaf_sim is
     
+    -- clock and reset --
     signal clk  : std_logic;
     signal rst  : std_logic;
     signal halt : std_logic;
 
+    -- cpu signals --
     signal cpu_ack : std_logic;
     signal cpu_cyc : std_logic;
     signal cpu_stb : std_logic;
@@ -25,17 +34,20 @@ architecture rtl of sim is
     signal cpu_drd : std_logic_vector(31 downto 0);
     signal cpu_dwr : std_logic_vector(31 downto 0);
 
+    -- input/output virtual device signals --
     signal out_acmp : std_logic;
     signal out_stb  : std_logic;
     signal out_ack  : std_logic;
     signal out_adr  : std_logic_vector(1  downto 0);
     signal out_dat  : std_logic_vector(31 downto 0);
 
+    -- simulator interrupt signals --
     signal halt_acmp : std_logic;
     signal halt_stb  : std_logic;
     signal halt_ack  : std_logic;
     signal halt_dat  : std_logic;
 
+    -- memory signals --
     signal mem_acmp : std_logic;
     signal mem_stb  : std_logic;
     signal mem_ack  : std_logic;
@@ -44,26 +56,32 @@ architecture rtl of sim is
 
 begin
 
+    -- address decoder --
     out_acmp  <= '1' when cpu_adr(31 downto  4) = x"0000000" else '0';
     halt_acmp <= '1' when cpu_adr(31 downto  0) = x"00000010" else '0';
     mem_acmp  <= '1' when cpu_adr(31 downto 22) = b"0000000001" else '0';
 
+    -- cpu inputs
     cpu_ack <= out_ack or mem_ack;
     cpu_drd <= out_dat when out_acmp = '1' else mem_dat when mem_acmp = '1' else (others => '0');
 
+    -- slaves selection --
     out_stb  <= out_acmp and cpu_cyc and cpu_stb;
     halt_stb <= halt_acmp and cpu_cyc and cpu_stb;
     mem_stb  <= mem_acmp and cpu_cyc and cpu_stb;
 
+    -- slave addresses --
     out_adr <= cpu_adr(3  downto 2);
     mem_adr <= cpu_adr(21 downto 2);
 
-    control: syscon port map (
+    -- simulation clock and reset control --
+    control: sim_syscon port map (
         halt  => halt,
         clk_o => clk,
         rst_o => rst
     );
 
+    -- leaf cpu --
     cpu: leaf generic map (
         RESET_ADDR => x"00400000"
     ) port map (
@@ -79,7 +97,8 @@ begin
         dat_o => cpu_dwr
     );
 
-    output: sim_out port map (
+    -- input/output device --
+    output: sim_io port map (
         clk_i => clk,
         rst_i => rst,
         halt  => halt,
@@ -93,7 +112,8 @@ begin
         dat_o => out_dat
     );
 
-    sim_halt: halt_gen port map (
+    -- simulator halt signal control --
+    halt_control: sim_halt port map (
         clk_i => clk,
         rst_i => rst,
         dat_i => cpu_dwr,
@@ -104,9 +124,10 @@ begin
         halt  => halt
     );
 
+    -- system memory (4 MB) --
     memory: sim_mem generic map (
         BITS    => 22,
-        PROGRAM => BIN_FILE
+        PROGRAM => PROGRAM
     ) port map (
         clk_i => clk,
         rst_i => rst,
@@ -120,4 +141,4 @@ begin
         dat_o => mem_dat
     );
 
-end architecture rtl;
+end architecture arch;

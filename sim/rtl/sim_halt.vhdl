@@ -1,7 +1,14 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: simulator halt signal control
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 
-entity halt_gen is
+entity sim_halt is
     port (
         clk_i : in  std_logic;
         rst_i : in  std_logic;
@@ -12,19 +19,19 @@ entity halt_gen is
         ack_o : out std_logic;
         halt  : out std_logic
     );
-end entity halt_gen;
+end entity sim_halt;
 
-architecture rtl of halt_gen is
+architecture arch of sim_halt is
 
-    signal ack : std_logic;
-    signal we  : std_logic;
+    signal en : std_logic;
+    signal we : std_logic;
 
     constant HALT_CMD : std_logic_vector(31 downto 0) := x"00000001";
 
 begin
     
-    ack <= cyc_i and stb_i;
-    we  <= ack and we_i;
+    en <= cyc_i and stb_i;
+    we <= en and we_i;
 
     main: process(rst_i, clk_i)
     begin
@@ -37,6 +44,6 @@ begin
         end if;
     end process main;
 
-    ack_o <= ack;
+    ack_o <= en;
 
-end architecture rtl;
+end architecture arch;

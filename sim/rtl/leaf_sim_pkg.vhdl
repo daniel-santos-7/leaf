@@ -1,20 +1,27 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- package: leaf system simulator package
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 
-package sim_pkg is
+package leaf_sim_pkg is
     
-    component syscon is
+    component sim_syscon is
         generic (
             CLK_PERIOD : time := 20 ns
         );
         port (
-            halt   : in  std_logic;
-            clk_o  : out std_logic;
-            rst_o  : out std_logic
+            halt  : in  std_logic;
+            clk_o : out std_logic;
+            rst_o : out std_logic
         );
-    end component syscon;
+    end component sim_syscon;
 
-    component halt_gen is
+    component sim_halt is
         port (
             clk_i : in  std_logic;
             rst_i : in  std_logic;
@@ -25,9 +32,9 @@ package sim_pkg is
             ack_o : out std_logic;
             halt  : out std_logic
         );
-    end component halt_gen;
+    end component sim_halt;
 
-    component sim_out is
+    component sim_io is
         port (
             clk_i : in  std_logic;
             rst_i : in  std_logic;
@@ -41,7 +48,7 @@ package sim_pkg is
             ack_o : out std_logic;
             dat_o : out std_logic_vector(31 downto 0)
         );
-    end component sim_out;
+    end component sim_io;
 
     component sim_mem is
         generic (
@@ -62,4 +69,4 @@ package sim_pkg is
         );
     end component sim_mem;
     
-end package sim_pkg;
+end package leaf_sim_pkg;

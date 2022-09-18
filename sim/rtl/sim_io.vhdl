@@ -1,8 +1,15 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: simulator clock and reset signal generator
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-entity sim_out is
+entity sim_io is
     port (
         clk_i : in  std_logic;
         rst_i : in  std_logic;
@@ -16,23 +23,39 @@ entity sim_out is
         ack_o : out std_logic;
         dat_o : out std_logic_vector(31 downto 0)
     );
-end entity sim_out;
+end entity sim_io;
 
-architecture rtl of sim_out is
+architecture arch of sim_io is
 
+    -- fake registers --
     constant STAT_ADDR : std_logic_vector(1 downto 0) := b"00";
     constant CTRL_ADDR : std_logic_vector(1 downto 0) := b"01";
     constant BRDV_ADDR : std_logic_vector(1 downto 0) := b"10";
     constant TXRX_ADDR : std_logic_vector(1 downto 0) := b"11";
 
-    signal ack : std_logic;
+    -- idle state --
+    signal idle : std_logic;
 
     type charfile is file of character;
-    
+
+    -- input and output files --
     file out_file : charfile;
     file in_file  : charfile;
 
 begin
+
+    idle_reg: process(clk_i)
+    begin
+        if rising_edge(clk_i) then
+            if rst_i = '1' then
+                idle <= '1';
+            elsif idle = '1' then
+                idle <= not (cyc_i and stb_i);
+            else
+                idle <= '1';
+            end if;
+        end if;
+    end process idle_reg;
 
     main: process(clk_i)
         variable char : character;
@@ -44,7 +67,7 @@ begin
             elsif halt = '1' then
                 file_close(out_file);
                 file_close(in_file);
-            elsif ack = '0' and cyc_i = '1' and stb_i = '1' then
+            elsif idle = '1' and cyc_i = '1' and stb_i = '1' then
                 if we_i = '1' then
                     if adr_i = TXRX_ADDR then
                         write(out_file, character'val(to_integer(unsigned(dat_i(7 downto 0)))));
@@ -63,19 +86,6 @@ begin
         end if;
     end process main;
 
-    ack_reg: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if rst_i = '1' then
-                ack <= '0';
-            elsif ack = '1' then
-                ack <= not ack;
-            else
-                ack <= cyc_i and stb_i;
-            end if;
-        end if;
-    end process ack_reg;
+    ack_o <= not idle;
 
-    ack_o <= ack;
-
-end architecture rtl;
+end architecture arch;
