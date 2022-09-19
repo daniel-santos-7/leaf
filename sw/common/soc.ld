@@ -45,11 +45,21 @@ SECTIONS
 		__bss_end = .;
 	} > RAM
 
+	.sdata : 
+	{
+		__sdata_begin = .;
+		*(.sdata*)
+		. = ALIGN(4);
+		__sdata_end = .;
+	} > RAM
+
 	__stack_top = ORIGIN(RAM) + LENGTH(RAM);
 	__end = .;
 
 	/DISCARD/ :
 	{
 		*(.comment)
+		*(.debug*)
+		*(.riscv.attributes)
 	}
 }
