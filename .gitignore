@@ -1,5 +1,7 @@
 /work
 /waves
 /verilog
-/coremark
-/sw/build
+
+/sw/**/*.elf
+/sw/**/*.bin
+/sw/**/*.debug
