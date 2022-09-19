@@ -8,30 +8,27 @@ void uart_send_string(char *str) {
   }
 }
 
-void uart_receive_string(char *str) {
-  for (int i = 0; str[i] != '\0'; i++) {  
-    while((*iostatus & 0x4) != 0x4);
-    str[i] = *iodata;
-  }
-}
+// void uart_receive_string(char *str) {
+//   for (int i = 0; str[i] != '\0'; i++) {  
+//     while((*iostatus & 0x4) != 0x4);
+//     str[i] = *iodata;
+//   }
+// }
 
-void uart_send_char(char c) {
-  while((*iostatus & 0x20) != 0x20);
-  *iodata = c;
-}
+// void uart_send_char(char c) {
+//   while((*iostatus & 0x20) != 0x20);
+//   *iodata = c;
+// }
 
-char uart_receive_char() {
-  while((*iostatus & 0x4) != 0x4);
-  return *iodata;
-}
+// char uart_receive_char() {
+//   while((*iostatus & 0x4) != 0x4);
+//   return *iodata;
+// }
 
 void main() {
-  
-  char str[] = "00000";
-
-  uart_receive_string(str);
-  uart_send_string(str);
-
-  char *halt = (char *) 0x10;
-  *halt = 0x1;
+  while(1) {
+    uart_send_string("Leaf\n");
+  }
+  // char *halt = (char *) 0x10;
+  // *halt = 0x1;
 }
