@@ -16,6 +16,9 @@ end entity leaf_soc;
 
 architecture rtl of leaf_soc is
 
+    signal sys_clk : std_logic;
+    signal sys_rst : std_logic;
+
     signal cpu_ack : std_logic;
     signal cpu_cyc : std_logic;
     signal cpu_stb : std_logic;
@@ -53,11 +56,18 @@ begin
     cpu_ack <= uart_ack or rom_ack or ram_ack;
     cpu_drd <= uart_dat when uart_acmp = '1' else rom_dat when rom_acmp = '1' else ram_dat when ram_acmp = '1' else (others => '0');
 
+    syscon: soc_syscon port map (
+        clk   => clk,
+        rst   => rst,
+        clk_o => sys_clk,
+        rst_o => sys_rst
+    );
+
     soc_cpu: leaf generic map (
         RESET_ADDR => x"00000100"
     ) port map (
-        clk_i => clk,
-        rst_i => rst,
+        clk_i => sys_clk,
+        rst_i => sys_rst,
         ack_i => cpu_ack,
         dat_i => cpu_drd,
         cyc_o => cpu_cyc,
@@ -69,8 +79,8 @@ begin
     );
 
     soc_io: uart_wbsl port map (
-        clk_i => clk,
-        rst_i => rst,
+        clk_i => sys_clk,
+        rst_i => sys_rst,
         dat_i => cpu_dwr,
         cyc_i => cpu_cyc,
         stb_i => uart_stb,
@@ -86,8 +96,8 @@ begin
     soc_rom: rom generic map (
         BITS  => 8
     ) port map (
-        clk_i => clk,
-        rst_i => rst,
+        clk_i => sys_clk,
+        rst_i => sys_rst,
         cyc_i => cpu_cyc,
         stb_i => rom_stb,
         adr_i => cpu_adr(7 downto 2),
@@ -99,8 +109,8 @@ begin
     soc_ram: ram generic map (
         BITS  => 16
     ) port map (
-        clk_i => clk,
-        rst_i => rst,
+        clk_i => sys_clk,
+        rst_i => sys_rst,
         dat_i => cpu_dwr,
         cyc_i => cpu_cyc,
         stb_i => ram_stb,
