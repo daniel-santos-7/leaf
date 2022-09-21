@@ -7,10 +7,11 @@ use work.uart_pkg.all;
 
 entity leaf_soc is
     port (
-        clk: in  std_logic;
-        rst: in  std_logic;
-        rx : in  std_logic;
-        tx : out std_logic
+        clk : in  std_logic;
+        rst : in  std_logic;
+        rx  : in  std_logic;
+        tx  : out std_logic;
+        dbg : out std_logic_vector(7 downto 0)
     );
 end entity leaf_soc;
 
@@ -43,18 +44,25 @@ architecture rtl of leaf_soc is
     signal ram_ack  : std_logic;
     signal ram_dat  : std_logic_vector(31 downto 0);
 
+    signal dbg_acmp : std_logic;
+    signal dbg_stb  : std_logic;
+    signal dbg_ack  : std_logic;
+    signal dbg_dat  : std_logic_vector(7 downto 0);
+
 begin
     
     uart_acmp <= '1' when cpu_adr(31 downto  4) = x"0000000" else '0';
+    dbg_acmp  <= '1' when cpu_adr(31 downto  4) = x"0000001" else '0';
     rom_acmp  <= '1' when cpu_adr(31 downto  8) = x"000001" else '0';
     ram_acmp  <= '1' when cpu_adr(31 downto 16) = x"0001" else '0';
 
     uart_stb <= uart_acmp and cpu_stb;
     rom_stb  <= rom_acmp  and cpu_stb;
     ram_stb  <= ram_acmp  and cpu_stb;
+    dbg_stb  <= dbg_acmp  and cpu_stb;
 
-    cpu_ack <= uart_ack or rom_ack or ram_ack;
-    cpu_drd <= uart_dat when uart_acmp = '1' else rom_dat when rom_acmp = '1' else ram_dat when ram_acmp = '1' else (others => '0');
+    cpu_ack <= uart_ack or rom_ack or ram_ack or dbg_ack;
+    cpu_drd <= uart_dat when uart_acmp = '1' else rom_dat when rom_acmp = '1' else ram_dat when ram_acmp = '1' else  (31 downto 8 => '0') & dbg_dat when dbg_acmp = '1' else (others => '0');
 
     syscon: soc_syscon port map (
         clk   => clk,
@@ -120,5 +128,18 @@ begin
         ack_o => ram_ack,
         dat_o => ram_dat
     );
+
+    soc_dbg: debug_reg port map (
+        clk_i => sys_clk,
+        rst_i => sys_rst,
+        dat_i => cpu_dwr(7 downto 0),
+        cyc_i => cpu_cyc,
+        stb_i => dbg_stb,
+        we_i  => cpu_we,
+        ack_o => dbg_ack,
+        dat_o => dbg_dat
+    );
+
+    dbg <= dbg_dat;
 
 end architecture rtl;

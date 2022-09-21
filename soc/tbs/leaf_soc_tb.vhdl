@@ -66,39 +66,40 @@ begin
             wait for UART_BAUD*CLK_PERIOD;
         end loop;
 
-        size := std_logic_vector(to_unsigned(addr, 32));
+        -- size := std_logic_vector(to_unsigned(addr, 32));
 
-        frame := '1' & size(31 downto 24) & '0';
-        for i in 0 to 9 loop
-            rx <= frame(i);
-            wait for UART_BAUD*CLK_PERIOD;    
-        end loop;
+        -- frame := '1' & size(31 downto 24) & '0';
+        -- for i in 0 to 9 loop
+        --     rx <= frame(i);
+        --     wait for UART_BAUD*CLK_PERIOD;    
+        -- end loop;
 
-        frame := '1' & size(23 downto 16) & '0';
-        for i in 0 to 9 loop
-            rx <= frame(i);
-            wait for UART_BAUD*CLK_PERIOD;    
-        end loop;
+        -- frame := '1' & size(23 downto 16) & '0';
+        -- for i in 0 to 9 loop
+        --     rx <= frame(i);
+        --     wait for UART_BAUD*CLK_PERIOD;    
+        -- end loop;
 
-        frame := '1' & size(15 downto  8) & '0';
-        for i in 0 to 9 loop
-            rx <= frame(i);
-            wait for UART_BAUD*CLK_PERIOD;    
-        end loop;
+        -- frame := '1' & size(15 downto  8) & '0';
+        -- for i in 0 to 9 loop
+        --     rx <= frame(i);
+        --     wait for UART_BAUD*CLK_PERIOD;    
+        -- end loop;
 
-        frame := '1' & size(7  downto  0) & '0';
-        for i in 0 to 9 loop
-            rx <= frame(i);
-            wait for UART_BAUD*CLK_PERIOD;    
-        end loop;
+        -- frame := '1' & size(7  downto  0) & '0';
+        -- for i in 0 to 9 loop
+        --     rx <= frame(i);
+        --     wait for UART_BAUD*CLK_PERIOD;    
+        -- end loop;
 
-        for i in 0 to addr loop
-            frame := '1' & mem(i) & '0';
-            for j in 0 to 9 loop
-                rx <= frame(j);
-                wait for UART_BAUD*CLK_PERIOD;
-            end loop;
-        end loop;
+        -- for i in 0 to addr loop
+        --     frame := '1' & mem(i) & '0';
+        --     for j in 0 to 9 loop
+        --         rx <= frame(j);
+        --         wait for UART_BAUD*CLK_PERIOD;
+        --     end loop;
+        --     report integer'image(i);
+        -- end loop;
 
         rx <= '1';
         wait;
