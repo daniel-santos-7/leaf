@@ -1,3 +1,10 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: rom (bootloader) with wishbone interface
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
@@ -17,14 +24,12 @@ entity rom is
     );
 end entity rom;
 
-architecture rtl of rom is
-    type state is (START, IDLE, ACKNOWLEDGEMENT);
-
-    signal curr_state : state;
-    signal next_state : state;
+architecture arch of rom is
+	
+	signal idle : std_logic;
 
     type mem_array is array (0 to 2**BITS/4-1) of std_logic_vector(31 downto 0);
-
+	 
     constant mem: mem_array := (
         x"00000293",
         x"00000313",
@@ -62,46 +67,30 @@ architecture rtl of rom is
     
 begin
 
-    fsm: process(clk_i)
-    begin
+	idle_reg: process(clk_i)
+	begin
         if rising_edge(clk_i) then
             if rst_i = '1' then
-                curr_state <= START;
+                idle <= '1';
+            elsif idle = '1' then
+                idle <= not (cyc_i and stb_i);
             else
-                curr_state <= next_state;
+                idle <= '1';
             end if;
         end if;
-    end process fsm;
-
-    fsm_next_state: process(curr_state, cyc_i, stb_i)
-    begin
-        case curr_state is
-            when START =>
-                next_state <= IDLE;
-            when IDLE =>
-                if cyc_i = '1' and stb_i = '1' then
-                    next_state <= ACKNOWLEDGEMENT;
-                else
-                    next_state <= IDLE;
-                end if;
-            when ACKNOWLEDGEMENT =>
-                if cyc_i = '1' and stb_i = '1' then
-                    next_state <= IDLE;
-                else
-                    next_state <= ACKNOWLEDGEMENT;
-                end if;
-        end case;
-    end process fsm_next_state;
+	end process idle_reg;
 
     main: process(clk_i)
     begin
         if rising_edge(clk_i) then
-            if next_state = ACKNOWLEDGEMENT then
+            if rst_i = '1' then
+                dat_o <= (others => '0');
+            elsif idle = '1' and cyc_i = '1' and stb_i = '1' then
                 dat_o <= mem(to_integer(unsigned(adr_i)));
             end if;
         end if;
     end process main;
 
-    ack_o <= '1' when curr_state = ACKNOWLEDGEMENT else '0';
+    ack_o <= not idle;
     
-end architecture rtl;
+end architecture arch;
