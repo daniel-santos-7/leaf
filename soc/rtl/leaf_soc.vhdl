@@ -1,3 +1,10 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: leaf system (SOC)
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
@@ -15,11 +22,13 @@ entity leaf_soc is
     );
 end entity leaf_soc;
 
-architecture rtl of leaf_soc is
+architecture arch of leaf_soc is
 
+    -- system clock and reset --
     signal sys_clk : std_logic;
     signal sys_rst : std_logic;
 
+    -- cpu signals --
     signal cpu_ack : std_logic;
     signal cpu_cyc : std_logic;
     signal cpu_stb : std_logic;
@@ -29,21 +38,25 @@ architecture rtl of leaf_soc is
     signal cpu_drd : std_logic_vector(31 downto 0);
     signal cpu_dwr : std_logic_vector(31 downto 0);
 
+    -- uart signals --
     signal uart_acmp: std_logic;
     signal uart_stb : std_logic;
     signal uart_ack : std_logic;
     signal uart_dat : std_logic_vector(31 downto 0);
 
+    -- rom signals --
     signal rom_acmp : std_logic;
     signal rom_stb  : std_logic;
     signal rom_ack  : std_logic;
     signal rom_dat  : std_logic_vector(31 downto 0);
 
+    -- ram signals --
     signal ram_acmp : std_logic;
     signal ram_stb  : std_logic;
     signal ram_ack  : std_logic;
     signal ram_dat  : std_logic_vector(31 downto 0);
 
+    -- debug register signals --
     signal dbg_acmp : std_logic;
     signal dbg_stb  : std_logic;
     signal dbg_ack  : std_logic;
@@ -51,6 +64,7 @@ architecture rtl of leaf_soc is
 
 begin
     
+    -- address docode --
     uart_acmp <= '1' when cpu_adr(31 downto  4) = x"0000000" else '0';
     dbg_acmp  <= '1' when cpu_adr(31 downto  4) = x"0000001" else '0';
     rom_acmp  <= '1' when cpu_adr(31 downto  8) = x"000001" else '0';
@@ -129,6 +143,7 @@ begin
         dat_o => ram_dat
     );
 
+    -- debug register --
     soc_dbg: debug_reg port map (
         clk_i => sys_clk,
         rst_i => sys_rst,
@@ -140,6 +155,7 @@ begin
         dat_o => dbg_dat
     );
 
+    -- debug register output --
     dbg <= dbg_dat;
 
-end architecture rtl;
+end architecture arch;
