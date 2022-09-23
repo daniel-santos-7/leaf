@@ -1,41 +1,39 @@
 # :leaves: Leaf
 
-Um pequeno núcleo RISC-V 32-bit de baixo consumo.
+Leaf é um pequeno processador RISC-V de 32 bits adequado para aplicações que tenham como principal requisito a economia de recursos, em detrimento de elevado poder de processamento, como as aplicações em Internet das Coisas (IoT).
 
-![RTL](/.github/rtl.png)
-
-## Recursos
+## :star: Recursos
 
 - Suporte a especificação base RISC-V (RV32I)
-- Pipeline de 2 estágios IF / ID & EX
+- Pipeline de 2 estágios (busca de instruções / decodificação e execução)
+- Interface compatível com o protocolo Wishbone B4
 
-## Teste de conformidade
+## :file_folder: Diretórios
 
-### Requisitos:
+Este repositório apresenta a seguinte estrutura de diretórios:
 
-- [GHDL](https://github.com/ghdl/ghdl)
-- [RISC-V GNU Compiler Toolchain (32 bits)](https://github.com/riscv/riscv-gnu-toolchain)
+Diretório        | Descrição
+---------------- | ----------------
+[cpu](/cpu/)     | Projeto do processador Leaf
+[soc](/soc/)     | Exemplo de um simples (*System On Chip*) sintetizável em FPGA com o processador Leaf
+[sim](/sim/)     | Exemplo de um sistema não sintetizável (simulador) com um processador Leaf
+[uart](/uart/)   | Projeto de um módulo UART (interface serial)
+[sw](/sw)        | Exemplos de programas e recursos para programação
 
-### Instruções:
+## :computer: Ambiente de desenvolvimento
 
-Para a execução dos testes de conformidade, os seguintes procedimentos devem ser seguidos:
+Este projeto tem sido desenvolvido com o auxílio das seguintes ferramentas:
 
-- Clone o [repositório](https://github.com/riscv/riscv-arch-test) com o conjunto de testes disponibilizado pela comunidade RISC-V:
+- [GHDL v0.37](https://github.com/ghdl/ghdl): ferramenta *open-source* para interpretação e simulação de projetos desenvolvidos com VHDL.
+- [GtkWave](http://gtkwave.sourceforge.net/): software para visualização de formatos de ondas digitais.
+
+No sistema operacional baseado no linux, essas ferramentas podem ser instaladas com facilidade por meio de um gerenciador de pacotes.
 
 ```bash
-
-$ git clone https://github.com/riscv/riscv-arch-test
-
-```
-
-- Clone o repositório deste projeto e execute o arquivo **scripts.sh** especificando o local em que o conjunto de testes foi armazenado:
-
-```bash
-
-$ ./scripts.sh arch-test ../riscv-arch-test/
-
+# apt é o gerenciador de pacotes padrão no Ubuntu
+sudo apt install ghdl gtkwave
 ```
 
 ---
 
-<p align="center">2021</p>
+<p align="center">2022</p>
