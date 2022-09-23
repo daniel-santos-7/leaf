@@ -26,12 +26,13 @@ Este projeto tem sido desenvolvido com o auxílio das seguintes ferramentas:
 
 - [GHDL v0.37](https://github.com/ghdl/ghdl): ferramenta *open-source* para interpretação e simulação de projetos desenvolvidos com VHDL.
 - [GtkWave](http://gtkwave.sourceforge.net/): software para visualização de formatos de ondas digitais.
+- [GNU Make](https://www.gnu.org/software/make/): interpretador de Makefiles, utilizado para execução de scripts e compilações.
 
-No sistema operacional baseado no linux, essas ferramentas podem ser instaladas com facilidade por meio de um gerenciador de pacotes.
+Em qualquer sistema operacional baseado no linux, essas ferramentas podem ser instaladas com facilidade por meio de um gerenciador de pacotes.
 
 ```bash
-# apt é o gerenciador de pacotes padrão no Ubuntu
-sudo apt install ghdl gtkwave
+# apt é o gerenciador de pacotes padrão de distros beseadas no Debian, como o Ubuntu
+sudo apt install ghdl gtkwave make
 ```
 
 ---
