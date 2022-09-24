@@ -142,3 +142,16 @@ LDSCRIPT = ../common/soc.ld
 include ../common/common.mk
 
 ```
+
+Após compilar o programa, deve-se enviar o arquivo .bin gerado por meio da interface serial do dispotivo. Um [conversor USB para Serial TTL](https://pt.aliexpress.com/item/4001105371136.html) pode ser conveniente para esse propósito.
+
+No diretório [utils](/sw/utils/) podem ser encontrados scripts utilitários que facilitam a programação de um software via serial.
+
+No Windows, pode-se executar o script [upload.ps1](/sw/utils/upload.ps1) especificando o binário que será enviado, conforme o exemplo:
+
+```bash
+# enviar programa via serial
+.\upload.ps1 .\my_software.bin
+```
+
+Para distros Linux, um utilitário ainda está sendo desenvolvido.
