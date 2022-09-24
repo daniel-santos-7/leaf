@@ -12,7 +12,7 @@ LDSCRIPT ?= ../common/sim.ld
 APP_EXE  ?= out
 APP_SRC  ?= $(wildcard ./*.c) $(wildcard ./*.cpp) $(wildcard ./*.s) $(wildcard ./*.S) $(STARTUP) $(SYSCALLS)
 
-RISCV_GCC_OPTS ?= -nostartfiles -T $(LDSCRIPT) -march=$(MARCH) -mabi=$(MABI) -O0 -w
+RISCV_GCC_OPTS ?= -nostartfiles -T $(LDSCRIPT) -march=$(MARCH) -mabi=$(MABI) -Os -w -fdata-sections -ffunction-sections -mno-fdiv -Wl,--gc-sections -lm -lc -lgcc -lc
 
 .PHONY: all
 all: $(APP_EXE).elf $(APP_EXE).bin $(APP_EXE).debug
