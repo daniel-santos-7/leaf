@@ -43,7 +43,7 @@ make
 Com as ferramentas de compilaçao instaladas no seu computador, crie uma nova pasta para armazenar o código fonte do programa a ser desenvolvido.
 
 ```bash
-mkdir my_software && my_software
+mkdir my_software && cd my_software
 ```
 
 Nessa pasta, adicione os arquivos de códigos.
@@ -109,10 +109,10 @@ Se o arquivo [common.mk](/sw/common/common.mk) for utilizado, após a compilaç�
 
 ## Execução de um programa
 
-É possivel executar um programa por meio de simulação. Nesse caso, não é preciso sintetizar o processador em um FPGA, entretanto, o software [GHDL](https://github.com/ghdl/ghdl) é necessário para simular o funcionamento do sistema.
+É possivel executar um programa por meio de simulação. Nesse caso, não é preciso sintetizar o processador em um FPGA, entretanto, o software [GHDL](https://github.com/ghdl/ghdl) é necessário para simular o funcionamento do sistema digital.
 
 ```bash
-# instalar via o simulador GHDL opt
+# instalar simulador GHDL via opt
 sudo apt install ghdl
 ```
 
@@ -123,4 +123,22 @@ Para iniciar a execução de um programa, execute o seguinte comando na raiz do 
 ```bash
 # executar programa
 make leaf_sim PROGRAM=sw/my_software/my_software.bin
+```
+
+Se um dispositivo FPGA estiver disponível, pode-se realizar a sintese lógica do simples [SoC](/soc/) disponível neste repositório. 
+
+Esse sistema inclui, além do processador Leaf, uma memória de leitura e escrita (64kB), uma interface serial (UART) e uma memória de somente leitura que armazena um pequeno firmware. Esse firmware se trata de um simples [bootloader](/sw/boot/), o qual permite a programação do dispositivo por meio do módulo UART.
+
+Os procedimentos para desenvolver um programa que será executado em hardware, são idênticos aos já apresentados. Todavia, durante a compilação, o script [soc.ld](/sw/common/soc.ld) deve ser especificado, isso possibilita que o compilador conheça o limite de memória disponível (apenas 64kB).
+
+```Makefile
+# variável com o nome do programa
+APP_EXE  = my_software
+
+# deve-se espeficiar o script adequado para o SoC
+LDSCRIPT = ../common/soc.ld
+
+# incluir template
+include ../common/common.mk
+
 ```
