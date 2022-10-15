@@ -143,7 +143,7 @@ include ../common/common.mk
 
 ```
 
-Após compilar o programa, deve-se enviar o arquivo .bin gerado por meio da interface serial do dispotivo. Um [conversor USB para Serial TTL](https://pt.aliexpress.com/item/4001105371136.html) pode ser conveniente para esse propósito.
+Após compilar o programa, deve-se enviar o arquivo .bin gerado por meio da interface serial do dispotivo. Um [conversor USB para Serial TTL](https://shopee.com.br/Conversor-Usb-Serial-Rs232-Ttl-Pl2303hx-i.326746528.8939099476) pode ser conveniente para esse propósito.
 
 No diretório [utils](/sw/utils/) podem ser encontrados scripts utilitários que facilitam a programação de um software via serial.
 
@@ -154,4 +154,22 @@ No Windows, pode-se executar o script [upload.ps1](/sw/utils/upload.ps1) especif
 .\upload.ps1 .\my_software.bin
 ```
 
-Para distros Linux, um utilitário ainda está sendo desenvolvido.
+Para distros Linux, recomenda-se utilizar o script [upload.py](/sw/utils/upload.py) para programação. Esse script tem por requisito o pacote [pyserial](https://pypi.org/project/pyserial/), o qual pode ser instalado por meio do gerenciador de pacotes do python:
+
+```bash
+# instalar dependência por meio do pip
+pip install pyserial
+```
+
+após a instalação, é necessário configurar as permissões de leitura e escrita da porta serial:
+
+```bash
+# configurar permissões
+sudo chmod 777 /dev/ttyUSB0
+```
+
+por fim, basta executar o script especificando o software a ser enviado:
+```bash
+# enviar programa
+./upload.py ./my_software.bin
+```
