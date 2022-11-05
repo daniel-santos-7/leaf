@@ -22,6 +22,10 @@ entity int_strg is
         sw_irq    :  in  std_logic;
         tm_irq    :  in  std_logic;
         instr_err :  in  std_logic;
+        dmld_malgn:  in  std_logic;
+        dmld_fault:  in  std_logic;
+        dmst_malgn:  in  std_logic;
+        dmst_fault:  in  std_logic;
         cycle     :  in  std_logic_vector(63 downto 0);
         timer     :  in  std_logic_vector(63 downto 0);
         instret   :  in  std_logic_vector(63 downto 0);
@@ -54,20 +58,12 @@ architecture int_strg_arch of int_strg is
 
     signal imrd_malgn : std_logic;
     signal imrd_fault : std_logic;
-    signal dmrd_malgn : std_logic;
-    signal dmrd_fault : std_logic;
-    signal dmwr_malgn : std_logic;
-    signal dmwr_fault : std_logic;
 
 begin
     
     imrd_malgn <= '0';
     imrd_fault <= '0';
-    dmrd_malgn <= '0';
-    dmrd_fault <= '0';
-    dmwr_malgn <= '0';
-    dmwr_fault <= '0';
-
+    
     regs_wr_addr  <= regs_addr(4  downto  0);
     regs_rd_addr0 <= regs_addr(9  downto  5);
     regs_rd_addr1 <= regs_addr(14 downto 10);
@@ -111,10 +107,10 @@ begin
         imrd_malgn  => imrd_malgn,
         imrd_fault  => imrd_fault,
         instr_err   => instr_err,
-        dmrd_malgn  => dmrd_malgn,
-        dmrd_fault  => dmrd_fault,
-        dmwr_malgn  => dmwr_malgn,
-        dmwr_fault  => dmwr_fault,
+        dmrd_malgn  => dmld_malgn,
+        dmrd_fault  => dmst_fault,
+        dmwr_malgn  => dmst_malgn,
+        dmwr_fault  => dmst_fault,
         wr_en       => csrs_we,
         cycle       => cycle,
         timer       => timer,

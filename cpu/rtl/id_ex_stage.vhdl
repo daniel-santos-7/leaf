@@ -21,6 +21,8 @@ entity id_ex_stage is
         ex_irq     : in  std_logic;
         sw_irq     : in  std_logic;
         tm_irq     : in  std_logic;
+        dmrd_err   : in  std_logic;
+        dmwr_err   : in  std_logic;
         flush      : in  std_logic;
         instr      : in  std_logic_vector(31 downto 0);
         pc         : in  std_logic_vector(31 downto 0);
@@ -56,6 +58,11 @@ architecture id_ex_stage_arch of id_ex_stage is
     signal exec_res  : std_logic_vector(31 downto 0);
     signal dmld_data : std_logic_vector(31 downto 0);
 
+    signal dmld_malgn : std_logic;
+    signal dmld_fault : std_logic;
+    signal dmst_malgn : std_logic;
+    signal dmst_fault : std_logic;
+
 begin
 
     stage_id_block: id_block port map (
@@ -76,26 +83,30 @@ begin
         REG_FILE_SIZE => REG_FILE_SIZE,
         CSRS_MHART_ID => CSRS_MHART_ID
     ) port map (
-        clk       => clk,
-        reset     => reset,
-        ex_irq    => ex_irq,
-        sw_irq    => sw_irq,
-        tm_irq    => tm_irq,
-        instr_err => instr_err,
-        cycle     => cycle,
-        timer     => timer,
-        instret   => instret,
-        exec_res  => exec_res,
-        dmld_data => dmld_data,
-        pc        => pc,
-        next_pc   => next_pc,
-        imm       => imm,
-        func3     => func3,
-        regs_addr => regs_addr,
-        csrs_addr => csrs_addr,
-        istg_ctrl => istg_ctrl,
-        rd_data0  => reg0_data,
-        rd_data1  => reg1_data
+        clk        => clk,
+        reset      => reset,
+        ex_irq     => ex_irq,
+        sw_irq     => sw_irq,
+        tm_irq     => tm_irq,
+        instr_err  => instr_err,
+        dmld_malgn => dmld_malgn,
+        dmld_fault => dmld_fault,
+        dmst_malgn => dmst_malgn,
+        dmst_fault => dmst_fault,
+        cycle      => cycle,
+        timer      => timer,
+        instret    => instret,
+        exec_res   => exec_res,
+        dmld_data  => dmld_data,
+        pc         => pc,
+        next_pc    => next_pc,
+        imm        => imm,
+        func3      => func3,
+        regs_addr  => regs_addr,
+        csrs_addr  => csrs_addr,
+        istg_ctrl  => istg_ctrl,
+        rd_data0   => reg0_data,
+        rd_data1   => reg1_data
     );
 
     stage_ex_block: ex_block port map (
@@ -111,18 +122,24 @@ begin
         taken     => taken
     );
 
-    stage_lsu: lsu port map (
-        dmld_data  => dmld_data,
+    stage_dmls_block: dmls_block port map (
+        dmrd_err   => dmrd_err,
+        dmwr_err   => dmwr_err,
+        dmls_ctrl  => dmls_ctrl,
+        dmls_dtype => func3,
         dmst_data  => reg1_data,
         dmls_addr  => exec_res,
-        dmls_dtype => func3,
-        dmls_ctrl  => dmls_ctrl,
         dmrd_data  => dmrd_data,
-        dmwr_data  => dmwr_data,
-        dmrd_en    => dmrd_en, 
+        dmld_malgn => dmld_malgn,
+        dmld_fault => dmld_fault,
+        dmst_malgn => dmst_malgn,
+        dmst_fault => dmst_fault,
+        dmrd_en    => dmrd_en,
         dmwr_en    => dmwr_en,
+        dmwr_data  => dmwr_data,
         dmrw_addr  => dmrw_addr,
-        dm_byte_en => dm_byte_en
+        dm_byte_en => dm_byte_en,
+        dmld_data  => dmld_data
     );
 
 end architecture id_ex_stage_arch;

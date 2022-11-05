@@ -55,6 +55,9 @@ architecture leaf_arch of leaf is
     signal sw_irq : std_logic;
     signal tm_irq : std_logic;
 
+    signal dmrd_err : std_logic;
+    signal dmwr_err : std_logic;
+
     -- counters --
     signal cycle   : std_logic_vector(63 downto 0);
     signal timer   : std_logic_vector(63 downto 0);
@@ -67,6 +70,9 @@ begin
     ex_irq <= '0';
     sw_irq <= '0';
     tm_irq <= '0';
+    
+    dmrd_err <= '0';
+    dmwr_err <= '0';
 
     leaf_master: wb_ctrl port map (
         clk_i     => clk_i,
@@ -97,22 +103,24 @@ begin
         CSRS_MHART_ID => CSRS_MHART_ID,
         REG_FILE_SIZE => REG_FILE_SIZE
     ) port map (
-        clk         => clk, 
-        reset       => reset,
-        ex_irq      => ex_irq,
-        sw_irq      => sw_irq,
-        tm_irq      => tm_irq,
-        imem_data   => imrd_data,
-        dmrd_data   => dmrd_data,
-        cycle       => cycle,
-        timer       => timer,
-        instret     => instret,
-        dmrd_en     => dmrd_en,
-        dmwr_en     => dmwr_en,
-        imem_addr   => imrd_addr,
-        dmwr_data   => dmwr_data,
-        dmrw_addr   => dmrw_addr,
-        dm_byte_en  => dmrw_be
+        clk        => clk, 
+        reset      => reset,
+        ex_irq     => ex_irq,
+        sw_irq     => sw_irq,
+        tm_irq     => tm_irq,
+        dmrd_err   => dmrd_err,
+        dmwr_err   => dmwr_err,
+        imem_data  => imrd_data,
+        dmrd_data  => dmrd_data,
+        cycle      => cycle,
+        timer      => timer,
+        instret    => instret,
+        dmrd_en    => dmrd_en,
+        dmwr_en    => dmwr_en,
+        imem_addr  => imrd_addr,
+        dmwr_data  => dmwr_data,
+        dmrw_addr  => dmrw_addr,
+        dm_byte_en => dmrw_be
     );
 
     leaf_counters: counters port map (

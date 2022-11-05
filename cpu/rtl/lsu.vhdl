@@ -1,6 +1,7 @@
 ----------------------------------------------------------------------
 -- Leaf project
 -- developed by: Daniel Santos
+-- module: data memory load/store module
 -- 2022
 ----------------------------------------------------------------------
 
@@ -12,17 +13,17 @@ use work.core_pkg.all;
 
 entity lsu is
     port (
-        dmst_data:  in  std_logic_vector(31 downto 0);
-        dmls_addr:  in  std_logic_vector(31 downto 0);
-        dmls_dtype: in  std_logic_vector(2  downto 0);
-        dmls_ctrl:  in  std_logic_vector(1  downto 0);
-        dmrd_data:  in  std_logic_vector(31 downto 0);
-        dmwr_data:  out std_logic_vector(31 downto 0);
-        dmrw_addr:  out std_logic_vector(31 downto 0);
-        dm_byte_en: out std_logic_vector(3  downto 0);
-        dmrd_en:    out std_logic; 
-        dmwr_en:    out std_logic;
-        dmld_data:  out std_logic_vector(31 downto 0)       
+        dmst_data  : in  std_logic_vector(31 downto 0);
+        dmls_addr  : in  std_logic_vector(31 downto 0);
+        dmls_dtype : in  std_logic_vector(2  downto 0);
+        dmls_ctrl  : in  std_logic_vector(1  downto 0);
+        dmrd_data  : in  std_logic_vector(31 downto 0);
+        dmrd_en    : out std_logic; 
+        dmwr_en    : out std_logic;
+        dmwr_data  : out std_logic_vector(31 downto 0);
+        dmrw_addr  : out std_logic_vector(31 downto 0);
+        dm_byte_en : out std_logic_vector(3  downto 0);
+        dmld_data  : out std_logic_vector(31 downto 0)       
     );
 end entity lsu;
 

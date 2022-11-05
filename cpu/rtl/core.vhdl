@@ -21,6 +21,8 @@ entity core is
         ex_irq     : in  std_logic;
         sw_irq     : in  std_logic;
         tm_irq     : in  std_logic;
+        dmrd_err   : in  std_logic;
+        dmwr_err   : in  std_logic;
         imem_data  : in  std_logic_vector(31 downto 0);
         dmrd_data  : in  std_logic_vector(31 downto 0);
         cycle      : in  std_logic_vector(63 downto 0);
@@ -91,6 +93,8 @@ begin
         ex_irq     => ex_irq,
         sw_irq     => sw_irq,
         tm_irq     => tm_irq,
+        dmrd_err   => dmrd_err,
+        dmwr_err   => dmwr_err,
         flush      => flush_reg,
         instr      => instr_reg,
         pc         => pc_reg,
