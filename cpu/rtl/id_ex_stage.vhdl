@@ -23,6 +23,7 @@ entity id_ex_stage is
         tm_irq     : in  std_logic;
         dmrd_err   : in  std_logic;
         dmwr_err   : in  std_logic;
+        imrd_fault : in  std_logic;
         flush      : in  std_logic;
         instr      : in  std_logic_vector(31 downto 0);
         pc         : in  std_logic_vector(31 downto 0);
@@ -89,6 +90,8 @@ begin
         sw_irq     => sw_irq,
         tm_irq     => tm_irq,
         instr_err  => instr_err,
+        imrd_malgn => '0',
+        imrd_fault => imrd_fault,
         dmld_malgn => dmld_malgn,
         dmld_fault => dmld_fault,
         dmst_malgn => dmst_malgn,

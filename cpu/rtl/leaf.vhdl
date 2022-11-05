@@ -55,6 +55,7 @@ architecture leaf_arch of leaf is
     signal sw_irq : std_logic;
     signal tm_irq : std_logic;
 
+    signal imrd_err : std_logic;
     signal dmrd_err : std_logic;
     signal dmwr_err : std_logic;
 
@@ -71,6 +72,7 @@ begin
     sw_irq <= '0';
     tm_irq <= '0';
     
+    imrd_err <= '0';
     dmrd_err <= '0';
     dmwr_err <= '0';
 
@@ -108,6 +110,7 @@ begin
         ex_irq     => ex_irq,
         sw_irq     => sw_irq,
         tm_irq     => tm_irq,
+        imrd_err   => imrd_err,
         dmrd_err   => dmrd_err,
         dmwr_err   => dmwr_err,
         imem_data  => imrd_data,
@@ -124,11 +127,11 @@ begin
     );
 
     leaf_counters: counters port map (
-        clk         => clk, 
-        reset       => reset,
-        cycle       => cycle,
-        timer       => timer,
-        instret     => instret
+        clk     => clk, 
+        reset   => reset,
+        cycle   => cycle,
+        timer   => timer,
+        instret => instret
     );
     
 end architecture leaf_arch;

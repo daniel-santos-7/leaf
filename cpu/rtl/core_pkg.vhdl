@@ -100,16 +100,18 @@ package core_pkg is
             RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
         );
         port (
-            clk       : in  std_logic;
-            reset     : in  std_logic;
-            taken     : in  std_logic;
-            target    : in  std_logic_vector(31 downto 0);
-            imem_data : in  std_logic_vector(31 downto 0);
-            imem_addr : out std_logic_vector(31 downto 0);
-            pc        : out std_logic_vector(31 downto 0);
-            next_pc   : out std_logic_vector(31 downto 0);
-            instr     : out std_logic_vector(31 downto 0);
-            flush     : out std_logic
+            clk        : in  std_logic;
+            reset      : in  std_logic;
+            imrd_err   : in  std_logic;
+            taken      : in  std_logic;
+            target     : in  std_logic_vector(31 downto 0);
+            imrd_data  : in  std_logic_vector(31 downto 0);
+            imrd_fault : out std_logic;
+            flush      : out std_logic;
+            imrd_addr  : out std_logic_vector(31 downto 0);
+            pc         : out std_logic_vector(31 downto 0);
+            next_pc    : out std_logic_vector(31 downto 0);
+            instr      : out std_logic_vector(31 downto 0)
         );
     end component if_stage;
 
@@ -202,30 +204,32 @@ package core_pkg is
             CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0')
         );
         port (
-            clk       :  in  std_logic;
-            reset     :  in  std_logic;
-            ex_irq    :  in  std_logic;
-            sw_irq    :  in  std_logic;
-            tm_irq    :  in  std_logic;
-            instr_err :  in  std_logic;
-            dmld_malgn:  in  std_logic;
-            dmld_fault:  in  std_logic;
-            dmst_malgn:  in  std_logic;
-            dmst_fault:  in  std_logic;
-            cycle     :  in  std_logic_vector(63 downto 0);
-            timer     :  in  std_logic_vector(63 downto 0);
-            instret   :  in  std_logic_vector(63 downto 0);
-            exec_res  :  in  std_logic_vector(31 downto 0);
-            dmld_data :  in  std_logic_vector(31 downto 0);
-            pc        :  in  std_logic_vector(31 downto 0);
-            next_pc   :  in  std_logic_vector(31 downto 0);
-            imm       :  in  std_logic_vector(31 downto 0);
-            func3     :  in  std_logic_vector(2  downto 0);
-            regs_addr :  in  std_logic_vector(14 downto 0);
-            csrs_addr :  in  std_logic_vector(11 downto 0);
-            istg_ctrl :  in  std_logic_vector(3  downto 0);
-            rd_data0  :  out std_logic_vector(31 downto 0);
-            rd_data1  :  out std_logic_vector(31 downto 0)
+            clk        :  in  std_logic;
+            reset      :  in  std_logic;
+            ex_irq     :  in  std_logic;
+            sw_irq     :  in  std_logic;
+            tm_irq     :  in  std_logic;
+            instr_err  :  in  std_logic;
+            imrd_malgn :  in  std_logic;
+            imrd_fault :  in  std_logic;
+            dmld_malgn :  in  std_logic;
+            dmld_fault :  in  std_logic;
+            dmst_malgn :  in  std_logic;
+            dmst_fault :  in  std_logic;
+            cycle      :  in  std_logic_vector(63 downto 0);
+            timer      :  in  std_logic_vector(63 downto 0);
+            instret    :  in  std_logic_vector(63 downto 0);
+            exec_res   :  in  std_logic_vector(31 downto 0);
+            dmld_data  :  in  std_logic_vector(31 downto 0);
+            pc         :  in  std_logic_vector(31 downto 0);
+            next_pc    :  in  std_logic_vector(31 downto 0);
+            imm        :  in  std_logic_vector(31 downto 0);
+            func3      :  in  std_logic_vector(2  downto 0);
+            regs_addr  :  in  std_logic_vector(14 downto 0);
+            csrs_addr  :  in  std_logic_vector(11 downto 0);
+            istg_ctrl  :  in  std_logic_vector(3  downto 0);
+            rd_data0   :  out std_logic_vector(31 downto 0);
+            rd_data1   :  out std_logic_vector(31 downto 0)
         );
     end component int_strg;
 
@@ -324,6 +328,7 @@ package core_pkg is
             tm_irq     : in  std_logic;
             dmrd_err   : in  std_logic;
             dmwr_err   : in  std_logic;
+            imrd_fault : in  std_logic;
             flush      : in  std_logic;
             instr      : in  std_logic_vector(31 downto 0);
             pc         : in  std_logic_vector(31 downto 0);
@@ -354,6 +359,7 @@ package core_pkg is
             ex_irq     : in  std_logic;
             sw_irq     : in  std_logic;
             tm_irq     : in  std_logic;
+            imrd_err   : in  std_logic;
             dmrd_err   : in  std_logic;
             dmwr_err   : in  std_logic;
             imem_data  : in  std_logic_vector(31 downto 0);

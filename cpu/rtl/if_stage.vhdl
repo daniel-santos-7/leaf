@@ -13,30 +13,29 @@ entity if_stage is
         RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
     );
     port (
-        clk       : in  std_logic;
-        reset     : in  std_logic;
-        taken     : in  std_logic;
-        target    : in  std_logic_vector(31 downto 0);
-        imem_data : in  std_logic_vector(31 downto 0);
-        imem_addr : out std_logic_vector(31 downto 0);
-        pc        : out std_logic_vector(31 downto 0);
-        next_pc   : out std_logic_vector(31 downto 0);
-        instr     : out std_logic_vector(31 downto 0);
-        flush     : out std_logic
+        clk        : in  std_logic;
+        reset      : in  std_logic;
+        imrd_err   : in  std_logic;
+        taken      : in  std_logic;
+        target     : in  std_logic_vector(31 downto 0);
+        imrd_data  : in  std_logic_vector(31 downto 0);
+        imrd_fault : out std_logic;
+        flush      : out std_logic;
+        imrd_addr  : out std_logic_vector(31 downto 0);
+        pc         : out std_logic_vector(31 downto 0);
+        next_pc    : out std_logic_vector(31 downto 0);
+        instr      : out std_logic_vector(31 downto 0)
     );
 end entity if_stage;
 
 architecture if_stage_arch of if_stage is
     
-    signal itarget  : std_logic_vector(31 downto 0);
-    signal inext_pc : std_logic_vector(31 downto 0);
     signal pc_reg   : std_logic_vector(31 downto 0);
+    signal next_res : std_logic_vector(31 downto 0);
     
 begin
 
-    itarget  <= target(31 downto 2) & b"00";
-
-    inext_pc <= std_logic_vector(unsigned(pc_reg) + 4);
+    next_res <= std_logic_vector(unsigned(pc_reg) + 4);
 
     pc_gen: process(clk)
     begin
@@ -44,17 +43,18 @@ begin
             if reset = '1' then
                 pc_reg <= RESET_ADDR;
             elsif taken = '1' then
-                pc_reg <= itarget;
+                pc_reg <= target;
             else
-                pc_reg <= inext_pc;
+                pc_reg <= next_res;
             end if;
         end if;
     end process pc_gen;
 
-    imem_addr <= pc_reg;
-    pc        <= pc_reg;
-    next_pc   <= inext_pc;
-    instr     <= imem_data;
-    flush     <= taken;
+    imrd_fault <= imrd_err;
+    flush      <= taken or imrd_err;
+    imrd_addr  <= pc_reg;
+    pc         <= pc_reg;
+    next_pc    <= next_res;
+    instr      <= imrd_data;
 
 end architecture if_stage_arch;

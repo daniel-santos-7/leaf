@@ -21,6 +21,7 @@ entity core is
         ex_irq     : in  std_logic;
         sw_irq     : in  std_logic;
         tm_irq     : in  std_logic;
+        imrd_err   : in  std_logic;
         dmrd_err   : in  std_logic;
         dmwr_err   : in  std_logic;
         imem_data  : in  std_logic_vector(31 downto 0);
@@ -41,14 +42,17 @@ architecture core_arch of core is
 
     signal taken       : std_logic;
     signal target      : std_logic_vector(31 downto 0);
+    signal imrd_fault  : std_logic;
+    signal flush       : std_logic;
     signal pc          : std_logic_vector(31 downto 0);
     signal next_pc     : std_logic_vector(31 downto 0);
     signal instr       : std_logic_vector(31 downto 0);
-    signal flush       : std_logic;
-    signal pc_reg      : std_logic_vector(31 downto 0);
-    signal next_pc_reg : std_logic_vector(31 downto 0);
-    signal instr_reg   : std_logic_vector(31 downto 0);
-    signal flush_reg   : std_logic;
+    
+    signal imrd_fault_reg : std_logic;
+    signal flush_reg      : std_logic;
+    signal pc_reg         : std_logic_vector(31 downto 0);
+    signal next_pc_reg    : std_logic_vector(31 downto 0);
+    signal instr_reg      : std_logic_vector(31 downto 0);
 
 begin
 
@@ -56,15 +60,17 @@ begin
     begin
         if rising_edge(clk) then
             if reset = '1' then
-                pc_reg      <= (others => '0');
-                next_pc_reg <= (others => '0');
-                instr_reg   <= (others => '0');
-                flush_reg   <= '0';
+                imrd_fault_reg <= '0';
+                flush_reg      <= '0';
+                pc_reg         <= (others => '0');
+                next_pc_reg    <= (others => '0');
+                instr_reg      <= (others => '0');
             else
-                pc_reg      <= pc;
-                next_pc_reg <= next_pc;
-                instr_reg   <= instr;
-                flush_reg   <= flush;
+                imrd_fault_reg <= imrd_fault;
+                flush_reg      <= flush;
+                pc_reg         <= pc;
+                next_pc_reg    <= next_pc;
+                instr_reg      <= instr;
             end if;
         end if;
     end process pipeline_regs;
@@ -72,16 +78,18 @@ begin
     core_if_stage: if_stage generic map (
         RESET_ADDR => RESET_ADDR
     ) port map (
-        clk       => clk,
-        reset     => reset,
-        taken     => taken,
-        target    => target,
-        imem_data => imem_data,
-        imem_addr => imem_addr,
-        pc        => pc, 
-        next_pc   => next_pc,
-        instr     => instr,
-        flush     => flush
+        clk        => clk,
+        reset      => reset,
+        imrd_err   => imrd_err,
+        taken      => taken,
+        target     => target,
+        imrd_data  => imem_data,
+        imrd_fault => imrd_fault,
+        flush      => flush,
+        imrd_addr  => imem_addr,
+        pc         => pc, 
+        next_pc    => next_pc,
+        instr      => instr
     );
 
     core_id_ex_stage: id_ex_stage generic map (
@@ -95,6 +103,7 @@ begin
         tm_irq     => tm_irq,
         dmrd_err   => dmrd_err,
         dmwr_err   => dmwr_err,
+        imrd_fault => imrd_fault,
         flush      => flush_reg,
         instr      => instr_reg,
         pc         => pc_reg,
