@@ -1,64 +1,134 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: internal storage
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
 use work.core_pkg.all;
 
 entity int_strg is
+    generic (
+        REG_FILE_SIZE : natural := 32;
+        CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0')
+    );
     port (
-        clk:           in  std_logic;
-        wr_src0:       in  std_logic_vector(31 downto 0);
-        wr_src1:       in  std_logic_vector(31 downto 0);
-        wr_src2:       in  std_logic_vector(31 downto 0);
-        wr_src3:       in  std_logic_vector(31 downto 0);
-        regs_addr:     in  std_logic_vector(14 downto 0);
-        int_strg_ctrl: in  std_logic_vector(2 downto 0);
-        rd_data0:      out std_logic_vector(31 downto 0);
-        rd_data1:      out std_logic_vector(31 downto 0)
+        clk       :  in  std_logic;
+        reset     :  in  std_logic;
+        ex_irq    :  in  std_logic;
+        sw_irq    :  in  std_logic;
+        tm_irq    :  in  std_logic;
+        instr_err :  in  std_logic;
+        cycle     :  in  std_logic_vector(63 downto 0);
+        timer     :  in  std_logic_vector(63 downto 0);
+        instret   :  in  std_logic_vector(63 downto 0);
+        exec_res  :  in  std_logic_vector(31 downto 0);
+        dmld_data :  in  std_logic_vector(31 downto 0);
+        pc        :  in  std_logic_vector(31 downto 0);
+        next_pc   :  in  std_logic_vector(31 downto 0);
+        imm       :  in  std_logic_vector(31 downto 0);
+        func3     :  in  std_logic_vector(2  downto 0);
+        regs_addr :  in  std_logic_vector(14 downto 0);
+        csrs_addr :  in  std_logic_vector(11 downto 0);
+        istg_ctrl :  in  std_logic_vector(3  downto 0);
+        rd_data0  :  out std_logic_vector(31 downto 0);
+        rd_data1  :  out std_logic_vector(31 downto 0)
     );
 end entity int_strg;
 
 architecture int_strg_arch of int_strg is
     
-    signal wr_addr:  std_logic_vector(4 downto 0);
-    signal rd_addr0: std_logic_vector(4 downto 0);
-    signal rd_addr1: std_logic_vector(4 downto 0);
+    signal regs_we       : std_logic;
+    signal regs_wr_addr  : std_logic_vector(4  downto 0);
+    signal regs_wr_data  : std_logic_vector(31 downto 0);
+    signal regs_rd_addr0 : std_logic_vector(4  downto 0);
+    signal regs_rd_addr1 : std_logic_vector(4  downto 0);
+    signal regs_wr_sel   : std_logic_vector(1  downto 0);
+    signal regs_rd_data0 : std_logic_vector(31 downto 0);
+    signal regs_rd_data1 : std_logic_vector(31 downto 0);
+    signal csrs_we       : std_logic;
+    signal csrs_rd_data  : std_logic_vector(31 downto 0);
 
-    signal wr_en:      std_logic;
-    signal wr_src_sel: std_logic_vector(1 downto 0);
-
-    signal wr_data: std_logic_vector(31 downto 0);
+    signal imrd_malgn : std_logic;
+    signal imrd_fault : std_logic;
+    signal dmrd_malgn : std_logic;
+    signal dmrd_fault : std_logic;
+    signal dmwr_malgn : std_logic;
+    signal dmwr_fault : std_logic;
 
 begin
     
-    wr_addr  <= regs_addr(4  downto  0);
-    rd_addr0 <= regs_addr(9  downto  5);
-    rd_addr1 <= regs_addr(14 downto 10);
+    imrd_malgn <= '0';
+    imrd_fault <= '0';
+    dmrd_malgn <= '0';
+    dmrd_fault <= '0';
+    dmwr_malgn <= '0';
+    dmwr_fault <= '0';
 
-    wr_en      <= int_strg_ctrl(0);
-    wr_src_sel <= int_strg_ctrl(2 downto 1);
+    regs_wr_addr  <= regs_addr(4  downto  0);
+    regs_rd_addr0 <= regs_addr(9  downto  5);
+    regs_rd_addr1 <= regs_addr(14 downto 10);
 
-    wr_data_mux: process(wr_src_sel, wr_src0, wr_src1, wr_src2, wr_src3)
+    regs_we     <= istg_ctrl(0);
+    regs_wr_sel <= istg_ctrl(2 downto 1);
+    csrs_we     <= istg_ctrl(3);
+
+    regs_wr_data_mux: process(regs_wr_sel, exec_res, dmld_data, next_pc, csrs_rd_data)
     begin
-        
-        case wr_src_sel is
-            when b"00"  => wr_data <= wr_src0;
-            when b"01"  => wr_data <= wr_src1;
-            when b"10"  => wr_data <= wr_src2;
-            when b"11"  => wr_data <= wr_src3;
+        case regs_wr_sel is
+            when b"00"  => regs_wr_data <= exec_res;
+            when b"01"  => regs_wr_data <= dmld_data;
+            when b"10"  => regs_wr_data <= next_pc;
+            when b"11"  => regs_wr_data <= csrs_rd_data;
             when others => null;
         end case;
-
-    end process wr_data_mux;
+    end process regs_wr_data_mux;
     
-    int_strg_rf: reg_file port map (
-        clk          => clk,
-        rd_reg_addr0 => rd_addr0,
-        rd_reg_addr1 => rd_addr1,
-        wr_reg_addr  => wr_addr,
-        wr_reg_data  => wr_data,
-        wr_reg_en    => wr_en,
-        rd_reg_data0 => rd_data0, 
-        rd_reg_data1 => rd_data1
+    istg_reg_file: reg_file generic map (
+        SIZE => REG_FILE_SIZE
+    ) port map (
+        clk      => clk,
+        we       => regs_we,
+        wr_addr  => regs_wr_addr,
+        wr_data  => regs_wr_data,
+        rd_addr0 => regs_rd_addr0,
+        rd_addr1 => regs_rd_addr1,
+        rd_data0 => regs_rd_data0, 
+        rd_data1 => regs_rd_data1
     );
+
+    istg_csrs: csrs generic map (
+        MHART_ID => CSRS_MHART_ID
+    ) port map (
+        clk         => clk,
+        reset       => reset,
+        ex_irq      => ex_irq,
+        sw_irq      => sw_irq,
+        tm_irq      => tm_irq,
+        imrd_malgn  => imrd_malgn,
+        imrd_fault  => imrd_fault,
+        instr_err   => instr_err,
+        dmrd_malgn  => dmrd_malgn,
+        dmrd_fault  => dmrd_fault,
+        dmwr_malgn  => dmwr_malgn,
+        dmwr_fault  => dmwr_fault,
+        wr_en       => csrs_we,
+        cycle       => cycle,
+        timer       => timer,
+        instret     => instret,
+        pc          => pc,
+        next_pc     => next_pc,
+        wr_mode     => func3,
+        rd_wr_addr  => csrs_addr,
+        wr_reg_data => regs_rd_data0,
+        wr_imm_data => imm,
+        rd_data     => csrs_rd_data
+    );
+
+    rd_data0 <= regs_rd_data0;
+    rd_data1 <= regs_rd_data1;
 
 end architecture int_strg_arch;
