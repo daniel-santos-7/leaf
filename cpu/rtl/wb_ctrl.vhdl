@@ -97,8 +97,21 @@ begin
     adr_o <= dmrw_addr when (curr_state = READ_DATA or curr_state = WRITE_DATA) else imrd_addr;
     dat_o <= dmwr_data;
 
-    clk   <= clk_i when curr_state = START or curr_state = EXECUTE;
+    -- clk   <= clk_i when curr_state = START or curr_state = EXECUTE;
     reset <= '1' when curr_state = START else '0';
+
+    clk_gating: process(clk_i)
+        variable clk_en : std_logic;
+    begin
+        if falling_edge(clk_i) then
+            if (curr_state = START or curr_state = EXECUTE) then
+                clk_en := '1';
+            else
+                clk_en := '0';
+            end if;
+        end if;
+        clk <= clk_i and clk_en;
+    end process clk_gating;
 
     wr_imrd_data: process(clk_i)
     begin

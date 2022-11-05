@@ -13,7 +13,9 @@ use work.core_pkg.all;
 
 entity leaf is
     generic (
-        RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
+        RESET_ADDR    : std_logic_vector(31 downto 0) := (others => '0');
+        CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0');
+        REG_FILE_SIZE : natural := 32
     );
     port (
         clk_i : in  std_logic;
@@ -53,6 +55,11 @@ architecture leaf_arch of leaf is
     signal sw_irq : std_logic;
     signal tm_irq : std_logic;
 
+    -- counters --
+    signal cycle   : std_logic_vector(63 downto 0);
+    signal timer   : std_logic_vector(63 downto 0);
+    signal instret : std_logic_vector(63 downto 0);
+
 begin
 
     imrd_en <= not rst_i;
@@ -86,21 +93,34 @@ begin
     );
     
     leaf_core: core generic map (
-        RESET_ADDR  => RESET_ADDR
+        RESET_ADDR    => RESET_ADDR,
+        CSRS_MHART_ID => CSRS_MHART_ID,
+        REG_FILE_SIZE => REG_FILE_SIZE
     ) port map (
         clk         => clk, 
         reset       => reset,
-        imem_data   => imrd_data,
-        imem_addr   => imrd_addr,
-        dmrd_data   => dmrd_data,
-        dmwr_data   => dmwr_data,
-        dmrd_en     => dmrd_en,
-        dmwr_en     => dmwr_en,
-        dmrw_addr   => dmrw_addr,
-        dm_byte_en  => dmrw_be,
         ex_irq      => ex_irq,
         sw_irq      => sw_irq,
-        tm_irq      => tm_irq
+        tm_irq      => tm_irq,
+        imem_data   => imrd_data,
+        dmrd_data   => dmrd_data,
+        cycle       => cycle,
+        timer       => timer,
+        instret     => instret,
+        dmrd_en     => dmrd_en,
+        dmwr_en     => dmwr_en,
+        imem_addr   => imrd_addr,
+        dmwr_data   => dmwr_data,
+        dmrw_addr   => dmrw_addr,
+        dm_byte_en  => dmrw_be
+    );
+
+    leaf_counters: counters port map (
+        clk         => clk, 
+        reset       => reset,
+        cycle       => cycle,
+        timer       => timer,
+        instret     => instret
     );
     
 end architecture leaf_arch;
