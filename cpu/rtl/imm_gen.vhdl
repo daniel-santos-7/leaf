@@ -1,3 +1,10 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: immediate value generator
+-- 2022
+----------------------------------------------------------------------
+
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
@@ -6,9 +13,9 @@ use work.core_pkg.all;
 
 entity imm_gen is
     port (
-        payload:  in  std_logic_vector(24 downto 0);
-        itype:    in  std_logic_vector(2  downto 0);
-        imm:      out std_logic_vector(31 downto 0)
+        payload : in  std_logic_vector(24 downto 0);
+        itype   : in  std_logic_vector(2  downto 0);
+        imm     : out std_logic_vector(31 downto 0)
     );
 end entity imm_gen;
 
@@ -21,9 +28,8 @@ architecture imm_gen_arch of imm_gen is
 
 begin
 
-    main: process(itype, payload)
+    gen: process(itype, payload)
     begin
-        
         case itype is
             when IMM_I_TYPE => imm <= resize_signed(payload(24 downto 13));
             when IMM_S_TYPE => imm <= resize_signed(payload(24 downto 18) & payload(4 downto 0));
@@ -33,7 +39,6 @@ begin
             when IMM_Z_TYPE => imm <= std_logic_vector(resize(unsigned(payload(19 downto 15)), 32));
             when others     => imm <= (31 downto 0 => '-');
         end case;
-
-    end process main;
+    end process gen;
     
 end architecture imm_gen_arch;

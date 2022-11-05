@@ -1,6 +1,7 @@
 ----------------------------------------------------------------------
 -- Leaf project
 -- developed by: Daniel Santos
+-- module: instruction decode block
 -- 2022
 ----------------------------------------------------------------------
 
@@ -11,33 +12,28 @@ use work.core_pkg.all;
 
 entity id_block is
     port (
-        instr         : in  std_logic_vector(31 downto 0);
-        flush         : in  std_logic;
-        regs_addr     : out std_logic_vector(14 downto 0);
-        int_strg_ctrl : out std_logic_vector(2  downto 0);
-        csrs_addr     : out std_logic_vector(11 downto 0);
-        csrs_mode     : out std_logic_vector(2  downto 0);
-        csrs_ctrl     : out std_logic;
-        ex_func       : out ex_func_type;
-        ex_ctrl       : out ex_ctrl_type;
-        dmls_dtype    : out std_logic_vector(2  downto 0);
-        dmls_ctrl     : out dmls_ctrl_type;
-        brde_mode     : out std_logic_vector(2  downto 0);
-        brde_ctrl     : out std_logic_vector(1  downto 0);
-        imm           : out std_logic_vector(31 downto 0)
+        flush     : in  std_logic;
+        instr     : in  std_logic_vector(31 downto 0);
+        instr_err : out std_logic;
+        func3     : out std_logic_vector(2  downto 0);
+        func7     : out std_logic_vector(6  downto 0);
+        imm       : out std_logic_vector(31 downto 0);
+        regs_addr : out std_logic_vector(14 downto 0);
+        csrs_addr : out std_logic_vector(11 downto 0);
+        istg_ctrl : out std_logic_vector(3  downto 0);
+        exec_ctrl : out std_logic_vector(7  downto 0);
+        dmls_ctrl : out std_logic_vector(1  downto 0)
     );
 end entity id_block;
 
 architecture id_block_arch of id_block is
     
-    signal opcode   : std_logic_vector(6  downto 0);
-    signal payload  : std_logic_vector(24 downto 0);
-    signal rd_addr  : std_logic_vector(4  downto 0);
-    signal rs1_addr : std_logic_vector(4  downto 0);
-    signal rs2_addr : std_logic_vector(4  downto 0);
-    signal func3    : std_logic_vector(2  downto 0);
-    signal func7    : std_logic_vector(6  downto 0);
-    signal itype    : std_logic_vector(2  downto 0);
+    signal opcode    : std_logic_vector(6  downto 0);
+    signal payload   : std_logic_vector(24 downto 0);
+    signal rd_addr   : std_logic_vector(4  downto 0);
+    signal rs1_addr  : std_logic_vector(4  downto 0);
+    signal rs2_addr  : std_logic_vector(4  downto 0);
+    signal imm_type  : std_logic_vector(2  downto 0);
 
 begin
     
@@ -46,33 +42,27 @@ begin
     rd_addr  <= instr(11 downto  7);
     rs1_addr <= instr(19 downto 15);
     rs2_addr <= instr(24 downto 20);
-    func3    <= instr(14 downto 12);
-    func7    <= instr(31 downto 25);
 
     id_imm_gen: imm_gen port map (
         payload => payload,
-        itype   => itype,
+        itype   => imm_type,
         imm     => imm
     );
 
     id_main_ctrl: main_ctrl port map (
-        opcode          => opcode,
-        flush           => flush,
-        int_strg_ctrl   => int_strg_ctrl,
-        ig_itype        => itype,
-        ex_ctrl         => ex_ctrl, 
-        dmls_ctrl       => dmls_ctrl, 
-        brd_en          => brde_ctrl(1),
-        csrs_wr_en      => csrs_ctrl,
-        if_jmp          => brde_ctrl(0)
+        flush     => flush,
+        opcode    => opcode,
+        instr_err => instr_err,
+        imm_type  => imm_type,
+        istg_ctrl => istg_ctrl,
+        exec_ctrl => exec_ctrl, 
+        dmls_ctrl => dmls_ctrl
     );
 
-    regs_addr   <=  rs2_addr & rs1_addr & rd_addr;
-    csrs_addr   <=  func7 & rs2_addr;
-    ex_func     <=  (func7, func3);
+    func3 <= instr(14 downto 12);
+    func7 <= instr(31 downto 25);
 
-    csrs_mode   <=  func3;
-    brde_mode   <=  func3;
-    dmls_dtype  <=  func3;
+    regs_addr <= rs2_addr & rs1_addr & rd_addr;
+    csrs_addr <= instr(31 downto 20);
 
 end architecture id_block_arch;
