@@ -24,20 +24,22 @@ entity csrs is
         imrd_malgn  : in  std_logic;
         imrd_fault  : in  std_logic;
         instr_err   : in  std_logic;
-        dmrd_malgn  : in  std_logic;
-        dmrd_fault  : in  std_logic;
-        dmwr_malgn  : in  std_logic;
-        dmwr_fault  : in  std_logic;
+        dmld_malgn  : in  std_logic;
+        dmld_fault  : in  std_logic;
+        dmst_malgn  : in  std_logic;
+        dmst_fault  : in  std_logic;
         wr_en       : in  std_logic;
+        wr_mode     : in  std_logic_vector(2  downto 0);
+        rd_wr_addr  : in  std_logic_vector(11 downto 0);
+        exec_res    : in  std_logic_vector(31 downto 0);
+        pc          : in  std_logic_vector(31 downto 0);
+        wr_reg_data : in  std_logic_vector(31 downto 0);
+        wr_imm_data : in  std_logic_vector(31 downto 0);
         cycle       : in  std_logic_vector(63 downto 0);
         timer       : in  std_logic_vector(63 downto 0);
         instret     : in  std_logic_vector(63 downto 0);
-        pc          : in  std_logic_vector(31 downto 0);
-        next_pc     : in  std_logic_vector(31 downto 0);
-        wr_mode     : in  std_logic_vector(2  downto 0);
-        rd_wr_addr  : in  std_logic_vector(11 downto 0);
-        wr_reg_data : in  std_logic_vector(31 downto 0);
-        wr_imm_data : in  std_logic_vector(31 downto 0);
+        trap_taken  : out std_logic;
+        trap_target : out std_logic_vector(31 downto 0);
         rd_data     : out std_logic_vector(31 downto 0)
     );
 end entity csrs;
@@ -84,7 +86,7 @@ begin
     swi_taken <= mip_msip and mie_msie;
 
     int_taken <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie;
-    exc_taken <= imrd_malgn or imrd_fault or instr_err or ebreak or dmrd_malgn or dmrd_fault or dmwr_malgn or dmwr_fault or ecall or int_taken;
+    exc_taken <= imrd_malgn or imrd_fault or instr_err or ebreak or dmld_malgn or dmld_fault or dmst_malgn or dmst_fault or ecall or int_taken;
 
     read_csr: process(rd_wr_addr, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle, timer, instret)
     begin
@@ -213,13 +215,13 @@ begin
                         mcause_exc <= b"00010";
                     elsif ebreak = '1' then
                         mcause_exc <= b"00011";
-                    elsif dmrd_malgn = '1' then
+                    elsif dmld_malgn = '1' then
                         mcause_exc <= b"00100";
-                    elsif dmrd_fault = '1' then
+                    elsif dmld_fault = '1' then
                         mcause_exc <= b"00101";
-                    elsif dmwr_malgn = '1' then
+                    elsif dmst_malgn = '1' then
                         mcause_exc <= b"00110";
-                    elsif dmwr_fault = '1' then
+                    elsif dmst_fault = '1' then
                         mcause_exc <= b"00111";
                     elsif ecall = '1' then
                         mcause_exc <= b"01011";
@@ -238,8 +240,8 @@ begin
             if reset = '1' then
                 mtval <= (others => '0');
             elsif exc_taken = '1' then
-                if imrd_malgn = '1' then
-                    mtval <= next_pc;
+                if imrd_malgn = '1' or dmld_malgn = '1' or dmst_malgn = '1' then
+                    mtval <= exec_res;
                 else
                     mtval <= (others => '0');
                 end if;
@@ -264,6 +266,8 @@ begin
         end if;
     end process write_mip;
     
-    rd_data <= rd_data_i;
+    trap_taken  <= exc_taken;
+    trap_target <= mtvec_base(31 downto 2) & b"00";
+    rd_data     <= rd_data_i;
 
 end architecture csrs_arch;

@@ -40,6 +40,8 @@ entity int_strg is
         regs_addr  : in  std_logic_vector(14 downto 0);
         csrs_addr  : in  std_logic_vector(11 downto 0);
         istg_ctrl  : in  std_logic_vector(3  downto 0);
+        trap_taken : out std_logic;
+        trap_target: out std_logic_vector(31 downto 0);
         rd_data0   : out std_logic_vector(31 downto 0);
         rd_data1   : out std_logic_vector(31 downto 0)
     );
@@ -103,20 +105,22 @@ begin
         imrd_malgn  => imrd_malgn,
         imrd_fault  => imrd_fault,
         instr_err   => instr_err,
-        dmrd_malgn  => dmld_malgn,
-        dmrd_fault  => dmst_fault,
-        dmwr_malgn  => dmst_malgn,
-        dmwr_fault  => dmst_fault,
+        dmld_malgn  => dmld_malgn,
+        dmld_fault  => dmst_fault,
+        dmst_malgn  => dmst_malgn,
+        dmst_fault  => dmst_fault,
         wr_en       => csrs_we,
+        wr_mode     => func3,
+        rd_wr_addr  => csrs_addr,
+        exec_res    => exec_res,
+        pc          => pc,
+        wr_reg_data => regs_rd_data0,
+        wr_imm_data => imm,
         cycle       => cycle,
         timer       => timer,
         instret     => instret,
-        pc          => pc,
-        next_pc     => next_pc,
-        wr_mode     => func3,
-        rd_wr_addr  => csrs_addr,
-        wr_reg_data => regs_rd_data0,
-        wr_imm_data => imm,
+        trap_taken  => trap_taken,
+        trap_target => trap_target,
         rd_data     => csrs_rd_data
     );
 

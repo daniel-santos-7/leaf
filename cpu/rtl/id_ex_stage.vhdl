@@ -54,11 +54,15 @@ architecture id_ex_stage_arch of id_ex_stage is
     signal exec_ctrl : std_logic_vector(7  downto 0);
     signal dmls_ctrl : std_logic_vector(1  downto 0);
     
+    signal trap_taken  : std_logic;
+    signal trap_target : std_logic_vector(31 downto 0);
+
     signal reg0_data : std_logic_vector(31 downto 0);
     signal reg1_data : std_logic_vector(31 downto 0);
     signal exec_res  : std_logic_vector(31 downto 0);
     signal dmld_data : std_logic_vector(31 downto 0);
 
+    signal imrd_malgn : std_logic;
     signal dmld_malgn : std_logic;
     signal dmld_fault : std_logic;
     signal dmst_malgn : std_logic;
@@ -90,7 +94,7 @@ begin
         sw_irq     => sw_irq,
         tm_irq     => tm_irq,
         instr_err  => instr_err,
-        imrd_malgn => '0',
+        imrd_malgn => imrd_malgn,
         imrd_fault => imrd_fault,
         dmld_malgn => dmld_malgn,
         dmld_fault => dmld_fault,
@@ -113,16 +117,19 @@ begin
     );
 
     stage_ex_block: ex_block port map (
-        reg0      => reg0_data,
-        reg1      => reg1_data,
-        pc        => pc,
-        imm       => imm,
-        func3     => func3,
-        func7     => func7,
-        exec_ctrl => exec_ctrl,
-        res       => exec_res,
-        target    => target,
-        taken     => taken
+        trap_taken  => trap_taken,
+        trap_target => trap_target,
+        func3       => func3,
+        func7       => func7,
+        reg0        => reg0_data,
+        reg1        => reg1_data,
+        pc          => pc,
+        imm         => imm,
+        exec_ctrl   => exec_ctrl,
+        imrd_malgn  => imrd_malgn,
+        taken       => taken,
+        target      => target,
+        res         => exec_res
     );
 
     stage_dmls_block: dmls_block port map (

@@ -12,16 +12,19 @@ use work.core_pkg.all;
 
 entity ex_block is
     port (
-        reg0      : in  std_logic_vector(31 downto 0);
-        reg1      : in  std_logic_vector(31 downto 0);
-        pc        : in  std_logic_vector(31 downto 0);
-        imm       : in  std_logic_vector(31 downto 0);
-        func3     : in  std_logic_vector(2  downto 0);
-        func7     : in  std_logic_vector(6  downto 0);
-        exec_ctrl : in  std_logic_vector(7  downto 0);
-        res       : out std_logic_vector(31 downto 0);
-        target    : out std_logic_vector(31 downto 0);
-        taken     : out std_logic
+        trap_taken  : in  std_logic;
+        trap_target : in  std_logic_vector(31 downto 0);
+        func3       : in  std_logic_vector(2  downto 0);
+        func7       : in  std_logic_vector(6  downto 0);
+        reg0        : in  std_logic_vector(31 downto 0);
+        reg1        : in  std_logic_vector(31 downto 0);
+        pc          : in  std_logic_vector(31 downto 0);
+        imm         : in  std_logic_vector(31 downto 0);
+        exec_ctrl   : in  std_logic_vector(7  downto 0);
+        imrd_malgn  : out std_logic;
+        taken       : out std_logic;
+        target      : out std_logic_vector(31 downto 0);
+        res         : out std_logic_vector(31 downto 0)
     );
 end entity ex_block;
 
@@ -63,7 +66,7 @@ begin
     gtd_opd0 <= opd0 and (31 downto 0 => opd0_pass);
     gtd_opd1 <= opd1 and (31 downto 0 => opd1_pass);
 
-    ex_alu_ctrl: alu_ctrl port map (
+    exec_alu_ctrl: alu_ctrl port map (
         op_en => op_en,
         ftype => ftype,
         func3 => func3,
@@ -71,14 +74,14 @@ begin
         op    => op
     );
 
-    ex_alu: alu port map (
+    exec_alu: alu port map (
         opd0 => gtd_opd0, 
         opd1 => gtd_opd1,
         op   => op,
         res  => ires
     );
 
-    ex_br_detector: br_detector port map (
+    exec_br_detector: br_detector port map (
         reg0   => reg0,
         reg1   => reg1,
         mode   => func3,
@@ -86,8 +89,10 @@ begin
         branch => branch
     );
 
-    res    <= ires;
+    imrd_malgn <= '0' when ires(1 downto 0) = b"00" else branch or jmp;
+
+    taken  <= branch or jmp or trap_taken;
     target <= ires;
-    taken  <= branch or jmp;
+    res    <= ires;
     
 end architecture ex_block_arch;
