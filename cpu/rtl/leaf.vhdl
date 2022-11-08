@@ -127,7 +127,7 @@ begin
     );
 
     leaf_counters: counters port map (
-        clk     => clk, 
+        clk     => clk_i, 
         reset   => reset,
         cycle   => cycle,
         timer   => timer,
