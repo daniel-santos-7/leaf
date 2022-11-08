@@ -112,6 +112,8 @@ begin
         regs_addr  => regs_addr,
         csrs_addr  => csrs_addr,
         istg_ctrl  => istg_ctrl,
+        trap_taken => trap_taken,
+        trap_target => trap_target,
         rd_data0   => reg0_data,
         rd_data1   => reg1_data
     );

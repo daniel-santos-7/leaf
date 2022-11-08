@@ -385,7 +385,9 @@ package core_pkg is
 
     component leaf is
         generic (
-            RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
+            RESET_ADDR    : std_logic_vector(31 downto 0) := (others => '0');
+            CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0');
+            REG_FILE_SIZE : natural := 32
         );
         port (
             clk_i : in  std_logic;

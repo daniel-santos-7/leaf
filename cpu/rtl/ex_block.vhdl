@@ -44,8 +44,8 @@ architecture ex_block_arch of ex_block is
     signal opd1     : std_logic_vector(31 downto 0);
     signal gtd_opd0 : std_logic_vector(31 downto 0);
     signal gtd_opd1 : std_logic_vector(31 downto 0);
-    signal op       : std_logic_vector(5  downto 0);
-    signal ires     : std_logic_vector(31 downto 0);
+    signal alu_op   : std_logic_vector(5  downto 0);
+    signal alu_res  : std_logic_vector(31 downto 0);
     signal branch   : std_logic;
 
 begin
@@ -71,14 +71,14 @@ begin
         ftype => ftype,
         func3 => func3,
         func7 => func7,
-        op    => op
+        op    => alu_op
     );
 
     exec_alu: alu port map (
         opd0 => gtd_opd0, 
         opd1 => gtd_opd1,
-        op   => op,
-        res  => ires
+        op   => alu_op,
+        res  => alu_res
     );
 
     exec_br_detector: br_detector port map (
@@ -89,10 +89,10 @@ begin
         branch => branch
     );
 
-    imrd_malgn <= '0' when ires(1 downto 0) = b"00" else branch or jmp;
+    imrd_malgn <= alu_res(1) and (branch or jmp);
 
     taken  <= branch or jmp or trap_taken;
-    target <= ires;
-    res    <= ires;
+    target <= trap_target when trap_taken = '1' else alu_res(31 downto 1) & b"0";
+    res    <= alu_res;
     
 end architecture ex_block_arch;

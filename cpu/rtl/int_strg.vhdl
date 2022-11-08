@@ -66,7 +66,7 @@ begin
     regs_rd_addr0 <= regs_addr(9  downto  5);
     regs_rd_addr1 <= regs_addr(14 downto 10);
 
-    regs_we     <= istg_ctrl(0);
+    regs_we     <= istg_ctrl(0) and not (imrd_malgn or dmld_malgn or dmld_fault);
     regs_wr_sel <= istg_ctrl(2 downto 1);
     csrs_we     <= istg_ctrl(3);
 

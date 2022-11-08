@@ -61,7 +61,7 @@ begin
         if rising_edge(clk) then
             if reset = '1' then
                 imrd_fault_reg <= '0';
-                flush_reg      <= '0';
+                flush_reg      <= '1';
                 pc_reg         <= (others => '0');
                 next_pc_reg    <= (others => '0');
                 instr_reg      <= (others => '0');

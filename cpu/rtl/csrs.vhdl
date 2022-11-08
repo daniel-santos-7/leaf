@@ -63,9 +63,11 @@ architecture csrs_arch of csrs is
     signal mip_mtip     : std_logic;
     signal mip_msip     : std_logic;
 
-    signal env_exc   : std_logic;
-    signal ecall     : std_logic;
-    signal ebreak    : std_logic;
+    signal env_exc : std_logic;
+    signal ecall   : std_logic;
+    signal ebreak  : std_logic;
+    signal mret    : std_logic;
+
     signal exi_taken : std_logic;
     signal swi_taken : std_logic;
     signal tmi_taken : std_logic;
@@ -77,9 +79,10 @@ architecture csrs_arch of csrs is
 
 begin
     
-    env_exc <= '1' when wr_en = '1' and wr_mode = b"000";
-    ecall   <= '1' when env_exc = '1' and rd_wr_addr = x"000";
-    ebreak  <= '1' when env_exc = '1' and rd_wr_addr = x"001";
+    env_exc <= '1' when wr_en = '1' and wr_mode = b"000" else '0';
+    ecall   <= '1' when env_exc = '1' and rd_wr_addr = x"000" else '0';
+    ebreak  <= '1' when env_exc = '1' and rd_wr_addr = x"001" else '0';
+    mret    <= '1' when env_exc = '1' and rd_wr_addr = x"302" else '0';
 
     exi_taken <= mie_meie and mip_meip;
     tmi_taken <= mip_mtip and mie_mtie;
@@ -133,6 +136,9 @@ begin
             elsif exc_taken = '1' then
                 mstatus_mie  <= '0';
                 mstatus_mpie <= mstatus_mie;
+            elsif mret = '1' then
+                mstatus_mie  <= mstatus_mpie;
+                mstatus_mpie <= '1';
             elsif rd_wr_addr = CSR_ADDR_MSTATUS and wr_en = '1' then
                 mstatus_mie  <= wr_data_i(3);
                 mstatus_mpie <= wr_data_i(7);
@@ -242,6 +248,8 @@ begin
             elsif exc_taken = '1' then
                 if imrd_malgn = '1' or dmld_malgn = '1' or dmst_malgn = '1' then
                     mtval <= exec_res;
+                elsif ebreak = '1' then
+                    mtval <= pc;
                 else
                     mtval <= (others => '0');
                 end if;
@@ -266,8 +274,8 @@ begin
         end if;
     end process write_mip;
     
-    trap_taken  <= exc_taken;
-    trap_target <= mtvec_base(31 downto 2) & b"00";
+    trap_taken  <= exc_taken or env_exc;
+    trap_target <= mepc & b"00" when mret = '1' else mtvec_base & b"00";
     rd_data     <= rd_data_i;
 
 end architecture csrs_arch;
