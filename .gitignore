@@ -5,3 +5,6 @@
 /sw/**/*.elf
 /sw/**/*.bin
 /sw/**/*.debug
+
+e~leaf_sim.o
+leaf_sim
