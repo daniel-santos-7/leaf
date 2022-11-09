@@ -44,7 +44,7 @@ leaf_soc_tb: ./soc/tbs/leaf_soc_tb.vhdl $(WORKDIR)/work-obj93.cf
 
 $(WAVESDIR)/leaf_sim.ghw: $(WORKDIR)/work-obj93.cf $(WAVESDIR)
 	@$(GHDL) -m $(GHDLFLAGS) leaf_sim;
-	@$(GHDL) -r $(GHDLFLAGS) leaf_sim $(GHDLXOPTS) --stop-time=1us -gPROGRAM=$(PROGRAM) --wave=$@;
+	@$(GHDL) -r $(GHDLFLAGS) leaf_sim $(GHDLXOPTS) --stop-time=100us -gPROGRAM=$(PROGRAM) --wave=$@;
 
 .PHONY: leaf_sim
 leaf_sim: $(WORKDIR)/work-obj93.cf
@@ -52,7 +52,7 @@ leaf_sim: $(WORKDIR)/work-obj93.cf
 	@$(GHDL) -r $(GHDLFLAGS) leaf_sim $(GHDLXOPTS) -gPROGRAM=$(PROGRAM);
 
 RV_ARCH_TEST_DIR=../riscv-arch-test/
-export TARGETDIR ?= $(shell pwd)/compliance/
+export TARGETDIR ?= $(shell pwd)/sw/arch-test/
 export XLEN=32
 export RISCV_TARGET=leaf
 
