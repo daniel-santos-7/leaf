@@ -103,7 +103,7 @@ begin
         tm_irq     => tm_irq,
         dmrd_err   => dmrd_err,
         dmwr_err   => dmwr_err,
-        imrd_fault => imrd_fault,
+        imrd_fault => imrd_fault_reg,
         flush      => flush_reg,
         instr      => instr_reg,
         pc         => pc_reg,
