@@ -38,6 +38,7 @@ entity csrs is
         cycle       : in  std_logic_vector(63 downto 0);
         timer       : in  std_logic_vector(63 downto 0);
         instret     : in  std_logic_vector(63 downto 0);
+        pcwr_en     : out std_logic;
         trap_taken  : out std_logic;
         trap_target : out std_logic_vector(31 downto 0);
         rd_data     : out std_logic_vector(31 downto 0)
@@ -63,10 +64,15 @@ architecture csrs_arch of csrs is
     signal mip_mtip     : std_logic;
     signal mip_msip     : std_logic;
 
+    -- system calls --
+
     signal env_exc : std_logic;
     signal ecall   : std_logic;
     signal ebreak  : std_logic;
     signal mret    : std_logic;
+    signal wfi     : std_logic;
+
+    -- interruptions taken signals --
 
     signal exi_taken : std_logic;
     signal swi_taken : std_logic;
@@ -82,14 +88,15 @@ begin
     env_exc <= '1' when wr_en = '1' and wr_mode = b"000" else '0';
     ecall   <= '1' when env_exc = '1' and rd_wr_addr = x"000" else '0';
     ebreak  <= '1' when env_exc = '1' and rd_wr_addr = x"001" else '0';
+    wfi     <= '1' when env_exc = '1' and rd_wr_addr = x"105" else '0';
     mret    <= '1' when env_exc = '1' and rd_wr_addr = x"302" else '0';
 
     exi_taken <= mie_meie and mip_meip;
-    tmi_taken <= mip_mtip and mie_mtie;
-    swi_taken <= mip_msip and mie_msie;
+    tmi_taken <= mie_mtie and mip_mtip;
+    swi_taken <= mie_msie and mip_msip;
 
     int_taken <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie;
-    exc_taken <= imrd_malgn or imrd_fault or instr_err or ebreak or dmld_malgn or dmld_fault or dmst_malgn or dmst_fault or ecall or int_taken;
+    exc_taken <= imrd_malgn or imrd_fault or instr_err or ebreak or dmld_malgn or dmld_fault or dmst_malgn or dmst_fault or ecall or int_taken or mret;
 
     read_csr: process(rd_wr_addr, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle, timer, instret)
     begin
@@ -114,7 +121,7 @@ begin
         end case;
     end process read_csr;
 
-    wr_csr: process(wr_mode, wr_reg_data, wr_imm_data, rd_data_i)
+    write_csr: process(wr_mode, wr_reg_data, wr_imm_data, rd_data_i)
     begin
         case wr_mode is
             when b"001" => wr_data_i <= wr_reg_data;
@@ -125,7 +132,7 @@ begin
             when b"111" => wr_data_i <= rd_data_i and not (wr_imm_data);
             when others => wr_data_i <= (others => '0');
         end case;
-    end process wr_csr;
+    end process write_csr;
 
     write_mstatus: process(clk)
     begin
@@ -259,22 +266,21 @@ begin
         end if;
     end process write_mtval;
 
-    write_mip: process(clk)
+    write_mip: process(reset, ex_irq, sw_irq, tm_irq)
     begin
-        if rising_edge(clk) then
-            if reset = '1' then
-                mip_meip <= '0';
-                mip_msip <= '0';
-                mip_mtip <= '0';
-            else
-                mip_meip <= ex_irq;
-                mip_msip <= sw_irq;
-                mip_mtip <= tm_irq;
-            end if;
+        if reset = '1' then
+            mip_meip <= '0';
+            mip_msip <= '0';
+            mip_mtip <= '0';
+        else
+            mip_meip <= ex_irq;
+            mip_msip <= sw_irq;
+            mip_mtip <= tm_irq;
         end if;
     end process write_mip;
     
-    trap_taken  <= exc_taken or env_exc;
+    pcwr_en     <= exi_taken or tmi_taken or swi_taken or not wfi;
+    trap_taken  <= exc_taken;
     trap_target <= mepc & b"00" when mret = '1' else mtvec_base & b"00";
     rd_data     <= rd_data_i;
 

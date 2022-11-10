@@ -1,6 +1,7 @@
 ----------------------------------------------------------------------
 -- Leaf project
 -- developed by: Daniel Santos
+-- module: instruction fetch stage
 -- 2022
 ----------------------------------------------------------------------
 
@@ -15,10 +16,12 @@ entity if_stage is
     port (
         clk        : in  std_logic;
         reset      : in  std_logic;
+        pcwr_en    : in  std_logic;
         imrd_err   : in  std_logic;
         taken      : in  std_logic;
         target     : in  std_logic_vector(31 downto 0);
         imrd_data  : in  std_logic_vector(31 downto 0);
+        imrd_en    : out std_logic;
         imrd_fault : out std_logic;
         flush      : out std_logic;
         imrd_addr  : out std_logic_vector(31 downto 0);
@@ -28,7 +31,7 @@ entity if_stage is
     );
 end entity if_stage;
 
-architecture if_stage_arch of if_stage is
+architecture rtl of if_stage is
     
     signal pc_reg   : std_logic_vector(31 downto 0);
     signal next_res : std_logic_vector(31 downto 0);
@@ -44,17 +47,18 @@ begin
                 pc_reg <= RESET_ADDR;
             elsif taken = '1' then
                 pc_reg <= target;
-            else
+            elsif pcwr_en = '1' then
                 pc_reg <= next_res;
             end if;
         end if;
     end process pc_gen;
 
+    imrd_en    <= pcwr_en and not reset;
     imrd_fault <= imrd_err;
-    flush      <= taken or imrd_err;
+    flush      <= taken or imrd_err or not pcwr_en;
     imrd_addr  <= pc_reg;
     pc         <= pc_reg;
     next_pc    <= next_res;
     instr      <= imrd_data;
 
-end architecture if_stage_arch;
+end architecture rtl;

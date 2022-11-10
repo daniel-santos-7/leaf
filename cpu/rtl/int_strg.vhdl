@@ -40,6 +40,7 @@ entity int_strg is
         regs_addr  : in  std_logic_vector(14 downto 0);
         csrs_addr  : in  std_logic_vector(11 downto 0);
         istg_ctrl  : in  std_logic_vector(3  downto 0);
+        pcwr_en    : out std_logic;
         trap_taken : out std_logic;
         trap_target: out std_logic_vector(31 downto 0);
         rd_data0   : out std_logic_vector(31 downto 0);
@@ -119,6 +120,7 @@ begin
         cycle       => cycle,
         timer       => timer,
         instret     => instret,
+        pcwr_en     => pcwr_en,
         trap_taken  => trap_taken,
         trap_target => trap_target,
         rd_data     => csrs_rd_data

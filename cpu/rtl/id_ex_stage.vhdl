@@ -34,6 +34,7 @@ entity id_ex_stage is
         instret    : in  std_logic_vector(63 downto 0);
         dmrd_en    : out std_logic;
         dmwr_en    : out std_logic;
+        pcwr_en    : out std_logic;
         taken      : out std_logic;
         target     : out std_logic_vector(31 downto 0);
         dmwr_data  : out std_logic_vector(31 downto 0);
@@ -112,6 +113,7 @@ begin
         regs_addr  => regs_addr,
         csrs_addr  => csrs_addr,
         istg_ctrl  => istg_ctrl,
+        pcwr_en    => pcwr_en,
         trap_taken => trap_taken,
         trap_target => trap_target,
         rd_data0   => reg0_data,

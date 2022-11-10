@@ -102,10 +102,12 @@ package core_pkg is
         port (
             clk        : in  std_logic;
             reset      : in  std_logic;
+            pcwr_en    : in  std_logic;
             imrd_err   : in  std_logic;
             taken      : in  std_logic;
             target     : in  std_logic_vector(31 downto 0);
             imrd_data  : in  std_logic_vector(31 downto 0);
+            imrd_en    : out std_logic;
             imrd_fault : out std_logic;
             flush      : out std_logic;
             imrd_addr  : out std_logic_vector(31 downto 0);
@@ -194,6 +196,7 @@ package core_pkg is
             cycle       : in  std_logic_vector(63 downto 0);
             timer       : in  std_logic_vector(63 downto 0);
             instret     : in  std_logic_vector(63 downto 0);
+            pcwr_en     : out std_logic;
             trap_taken  : out std_logic;
             trap_target : out std_logic_vector(31 downto 0);
             rd_data     : out std_logic_vector(31 downto 0)
@@ -230,6 +233,7 @@ package core_pkg is
             regs_addr  : in  std_logic_vector(14 downto 0);
             csrs_addr  : in  std_logic_vector(11 downto 0);
             istg_ctrl  : in  std_logic_vector(3  downto 0);
+            pcwr_en    : out std_logic;
             trap_taken : out std_logic;
             trap_target: out std_logic_vector(31 downto 0);
             rd_data0   : out std_logic_vector(31 downto 0);
@@ -346,6 +350,7 @@ package core_pkg is
             instret    : in  std_logic_vector(63 downto 0);
             dmrd_en    : out std_logic;
             dmwr_en    : out std_logic;
+            pcwr_en    : out std_logic;
             taken      : out std_logic;
             target     : out std_logic_vector(31 downto 0);
             dmwr_data  : out std_logic_vector(31 downto 0);
@@ -361,25 +366,26 @@ package core_pkg is
             REG_FILE_SIZE : natural := 32
         );
         port (
-            clk        : in  std_logic; 
-            reset      : in  std_logic;
-            ex_irq     : in  std_logic;
-            sw_irq     : in  std_logic;
-            tm_irq     : in  std_logic;
-            imrd_err   : in  std_logic;
-            dmrd_err   : in  std_logic;
-            dmwr_err   : in  std_logic;
-            imem_data  : in  std_logic_vector(31 downto 0);
-            dmrd_data  : in  std_logic_vector(31 downto 0);
-            cycle      : in  std_logic_vector(63 downto 0);
-            timer      : in  std_logic_vector(63 downto 0);
-            instret    : in  std_logic_vector(63 downto 0);
-            dmrd_en    : out std_logic;
-            dmwr_en    : out std_logic;
-            imem_addr  : out std_logic_vector(31 downto 0);
-            dmwr_data  : out std_logic_vector(31 downto 0);
-            dmrw_addr  : out std_logic_vector(31 downto 0);
-            dm_byte_en : out std_logic_vector(3  downto 0)
+            clk       : in  std_logic; 
+            reset     : in  std_logic;
+            ex_irq    : in  std_logic;
+            sw_irq    : in  std_logic;
+            tm_irq    : in  std_logic;
+            imrd_err  : in  std_logic;
+            dmrd_err  : in  std_logic;
+            dmwr_err  : in  std_logic;
+            imrd_data : in  std_logic_vector(31 downto 0);
+            dmrd_data : in  std_logic_vector(31 downto 0);
+            cycle     : in  std_logic_vector(63 downto 0);
+            timer     : in  std_logic_vector(63 downto 0);
+            instret   : in  std_logic_vector(63 downto 0);
+            imrd_en   : out std_logic;
+            dmrd_en   : out std_logic;
+            dmwr_en   : out std_logic;
+            dmwr_be   : out std_logic_vector(3  downto 0);
+            imrd_addr : out std_logic_vector(31 downto 0);
+            dmrw_addr : out std_logic_vector(31 downto 0);
+            dmwr_data : out std_logic_vector(31 downto 0)
         );
     end component core;
 
@@ -390,16 +396,19 @@ package core_pkg is
             REG_FILE_SIZE : natural := 32
         );
         port (
-            clk_i : in  std_logic;
-            rst_i : in  std_logic;
-            ack_i : in  std_logic;
-            dat_i : in  std_logic_vector(31 downto 0);
-            cyc_o : out std_logic;
-            stb_o : out std_logic;
-            we_o  : out std_logic;
-            sel_o : out std_logic_vector(3  downto 0);
-            adr_o : out std_logic_vector(31 downto 0);
-            dat_o : out std_logic_vector(31 downto 0)
+            clk_i  : in  std_logic;
+            rst_i  : in  std_logic;
+            ex_irq : in  std_logic;
+            sw_irq : in  std_logic;
+            tm_irq : in  std_logic;
+            ack_i  : in  std_logic;
+            dat_i  : in  std_logic_vector(31 downto 0);
+            cyc_o  : out std_logic;
+            stb_o  : out std_logic;
+            we_o   : out std_logic;
+            sel_o  : out std_logic_vector(3  downto 0);
+            adr_o  : out std_logic_vector(31 downto 0);
+            dat_o  : out std_logic_vector(31 downto 0)
         );
     end component leaf;
 

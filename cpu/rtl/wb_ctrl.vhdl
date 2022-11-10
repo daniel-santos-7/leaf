@@ -36,7 +36,7 @@ entity wb_ctrl is
 end entity wb_ctrl;
 
 architecture wb_ctrl_arch of wb_ctrl is
-    type state is (START, READ_INSTR, BRD_CYCLE, READ_DATA, RMW_CYCLE, WRITE_DATA, EXECUTE);
+    type state is (START, IDLE, READ_INSTR, BRD_CYCLE, READ_DATA, RMW_CYCLE, WRITE_DATA, EXECUTE);
 
     signal curr_state: state;
     signal next_state: state; 
@@ -51,11 +51,17 @@ begin
         end if;
     end process fsm;
 
-    fsm_next_state: process(curr_state, ack_i, dmrd_en, dmwr_en)
+    fsm_next_state: process(curr_state, ack_i, imrd_en, dmrd_en, dmwr_en)
     begin
         case curr_state is
             when START => 
-                next_state <= READ_INSTR;
+                next_state <= IDLE;
+            when IDLE =>
+                if imrd_en = '1' then
+                    next_state <= READ_INSTR;
+                else
+                    next_state <= IDLE;
+                end if;
             when READ_INSTR =>
                 if ack_i = '1' then
                     if dmrd_en = '1' then
@@ -85,7 +91,7 @@ begin
                     next_state <= WRITE_DATA;
                 end if;
             when EXECUTE =>
-                next_state <= READ_INSTR;
+                next_state <= IDLE;
         end case;
     end process fsm_next_state;
 
