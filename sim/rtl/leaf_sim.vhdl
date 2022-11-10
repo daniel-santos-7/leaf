@@ -85,16 +85,19 @@ begin
     cpu: leaf generic map (
         RESET_ADDR => x"00400000"
     ) port map (
-        clk_i => clk,
-        rst_i => rst,
-        ack_i => cpu_ack,
-        dat_i => cpu_drd,
-        cyc_o => cpu_cyc,
-        stb_o => cpu_stb,
-        we_o  => cpu_we,
-        sel_o => cpu_sel,
-        adr_o => cpu_adr,
-        dat_o => cpu_dwr
+        clk_i  => clk,
+        rst_i  => rst,
+        ex_irq => '0',
+        sw_irq => '0',
+        tm_irq => '0',
+        ack_i  => cpu_ack,
+        dat_i  => cpu_drd,
+        cyc_o  => cpu_cyc,
+        stb_o  => cpu_stb,
+        we_o   => cpu_we,
+        sel_o  => cpu_sel,
+        adr_o  => cpu_adr,
+        dat_o  => cpu_dwr
     );
 
     -- input/output device --
