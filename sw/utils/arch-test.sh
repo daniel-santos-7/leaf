@@ -14,6 +14,8 @@ make -C $RV_ARCH_TEST_DIR compile RISCV_DEVICE=privilege;
 
 bins=$(find $RV_ARCH_TEST_DIR/work/rv32i_m/ -name "*.bin");
 
+make -sC ../../ leaf_sim;
+
 for bin in $bins; do
     test=$(basename -s .elf.bin $bin);
     dir=$(dirname $bin);

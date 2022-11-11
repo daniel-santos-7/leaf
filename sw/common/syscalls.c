@@ -8,7 +8,10 @@ extern int errno;
 char volatile *iostatus = (char *) 0x0;
 char volatile *iodata = (char *) 0xC;
 
-void _exit(int n) {}
+void _exit(int n) {
+  char *halt = (char *) 0x10;
+  *halt = 0x1;
+}
 
 int _close(int file) {
   return -1;
