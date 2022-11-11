@@ -402,6 +402,7 @@ package core_pkg is
             sw_irq : in  std_logic;
             tm_irq : in  std_logic;
             ack_i  : in  std_logic;
+            err_i  : in  std_logic;
             dat_i  : in  std_logic_vector(31 downto 0);
             cyc_o  : out std_logic;
             stb_o  : out std_logic;
@@ -416,23 +417,27 @@ package core_pkg is
         port (
             clk_i     : in  std_logic;
             rst_i     : in  std_logic;
-            ack_i     : in  std_logic;
-            dat_i     : in  std_logic_vector(31 downto 0);
             imrd_en   : in  std_logic;
             dmrd_en   : in  std_logic;
             dmwr_en   : in  std_logic;
-            dmrw_be   : in  std_logic_vector(3  downto 0);
+            ack_i     : in  std_logic;
+            err_i     : in  std_logic;
+            dat_i     : in  std_logic_vector(31 downto 0);
+            dmwr_be   : in  std_logic_vector(3  downto 0);
             imrd_addr : in  std_logic_vector(31 downto 0);
             dmrw_addr : in  std_logic_vector(31 downto 0);
             dmwr_data : in  std_logic_vector(31 downto 0);
             cyc_o     : out std_logic;
             stb_o     : out std_logic;
             we_o      : out std_logic;
+            clk_en    : out std_logic;
+            reset     : out std_logic;
+            imrd_err  : out std_logic;
+            dmrd_err  : out std_logic;
+            dmwr_err  : out std_logic;
             sel_o     : out std_logic_vector(3  downto 0);
             adr_o     : out std_logic_vector(31 downto 0);
             dat_o     : out std_logic_vector(31 downto 0);
-            clk       : out std_logic;
-            reset     : out std_logic;
             imrd_data : out std_logic_vector(31 downto 0);
             dmrd_data : out std_logic_vector(31 downto 0)
         );
@@ -447,5 +452,14 @@ package core_pkg is
             instret : out std_logic_vector(63 downto 0)
         );
     end component counters;
+
+    component clk_ctrl is
+        port (
+            clk_i  : in  std_logic;
+            rst_i  : in  std_logic;
+            clk_en : in  std_logic;
+            clk    : out std_logic
+        );
+    end component clk_ctrl;
     
 end package core_pkg;
