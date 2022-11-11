@@ -91,6 +91,7 @@ begin
         sw_irq => '0',
         tm_irq => '0',
         ack_i  => cpu_ack,
+        err_i  => '0',
         dat_i  => cpu_drd,
         cyc_o  => cpu_cyc,
         stb_o  => cpu_stb,
