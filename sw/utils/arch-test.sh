@@ -2,7 +2,7 @@
 
 RV_ARCH_TEST_DIR=$1
 
-[ ! -d $RV_ARCH_TEST_DIR ] && exit 1;
+[ ! -d "$RV_ARCH_TEST_DIR" ] && exit 1;
 
 export TARGETDIR=$PWD/../arch-test
 export XLEN=32
