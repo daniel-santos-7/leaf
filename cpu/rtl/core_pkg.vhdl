@@ -144,12 +144,12 @@ package core_pkg is
             instr_err : out std_logic;
             func3     : out std_logic_vector(2  downto 0);
             func7     : out std_logic_vector(6  downto 0);
-            imm       : out std_logic_vector(31 downto 0);
-            regs_addr : out std_logic_vector(14 downto 0);
-            csrs_addr : out std_logic_vector(11 downto 0);
+            dmls_ctrl : out std_logic_vector(1  downto 0);
             istg_ctrl : out std_logic_vector(3  downto 0);
             exec_ctrl : out std_logic_vector(7  downto 0);
-            dmls_ctrl : out std_logic_vector(1  downto 0)
+            csrs_addr : out std_logic_vector(11 downto 0);
+            regs_addr : out std_logic_vector(14 downto 0);
+            imm       : out std_logic_vector(31 downto 0)
         );
     end component id_block;
 
@@ -168,6 +168,16 @@ package core_pkg is
             rd_data1 : out std_logic_vector(31 downto 0)
         );
     end component reg_file;
+
+    component csrs_logic is
+        port (
+            csrwr_mode : in  std_logic_vector(2  downto 0);
+            csrrd_data : in  std_logic_vector(31 downto 0);
+            regwr_data : in  std_logic_vector(31 downto 0);
+            immwr_data : in  std_logic_vector(31 downto 0);
+            csrwr_data : out std_logic_vector(31 downto 0)
+        );
+    end component csrs_logic;
 
     component csrs is
         generic (
@@ -188,11 +198,11 @@ package core_pkg is
             dmst_fault  : in  std_logic;
             wr_en       : in  std_logic;
             wr_mode     : in  std_logic_vector(2  downto 0);
-            rd_wr_addr  : in  std_logic_vector(11 downto 0);
+            rw_addr     : in  std_logic_vector(11 downto 0);
+            wr_data     : in  std_logic_vector(31 downto 0);
             exec_res    : in  std_logic_vector(31 downto 0);
             pc          : in  std_logic_vector(31 downto 0);
-            wr_reg_data : in  std_logic_vector(31 downto 0);
-            wr_imm_data : in  std_logic_vector(31 downto 0);
+            next_pc     : in  std_logic_vector(31 downto 0);
             cycle       : in  std_logic_vector(63 downto 0);
             timer       : in  std_logic_vector(63 downto 0);
             instret     : in  std_logic_vector(63 downto 0);
@@ -203,7 +213,7 @@ package core_pkg is
         );
     end component csrs;
 
-    component int_strg is
+    component istg_block is
         generic (
             REG_FILE_SIZE : natural := 32;
             CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0')
@@ -239,7 +249,7 @@ package core_pkg is
             rd_data0   : out std_logic_vector(31 downto 0);
             rd_data1   : out std_logic_vector(31 downto 0)
         );
-    end component int_strg;
+    end component istg_block;    
 
     component alu is
         port(
@@ -287,22 +297,6 @@ package core_pkg is
             res         : out std_logic_vector(31 downto 0)
         );
     end component ex_block;
-
-    component lsu is 
-        port (
-            dmst_data:  in  std_logic_vector(31 downto 0);
-            dmls_addr:  in  std_logic_vector(31 downto 0);
-            dmls_dtype: in  std_logic_vector(2  downto 0);
-            dmls_ctrl:  in  std_logic_vector(1  downto 0);
-            dmrd_data:  in  std_logic_vector(31 downto 0);
-            dmwr_data:  out std_logic_vector(31 downto 0);
-            dmrw_addr:  out std_logic_vector(31 downto 0);
-            dm_byte_en: out std_logic_vector(3  downto 0);
-            dmrd_en:    out std_logic; 
-            dmwr_en:    out std_logic;
-            dmld_data:  out std_logic_vector(31 downto 0)       
-        );
-    end component lsu;
 
     component dmls_block is
         port (

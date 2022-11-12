@@ -87,39 +87,39 @@ begin
         imm       => imm
     );
 
-    stage_istg_block: int_strg generic map(
+    stage_istg_block: istg_block generic map (
         REG_FILE_SIZE => REG_FILE_SIZE,
         CSRS_MHART_ID => CSRS_MHART_ID
     ) port map (
-        clk        => clk,
-        reset      => reset,
-        ex_irq     => ex_irq,
-        sw_irq     => sw_irq,
-        tm_irq     => tm_irq,
-        instr_err  => instr_err,
-        imrd_malgn => imrd_malgn,
-        imrd_fault => imrd_fault,
-        dmld_malgn => dmld_malgn,
-        dmld_fault => dmld_fault,
-        dmst_malgn => dmst_malgn,
-        dmst_fault => dmst_fault,
-        cycle      => cycle,
-        timer      => timer,
-        instret    => instret,
-        exec_res   => exec_res,
-        dmld_data  => dmld_data,
-        pc         => pc,
-        next_pc    => next_pc,
-        imm        => imm,
-        func3      => func3,
-        regs_addr  => regs_addr,
-        csrs_addr  => csrs_addr,
-        istg_ctrl  => istg_ctrl,
-        pcwr_en    => pcwr_en,
-        trap_taken => trap_taken,
+        clk         => clk,
+        reset       => reset,
+        ex_irq      => ex_irq,
+        sw_irq      => sw_irq,
+        tm_irq      => tm_irq,
+        instr_err   => instr_err,
+        imrd_malgn  => imrd_malgn,
+        imrd_fault  => imrd_fault,
+        dmld_malgn  => dmld_malgn,
+        dmld_fault  => dmld_fault,
+        dmst_malgn  => dmst_malgn,
+        dmst_fault  => dmst_fault,
+        cycle       => cycle,
+        timer       => timer,
+        instret     => instret,
+        exec_res    => exec_res,
+        dmld_data   => dmld_data,
+        pc          => pc,
+        next_pc     => next_pc,
+        imm         => imm,
+        func3       => func3,
+        regs_addr   => regs_addr,
+        csrs_addr   => csrs_addr,
+        istg_ctrl   => istg_ctrl,
+        pcwr_en     => pcwr_en,
+        trap_taken  => trap_taken,
         trap_target => trap_target,
-        rd_data0   => reg0_data,
-        rd_data1   => reg1_data
+        rd_data0    => reg0_data,
+        rd_data1    => reg1_data
     );
 
     stage_ex_block: ex_block port map (
