@@ -53,9 +53,9 @@ begin
         end if;
     end process pc_gen;
 
-    imrd_en    <= pcwr_en and not reset;
+    imrd_en    <= pcwr_en;
     imrd_fault <= imrd_err;
-    flush      <= taken or imrd_err or not pcwr_en;
+    flush      <= taken or imrd_err or not pcwr_en or reset;
     imrd_addr  <= pc_reg;
     pc         <= pc_reg;
     next_pc    <= next_res;

@@ -17,23 +17,23 @@ entity id_block is
         instr_err : out std_logic;
         func3     : out std_logic_vector(2  downto 0);
         func7     : out std_logic_vector(6  downto 0);
-        imm       : out std_logic_vector(31 downto 0);
-        regs_addr : out std_logic_vector(14 downto 0);
-        csrs_addr : out std_logic_vector(11 downto 0);
+        dmls_ctrl : out std_logic_vector(1  downto 0);
         istg_ctrl : out std_logic_vector(3  downto 0);
         exec_ctrl : out std_logic_vector(7  downto 0);
-        dmls_ctrl : out std_logic_vector(1  downto 0)
+        csrs_addr : out std_logic_vector(11 downto 0);
+        regs_addr : out std_logic_vector(14 downto 0);
+        imm       : out std_logic_vector(31 downto 0)
     );
 end entity id_block;
 
 architecture id_block_arch of id_block is
     
-    signal opcode    : std_logic_vector(6  downto 0);
-    signal payload   : std_logic_vector(24 downto 0);
-    signal rd_addr   : std_logic_vector(4  downto 0);
-    signal rs1_addr  : std_logic_vector(4  downto 0);
-    signal rs2_addr  : std_logic_vector(4  downto 0);
-    signal imm_type  : std_logic_vector(2  downto 0);
+    signal opcode   : std_logic_vector(6  downto 0);
+    signal payload  : std_logic_vector(24 downto 0);
+    signal rd_addr  : std_logic_vector(4  downto 0);
+    signal rs1_addr : std_logic_vector(4  downto 0);
+    signal rs2_addr : std_logic_vector(4  downto 0);
+    signal imm_type : std_logic_vector(2  downto 0);
 
 begin
     

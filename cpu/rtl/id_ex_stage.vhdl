@@ -43,7 +43,7 @@ entity id_ex_stage is
     );
 end entity id_ex_stage;
 
-architecture id_ex_stage_arch of id_ex_stage is
+architecture rtl of id_ex_stage is
     
     signal instr_err : std_logic;
     signal func3     : std_logic_vector(2  downto 0);
@@ -71,18 +71,20 @@ architecture id_ex_stage_arch of id_ex_stage is
 
 begin
 
+    -- instruction decode block --
+
     stage_id_block: id_block port map (
         flush     => flush,
         instr     => instr,
         instr_err => instr_err,
         func3     => func3,
         func7     => func7,
-        imm       => imm,
-        regs_addr => regs_addr,
-        csrs_addr => csrs_addr,
+        dmls_ctrl => dmls_ctrl,
         istg_ctrl => istg_ctrl,
         exec_ctrl => exec_ctrl,
-        dmls_ctrl => dmls_ctrl
+        csrs_addr => csrs_addr,
+        regs_addr => regs_addr,
+        imm       => imm
     );
 
     stage_istg_block: int_strg generic map(
@@ -156,4 +158,4 @@ begin
         dmld_data  => dmld_data
     );
 
-end architecture id_ex_stage_arch;
+end architecture rtl;
