@@ -88,16 +88,20 @@ begin
     soc_cpu: leaf generic map (
         RESET_ADDR => x"00000100"
     ) port map (
-        clk_i => sys_clk,
-        rst_i => sys_rst,
-        ack_i => cpu_ack,
-        dat_i => cpu_drd,
-        cyc_o => cpu_cyc,
-        stb_o => cpu_stb,
-        we_o  => cpu_we,
-        sel_o => cpu_sel,
-        adr_o => cpu_adr,
-        dat_o => cpu_dwr
+        clk_i  => sys_clk,
+        rst_i  => sys_rst,
+        ex_irq => '0',
+        sw_irq => '0',
+        tm_irq => '0',
+        ack_i  => cpu_ack,
+        err_i  => '0',
+        dat_i  => cpu_drd,
+        cyc_o  => cpu_cyc,
+        stb_o  => cpu_stb,
+        we_o   => cpu_we,
+        sel_o  => cpu_sel,
+        adr_o  => cpu_adr,
+        dat_o  => cpu_dwr
     );
 
     soc_io: uart_wbsl port map (
