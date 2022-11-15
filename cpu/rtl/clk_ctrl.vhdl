@@ -25,14 +25,10 @@ architecture rtl of clk_ctrl is
 
 begin
     
-    clk_gating: process(clk_i)
+    clk_gating: process(clk_i, clk_en)
     begin
-        if falling_edge(clk_i) then
-            if clk_en = '1' then
-                en_latch <= '1';
-            else
-                en_latch <= '0';
-            end if;
+        if clk_i = '0' then
+            en_latch <= clk_en;
         end if;
     end process clk_gating;
     
