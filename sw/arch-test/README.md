@@ -1,0 +1,1 @@
+# Testes de Conformidade da Arquitetura
