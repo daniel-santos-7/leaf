@@ -2,7 +2,7 @@
 
 ## Testes de Conformidade
 
-Para assegurar que o Leaf esteja operando conforme as especificações da arquitetura RISC-V, foram realizadas verificações utilizando [um conjunto de testes](https://github.com/riscv-non-isa/riscv-arch-test/tree/old-framework-2.x) de conformidade.
+Para assegurar que o Leaf esteja operando conforme as especificações da arquitetura RISC-V, foram realizadas verificações utilizando [um conjunto de testes de conformidade](https://github.com/riscv-non-isa/riscv-arch-test/tree/old-framework-2.x).
 
 ## Como Executar os Testes
 
