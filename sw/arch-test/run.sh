@@ -2,7 +2,7 @@
 
 RV_ARCH_TEST_DIR=$1
 
-[ ! -d "$RV_ARCH_TEST_DIR" ] && exit 1;
+[ ! -d "$RV_ARCH_TEST_DIR" ] && echo "Usage: ./run.sh <riscv-arch-test-dir>" && exit 1;
 
 export TARGETDIR=$PWD
 export XLEN=32
@@ -14,7 +14,7 @@ make -C $RV_ARCH_TEST_DIR compile RISCV_DEVICE=privilege;
 
 bins=$(find $RV_ARCH_TEST_DIR/work/rv32i_m/ -name "*.bin");
 
-make -sC ../../ leaf_sim;
+# make -sC ../../ leaf_sim;
 
 for bin in $bins; do
     test=$(basename -s .elf.bin $bin);
