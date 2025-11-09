@@ -105,7 +105,7 @@ class spike(pluginTemplate):
 
             #TODO: You will need to add any other arguments to your DUT
             #      executable if any in the quotes below
-            execute += self.ref_exe + ''
+            execute += self.ref_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
 
             #TODO: The following is useful only if your reference model can
             #      support coverage extraction from riscv-isac. Else leave it
