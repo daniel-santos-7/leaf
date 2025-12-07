@@ -2,9 +2,13 @@
 /waves
 /verilog
 
-/sw/**/*.elf
-/sw/**/*.bin
-/sw/**/*.debug
-
 e~leaf_sim.o
 leaf_sim
+
+sw/**/*.elf
+sw/**/*.bin
+sw/**/*.debug
+sw/riscof/riscof_work
+sw/riscof/**/__pycache__
+sw/riscof/venv
+sw/riscof/riscv-arch-test
