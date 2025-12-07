@@ -5,8 +5,26 @@ package tbs_pkg is
 
     constant CLK_PERIOD: time := 20 ns;
 
-    procedure tick(signal clk: out std_logic);
-    procedure tickn(signal clk: inout std_logic; constant N: natural);
+    type memory_array is array (natural range <>) of std_logic_vector(31 downto 0);
+
+    component wb_ram is
+        generic (
+            BITS    : natural := 8;
+            PROGRAM : string
+        );
+        port (
+            clk_i : in  std_logic;
+            rst_i : in  std_logic;
+            dat_i : in  std_logic_vector(31 downto 0);
+            cyc_i : in  std_logic;
+            stb_i : in  std_logic;
+            we_i  : in  std_logic;
+            sel_i : in  std_logic_vector(3  downto 0);        
+            adr_i : in  std_logic_vector(BITS-3 downto 0);
+            ack_o : out std_logic;
+            dat_o : out std_logic_vector(31 downto 0)
+        );
+    end component wb_ram;
     
     function r_instr(
         opcode: in std_logic_vector(6 downto 0);
@@ -80,22 +98,6 @@ package tbs_pkg is
 end package tbs_pkg;
 
 package body tbs_pkg is
-
-    procedure tick(signal clk: out std_logic) is
-    begin
-        clk <= '0';
-        wait for CLK_PERIOD/2;
-
-        clk <= '1';
-        wait for CLK_PERIOD/2;
-    end procedure;
-
-    procedure tickn(signal clk: inout std_logic; constant N: natural) is
-    begin
-        for i in 0 to N loop
-            tick(clk);
-        end loop;
-    end procedure;
 
     function r_instr(
         opcode: in std_logic_vector(6 downto 0);

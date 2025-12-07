@@ -63,7 +63,7 @@ begin
     uut: core port map (
         clk               => clk,
         reset             => reset,
-        imem_data => imem_data,
+        imem_data         => imem_data,
         imem_addr => imem_addr,
         dmrd_data         => dmrd_data,
         dmwr_data         => dmwr_data,
