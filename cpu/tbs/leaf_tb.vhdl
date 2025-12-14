@@ -9,7 +9,8 @@ use std.textio.all;
 
 entity leaf_tb is
     generic (
-        PROGRAM : string
+        PROGRAM   : string;
+        DUMP_FILE : string
     );
 end entity leaf_tb;
 
@@ -33,6 +34,16 @@ architecture leaf_tb_arch of leaf_tb is
     signal adr_o  : std_logic_vector(31 downto 0);
     signal dat_o  : std_logic_vector(31 downto 0);
 
+    signal mem_stb : std_logic;
+    signal mem_adr : std_logic_vector(21 downto 2);
+    signal out_stb : std_logic;
+
+    signal mem_ack : std_logic;
+    signal mem_dat : std_logic_vector(31 downto 0);
+
+    signal out_ack : std_logic;
+    signal out_dat : std_logic_vector(31 downto 0);
+
     signal sim_started  : boolean := false;
     signal sim_finished : boolean := false;
 
@@ -54,7 +65,15 @@ begin
         adr_o  => adr_o,
         dat_o  => dat_o
     );
-
+    
+    mem_stb <= stb_o when adr_o(31 downto 22) = b"0000000000" else '0';
+    mem_adr <= adr_o(21 downto 2);
+    out_stb <= stb_o when adr_o(31 downto 0) = b"00000000010000000000000000000000" else '0';
+    
+    ack_i <= out_ack when out_stb = '1' else mem_ack;
+    dat_i <= out_dat when out_stb = '1' else mem_dat;
+    
+    -- 4 MiB memory --
     mem: wb_ram generic map (
         BITS    => 22,
         PROGRAM => PROGRAM
@@ -63,12 +82,26 @@ begin
         rst_i => rst_i,
         dat_i => dat_o,
         cyc_i => cyc_o,
-        stb_i => stb_o,
+        stb_i => mem_stb,
         we_i  => we_o,
         sel_i => sel_o,        
-        adr_i => adr_o(21 downto 2),
-        ack_o => ack_i,
-        dat_o => dat_i
+        adr_i => mem_adr,
+        ack_o => mem_ack,
+        dat_o => mem_dat
+    );
+
+    out_u: wb_out generic map (
+        DUMP_FILE => DUMP_FILE
+    ) port map (
+        clk_i => clk_i,
+        rst_i => rst_i,
+        dat_i => dat_o,
+        cyc_i => cyc_o,
+        stb_i => out_stb,
+        we_i  => we_o,
+        sel_i => sel_o,        
+        ack_o => out_ack,
+        dat_o => out_dat
     );
 
     clk_i <= not clk_i after 5 ns when sim_started and not sim_finished else '0';

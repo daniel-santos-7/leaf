@@ -19,7 +19,8 @@ SIMXOPTS = --wave=$(WAVES_DIR)/$(TBS_TOP).ghw
 RTL_SRC = $(wildcard $(RTL_DIR)/*.vhdl)
 TBS_SRC = $(wildcard $(TBS_DIR)/*.vhdl)
 
-PROGRAM = program.bin
+PROGRAM   = program.bin
+DUMP_FILE = program.dump
 
 $(WORK_DIR) $(WAVES_DIR) $(STEPS_DIR):
 	@mkdir $@
@@ -31,7 +32,7 @@ $(STEPS_DIR)/make: $(STEPS_DIR)/import
 	@$(SIM) make $(SIMFLAGS) $(TBS_TOP) | tee $@
 
 $(STEPS_DIR)/run: $(STEPS_DIR)/make | $(WAVES_DIR)
-	@$(SIM) run  $(TBS_TOP) $(SIMXOPTS) -gPROGRAM=$(PROGRAM) | tee $@
+	@$(SIM) run  $(TBS_TOP) $(SIMXOPTS) -gPROGRAM=$(PROGRAM) -gDUMP_FILE=$(DUMP_FILE) | tee $@
 
 .PHONY: run clean
 run: $(STEPS_DIR)/run

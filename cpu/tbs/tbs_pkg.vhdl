@@ -25,6 +25,23 @@ package tbs_pkg is
             dat_o : out std_logic_vector(31 downto 0)
         );
     end component wb_ram;
+
+    component wb_out is
+        generic (
+            DUMP_FILE : string
+        );
+        port (
+            clk_i : in  std_logic;
+            rst_i : in  std_logic;
+            dat_i : in  std_logic_vector(31 downto 0);
+            cyc_i : in  std_logic;
+            stb_i : in  std_logic;
+            we_i  : in  std_logic;
+            sel_i : in  std_logic_vector(3  downto 0);        
+            ack_o : out std_logic;
+            dat_o : out std_logic_vector(31 downto 0)
+        );
+    end component wb_out;
     
     function r_instr(
         opcode: in std_logic_vector(6 downto 0);

@@ -1,0 +1,18 @@
+
+dump/out.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	004002b7          	lui	t0,0x400
+   4:	fff00313          	li	t1,-1
+   8:	0062a023          	sw	t1,0(t0) # 400000 <__global_pointer$+0x3fe7d4>
+   c:	ffff0337          	lui	t1,0xffff0
+  10:	0062a023          	sw	t1,0(t0)
+  14:	00010337          	lui	t1,0x10
+  18:	fff30313          	addi	t1,t1,-1 # ffff <__global_pointer$+0xe7d3>
+  1c:	0062a023          	sw	t1,0(t0)
+  20:	deadc337          	lui	t1,0xdeadc
+  24:	eef30313          	addi	t1,t1,-273 # deadbeef <__global_pointer$+0xdeada6c3>
+  28:	0062a023          	sw	t1,0(t0)
