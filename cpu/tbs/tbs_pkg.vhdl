@@ -1,5 +1,8 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
+use IEEE.std_logic_textio.all;
+use std.textio.all;
 
 package tbs_pkg is
 
@@ -7,10 +10,20 @@ package tbs_pkg is
 
     type memory_array is array (natural range <>) of std_logic_vector(31 downto 0);
 
+    procedure read_memory (
+        constant program : in string;
+        signal memory  : out memory_array
+    );
+
+    procedure write_memory (
+        dump_file : in string;
+        memory    : in memory_array
+    );
+
     component wb_ram is
         generic (
-            BITS    : natural := 8;
-            PROGRAM : string
+            MEM_SIZE : natural;
+            PROGRAM  : string
         );
         port (
             clk_i : in  std_logic;
@@ -19,230 +32,72 @@ package tbs_pkg is
             cyc_i : in  std_logic;
             stb_i : in  std_logic;
             we_i  : in  std_logic;
-            sel_i : in  std_logic_vector(3  downto 0);        
-            adr_i : in  std_logic_vector(BITS-3 downto 0);
+            sel_i : in  std_logic_vector(3  downto 0);
+            adr_i : in  std_logic_vector(31 downto 0);
             ack_o : out std_logic;
-            dat_o : out std_logic_vector(31 downto 0)
+            dat_o : out std_logic_vector(31 downto 0);
+            mem_o : out memory_array
         );
     end component wb_ram;
 
-    component wb_out is
-        generic (
-            DUMP_FILE : string
-        );
-        port (
-            clk_i : in  std_logic;
-            rst_i : in  std_logic;
-            dat_i : in  std_logic_vector(31 downto 0);
-            cyc_i : in  std_logic;
-            stb_i : in  std_logic;
-            we_i  : in  std_logic;
-            sel_i : in  std_logic_vector(3  downto 0);        
-            ack_o : out std_logic;
-            dat_o : out std_logic_vector(31 downto 0)
-        );
-    end component wb_out;
-    
-    function r_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        rd: in std_logic_vector(4 downto 0);
-        func3: in std_logic_vector(2 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        func7: in std_logic_vector(6 downto 0)
-    ) return std_logic_vector;
-    
-    function i_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        rd: in std_logic_vector(4 downto 0);
-        func3: in std_logic_vector(2 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector;
-
-    function s_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        func3: in std_logic_vector(2 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector;
-
-    function b_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        func3: in std_logic_vector(2 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector;
-
-    function u_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        rd: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector;
-
-    function j_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        rd: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector;
-
-    function add_instr(
-        rd: in std_logic_vector(4 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0)
-    ) return std_logic_vector;
-
-    function addi_instr(
-        rd: in std_logic_vector(4 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector;
-
-    function blt_instr(
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector;
-    
-    function sw_instr(
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector;
-    
 end package tbs_pkg;
 
 package body tbs_pkg is
 
-    function r_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        rd: in std_logic_vector(4 downto 0);
-        func3: in std_logic_vector(2 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        func7: in std_logic_vector(6 downto 0)
-    ) return std_logic_vector is
+    procedure read_memory (
+        constant program : in string;
+        signal memory  : out memory_array
+    ) is
+
+        type sw_type is file of character;
+        file sw_file : sw_type;
+
+        variable data : std_logic_vector(31 downto 0);
+        variable byte : character;
+        variable addr : integer range 0 to memory'length-1;
 
     begin
+        file_open(sw_file, program);
+        addr := 0;
+        while not endfile(sw_file) and addr <= memory'length-1 loop
+            read(sw_file, byte);
+            data(7 downto 0) := std_logic_vector(to_unsigned(character'pos(byte), 8));
+            read(sw_file, byte);
+            data(15 downto 8) := std_logic_vector(to_unsigned(character'pos(byte), 8));
+            read(sw_file, byte);
+            data(23 downto 16) := std_logic_vector(to_unsigned(character'pos(byte), 8));
+            read(sw_file, byte);
+            data(31 downto 24) := std_logic_vector(to_unsigned(character'pos(byte), 8));
+            memory(addr) <= data;
+            addr := addr + 1;
+        end loop;
+        file_close(sw_file);
+    end procedure;
 
-        return func7 & rs2 & rs1 & func3 & rd & opcode;
+    procedure write_memory (
+        dump_file : in string;
+        memory    : in memory_array
+    ) is
 
-    end function r_instr;
-    
-    function i_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        rd: in std_logic_vector(4 downto 0);
-        func3: in std_logic_vector(2 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector is
+        file dump: text;
 
-    begin
+        variable word: line;
 
-        return imm(11 downto 0) & rs1 & func3 & rd & opcode;
-
-    end function i_instr;
-
-    function s_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        func3: in std_logic_vector(2 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector is
-
-    begin
-
-        return imm(11 downto 5) & rs2 & rs1 & func3 & imm(4 downto 0) & opcode;
-
-    end function s_instr;
-
-    function b_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        func3: in std_logic_vector(2 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector is
+        variable data : std_logic_vector(31 downto 0);
+        variable addr : integer range 0 to memory'length-1;
 
     begin
-
-        return imm(12) & imm(10 downto 5) & rs2 & rs1 & func3 & imm(4 downto 1) & imm(11) & opcode;
-
-    end function b_instr;
-
-    function u_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        rd: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector is
-
-    begin
-
-        return imm(31 downto 12) & rd & opcode;
-
-    end function u_instr;
-
-    function j_instr(
-        opcode: in std_logic_vector(6 downto 0);
-        rd: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector is
-
-    begin
-
-        return imm(20) & imm(10 downto 1) & imm(11) & imm(19 downto 12) & rd & opcode;
-
-    end function j_instr;
-
-    function add_instr(
-        rd: in std_logic_vector(4 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0)
-    ) return std_logic_vector is
-
-    begin
-
-        return r_instr(b"0110011", rd, b"000", rs1, rs2, b"0000000");
-        
-    end function add_instr;
-
-    function addi_instr(
-        rd: in std_logic_vector(4 downto 0);
-        rs1: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector is
-
-    begin
-
-        return i_instr(b"0010011", rd, b"000", rs1, imm);
-
-    end function addi_instr;
-
-    function blt_instr(
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector is
-
-    begin
-
-        return b_instr(b"1100011", b"100", rs1, rs2, imm);
-
-    end function blt_instr;
-
-    function sw_instr(
-        rs1: in std_logic_vector(4 downto 0);
-        rs2: in std_logic_vector(4 downto 0);
-        imm: in std_logic_vector(31 downto 0)
-    ) return std_logic_vector is
-
-    begin
-
-        return s_instr(b"0100011", b"010", rs1, rs2, imm);
-
-    end function sw_instr;
+        file_open(dump, DUMP_FILE, write_mode);
+        while addr <= memory'length-1 loop
+            data := memory(addr);
+            hwrite(word, data(31 downto 24));
+            hwrite(word, data(23 downto 16));
+            hwrite(word, data(15 downto 8));
+            hwrite(word, data(7 downto 0));
+            writeline(dump, word);
+            addr := addr + 1;
+        end loop;
+        file_close(dump);
+    end procedure;
 
 end package body tbs_pkg;

@@ -2,10 +2,8 @@ library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
-use IEEE.std_logic_textio.all;
 use work.core_pkg.all;
 use work.tbs_pkg.all;
-use std.textio.all;
 
 entity leaf_tb is
     generic (
@@ -25,7 +23,7 @@ architecture leaf_tb_arch of leaf_tb is
     signal ack_i  : std_logic;
     signal err_i  : std_logic;
     signal dat_i  : std_logic_vector(31 downto 0);
-    
+
     -- DUT outputs --
     signal cyc_o  : std_logic;
     signal stb_o  : std_logic;
@@ -34,21 +32,18 @@ architecture leaf_tb_arch of leaf_tb is
     signal adr_o  : std_logic_vector(31 downto 0);
     signal dat_o  : std_logic_vector(31 downto 0);
 
-    signal mem_stb : std_logic;
-    signal mem_adr : std_logic_vector(21 downto 2);
-    signal out_stb : std_logic;
+    -- 4KiB memory --
+    constant MEM_SIZE : natural := 4096;
+    signal mem_o : memory_array(0 to MEM_SIZE/4-1);
 
-    signal mem_ack : std_logic;
-    signal mem_dat : std_logic_vector(31 downto 0);
+    -- interrupt command --
+    constant HALT_CMD_ADDR : natural := MEM_SIZE/4-1;
+    constant HALT_CMD_DATA : std_logic_vector(31 downto 0) := x"DEADBEEF";
 
-    signal out_ack : std_logic;
-    signal out_dat : std_logic_vector(31 downto 0);
-
-    signal sim_started  : boolean := false;
-    signal sim_finished : boolean := false;
+    signal clk_en : std_logic;
 
 begin
-    
+
     uut: leaf port map (
         clk_i  => clk_i,
         rst_i  => rst_i,
@@ -65,60 +60,52 @@ begin
         adr_o  => adr_o,
         dat_o  => dat_o
     );
-    
-    mem_stb <= stb_o when adr_o(31 downto 22) = b"0000000000" else '0';
-    mem_adr <= adr_o(21 downto 2);
-    out_stb <= stb_o when adr_o(31 downto 0) = b"00000000010000000000000000000000" else '0';
-    
-    ack_i <= out_ack when out_stb = '1' else mem_ack;
-    dat_i <= out_dat when out_stb = '1' else mem_dat;
-    
-    -- 4 MiB memory --
+
     mem: wb_ram generic map (
-        BITS    => 22,
-        PROGRAM => PROGRAM
+        MEM_SIZE => MEM_SIZE,
+        PROGRAM  => PROGRAM
     ) port map (
         clk_i => clk_i,
         rst_i => rst_i,
         dat_i => dat_o,
         cyc_i => cyc_o,
-        stb_i => mem_stb,
+        stb_i => stb_o,
         we_i  => we_o,
-        sel_i => sel_o,        
-        adr_i => mem_adr,
-        ack_o => mem_ack,
-        dat_o => mem_dat
+        sel_i => sel_o,
+        adr_i => adr_o,
+        ack_o => ack_i,
+        dat_o => dat_i,
+        mem_o => mem_o
     );
 
-    out_u: wb_out generic map (
-        DUMP_FILE => DUMP_FILE
-    ) port map (
-        clk_i => clk_i,
-        rst_i => rst_i,
-        dat_i => dat_o,
-        cyc_i => cyc_o,
-        stb_i => out_stb,
-        we_i  => we_o,
-        sel_i => sel_o,        
-        ack_o => out_ack,
-        dat_o => out_dat
-    );
-
-    clk_i <= not clk_i after 5 ns when sim_started and not sim_finished else '0';
-    
-    rst_i <= '0' after 10 ns when sim_started else '1';
+    clk_i <= not clk_i after (CLK_PERIOD/2) when clk_en = '1' else '0';
 
     ex_irq <= '0';
     sw_irq <= '0';
     tm_irq <= '0';
     err_i  <= '0';
 
-    process
+    test: process
     begin
-        sim_started <= true;
-        wait for 1000 ns;
-        sim_finished <= true;
+        rst_i <= '1';
+        clk_en <= '1';
+
+        for i in 0 to 1 loop
+            wait until rising_edge(clk_i);
+        end loop;
+        rst_i <= '0';
+
+        loop
+            wait until rising_edge(clk_i);
+            exit when mem_o(HALT_CMD_ADDR) = HALT_CMD_DATA;
+        end loop;
+
+        for i in 0 to 1 loop
+            wait until rising_edge(clk_i);
+        end loop;
+        rst_i <= '1';
+        clk_en <= '0';
         wait;
-    end process;
+    end process test;
 
 end architecture leaf_tb_arch;

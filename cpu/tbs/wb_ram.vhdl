@@ -8,11 +8,12 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
+use work.tbs_pkg.all;
 
 entity wb_ram is
     generic (
-        BITS    : natural := 8;
-        PROGRAM : string
+        MEM_SIZE : natural;
+        PROGRAM  : string
     );
     port (
         clk_i : in  std_logic;
@@ -21,24 +22,19 @@ entity wb_ram is
         cyc_i : in  std_logic;
         stb_i : in  std_logic;
         we_i  : in  std_logic;
-        sel_i : in  std_logic_vector(3  downto 0);        
-        adr_i : in  std_logic_vector(BITS-3 downto 0);
+        sel_i : in  std_logic_vector(3  downto 0);
+        adr_i : in  std_logic_vector(31 downto 0);
         ack_o : out std_logic;
-        dat_o : out std_logic_vector(31 downto 0)
+        dat_o : out std_logic_vector(31 downto 0);
+        mem_o : out memory_array
     );
 end entity wb_ram;
 
 architecture arch of wb_ram is
-    
-    constant MEM_SIZE : natural := 2**BITS;
 
-    type mem_array is array (0 to MEM_SIZE/4-1) of std_logic_vector(7 downto 0);
+    signal mem : memory_array(0 to MEM_SIZE/4-1);
 
-    -- memory blocks --
-    shared variable mem0 : mem_array;
-    shared variable mem1 : mem_array;
-    shared variable mem2 : mem_array;
-    shared variable mem3 : mem_array;
+    signal addr : integer;
 
     -- idle state --
     signal idle : std_logic;
@@ -62,6 +58,8 @@ architecture arch of wb_ram is
     signal mem3_re : std_logic;
 
 begin
+
+    addr <= to_integer(unsigned(adr_i(31 downto 2)));
 
     idle_reg: process(clk_i)
     begin
@@ -91,59 +89,55 @@ begin
     mem2_re <= mem2_en and not we_i;
     mem3_re <= mem3_en and not we_i;
 
-    main: process(clk_i)
-        type sw_type is file of character;
-        file sw_file : sw_type;
-
-        variable byte : character;
-        variable addr : integer range 0 to MEM_SIZE/4-1;
+    write_mem: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if rst_i = '1' then
-                file_open(sw_file, PROGRAM);
-                addr := 0;
-                while not endfile(sw_file) and addr <= MEM_SIZE/4-1 loop
-                    read(sw_file, byte);
-                    mem0(addr) := std_logic_vector(to_unsigned(character'pos(byte), 8));
-                    read(sw_file, byte);
-                    mem1(addr) := std_logic_vector(to_unsigned(character'pos(byte), 8));
-                    read(sw_file, byte);
-                    mem2(addr) := std_logic_vector(to_unsigned(character'pos(byte), 8));
-                    read(sw_file, byte);
-                    mem3(addr) := std_logic_vector(to_unsigned(character'pos(byte), 8));
-                    addr := addr + 1;
-                end loop;
-                file_close(sw_file);
-            else 
-                addr := to_integer(unsigned(adr_i));
-                if mem0_we = '1' then
-                    mem0(addr) := dat_i(7  downto 0);
-                end if;
-                if mem1_we = '1' then
-                    mem1(addr) := dat_i(15 downto 8);
-                end if;
-                if mem2_we = '1' then
-                    mem2(addr) := dat_i(23 downto 16);
-                end if;
-                if mem3_we = '1' then
-                    mem3(addr) := dat_i(31 downto 24);
-                end if;
-                if mem0_re = '1' then
-                    dat_o(7  downto  0) <= mem0(addr);                        
-                end if;
-                if mem1_re = '1' then
-                    dat_o(15 downto  8) <= mem1(addr);                        
-                end if;
-                if mem2_re = '1' then
-                    dat_o(23 downto 16) <= mem2(addr);                        
-                end if;
-                if mem3_re = '1' then
-                    dat_o(31 downto 24) <= mem3(addr);                        
+                read_memory(PROGRAM, mem);
+            else
+                if addr < mem'length then
+                    if mem0_we = '1' then
+                        mem(addr)(7  downto 0) <= dat_i(7  downto 0);
+                    end if;
+                    if mem1_we = '1' then
+                        mem(addr)(15 downto 8) <= dat_i(15 downto 8);
+                    end if;
+                    if mem2_we = '1' then
+                        mem(addr)(23 downto 16) <= dat_i(23 downto 16);
+                    end if;
+                    if mem3_we = '1' then
+                        mem(addr)(31 downto 24) <= dat_i(31 downto 24);
+                    end if;
                 end if;
             end if;
         end if;
-    end process main;
+    end process write_mem;
+
+    read_mem: process(clk_i)
+    begin
+        if rising_edge(clk_i) then
+            if rst_i = '1' then
+                dat_o <= (others => '0');
+            else
+                if addr < mem'length then
+                    if mem0_re = '1' then
+                        dat_o(7  downto  0) <= mem(addr)(7  downto  0);
+                    end if;
+                    if mem1_re = '1' then
+                        dat_o(15 downto  8) <= mem(addr)(15 downto  8);
+                    end if;
+                    if mem2_re = '1' then
+                        dat_o(23 downto 16) <= mem(addr)(23 downto 16);
+                    end if;
+                    if mem3_re = '1' then
+                        dat_o(31 downto 24) <= mem(addr)(31 downto 24);
+                    end if;
+                end if;
+            end if;
+        end if;
+    end process read_mem;
 
     ack_o <= not idle;
+    mem_o <= mem;
 
 end architecture arch;
