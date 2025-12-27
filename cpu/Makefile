@@ -31,11 +31,9 @@ $(STEPS_DIR)/import: $(RTL_SRC) $(TBS_SRC) | $(STEPS_DIR) $(WORK_DIR)
 $(STEPS_DIR)/make: $(STEPS_DIR)/import
 	@$(SIM) make $(SIMFLAGS) $(TBS_TOP) | tee $@
 
-$(STEPS_DIR)/run: $(STEPS_DIR)/make | $(WAVES_DIR)
-	@$(SIM) run  $(TBS_TOP) $(SIMXOPTS) -gPROGRAM=$(PROGRAM) -gDUMP_FILE=$(DUMP_FILE) | tee $@
-
 .PHONY: run clean
-run: $(STEPS_DIR)/run
+run: $(STEPS_DIR)/make $(PROGRAM) | $(WAVES_DIR)
+	@$(SIM) run  $(TBS_TOP) $(SIMXOPTS) -gPROGRAM=$(PROGRAM) -gDUMP_FILE=$(DUMP_FILE)
 
 clean:
 	$(SIM) clean --workdir=$(WORK_DIR)
