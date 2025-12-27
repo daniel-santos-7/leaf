@@ -5,3 +5,6 @@ steps
 tests/*/*.elf
 tests/*/*.bin
 tests/*/*.debug
+
+e~leaf_tb.o
+leaf_tb
