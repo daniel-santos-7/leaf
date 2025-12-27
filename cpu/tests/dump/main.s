@@ -1,7 +1,9 @@
-.globl _start
+.set HALT_CMD_ADDR, 0xFFC
+.set HALT_CMD_DATA, 0xDEADBEEF
 
+.globl _start
 _start:
-    li t0, 0xFFC
+    li t0, HALT_CMD_ADDR
 
     li t1, 0xFFFFFFFF
     sw t1, 0x0(t0)
