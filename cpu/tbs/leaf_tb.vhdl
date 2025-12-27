@@ -8,7 +8,8 @@ use work.leaf_tb_pkg.all;
 entity leaf_tb is
     generic (
         PROGRAM   : string;
-        DUMP_FILE : string
+        DUMP_FILE : string;
+        MEM_SIZE  : natural := 4096
     );
 end entity leaf_tb;
 
@@ -32,9 +33,12 @@ architecture leaf_tb_arch of leaf_tb is
     signal adr_o  : std_logic_vector(31 downto 0);
     signal dat_o  : std_logic_vector(31 downto 0);
 
-    -- 4KiB memory --
-    constant MEM_SIZE : natural := 4096;
+    -- memory --
     signal mem_o : memory_array(0 to MEM_SIZE/4-1);
+
+    -- dump control --
+    constant DUMP_START_ADDR  : natural := MEM_SIZE/4-3;
+    constant DUMP_LENGTH_ADDR : natural := MEM_SIZE/4-2;
 
     -- interrupt command --
     constant HALT_CMD_ADDR : natural := MEM_SIZE/4-1;
@@ -87,6 +91,11 @@ begin
     err_i  <= '0';
 
     test: process
+
+        variable dump_start : natural := 0;
+        variable dump_length : natural := 0;
+        variable dump_stop : natural := 0;
+
     begin
         rst_i <= '1';
         clk_en <= '1';
@@ -101,6 +110,14 @@ begin
 
         wait until rising_edge(clk_i);
         clk_en <= '0';
+
+        dump_start  := to_integer(unsigned(mem_o(DUMP_START_ADDR)));
+        dump_length := to_integer(unsigned(mem_o(DUMP_LENGTH_ADDR)));
+        dump_stop   := dump_start + dump_length - 1;
+
+        if dump_length > 0 and dump_stop < MEM_SIZE/4 then
+            write_memory(DUMP_FILE, mem_o(dump_start to dump_stop));
+        end if;
 
         wait;
     end process test;

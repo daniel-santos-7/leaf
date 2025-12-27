@@ -82,20 +82,17 @@ package body leaf_tb_pkg is
         file dump: text;
 
         variable word: line;
-
         variable data : std_logic_vector(31 downto 0);
-        variable addr : integer range 0 to memory'length-1;
 
     begin
         file_open(dump, DUMP_FILE, write_mode);
-        while addr <= memory'length-1 loop
+        for addr in memory'range loop
             data := memory(addr);
             hwrite(word, data(31 downto 24));
             hwrite(word, data(23 downto 16));
             hwrite(word, data(15 downto 8));
-            hwrite(word, data(7 downto 0));
+            hwrite(word, data(7  downto 0));
             writeline(dump, word);
-            addr := addr + 1;
         end loop;
         file_close(dump);
     end procedure;
