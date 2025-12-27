@@ -1,18 +1,8 @@
-.set HALT_CMD_ADDR, 0xFFC
-.set HALT_CMD_DATA, 0xDEADBEEF
+.equ HALT_CMD_ADDR, 0xFFC
+.equ HALT_CMD_DATA, 0xDEADBEEF
 
 .globl _start
 _start:
     li t0, HALT_CMD_ADDR
-
-    li t1, 0xFFFFFFFF
-    sw t1, 0x0(t0)
-
-    li t1, 0xFFFF0000
-    sw t1, 0x0(t0)
-
-    li t1, 0x0000FFFF
-    sw t1, 0x0(t0)
-
-    li t1, 0xDEADBEEF
+    li t1, HALT_CMD_DATA
     sw t1, 0x0(t0)
