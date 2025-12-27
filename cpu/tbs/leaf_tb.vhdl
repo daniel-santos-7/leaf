@@ -3,7 +3,7 @@ library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.core_pkg.all;
-use work.tbs_pkg.all;
+use work.leaf_tb_pkg.all;
 
 entity leaf_tb is
     generic (

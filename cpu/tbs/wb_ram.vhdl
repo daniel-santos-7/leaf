@@ -8,7 +8,7 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
-use work.tbs_pkg.all;
+use work.leaf_tb_pkg.all;
 
 entity wb_ram is
     generic (

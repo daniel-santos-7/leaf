@@ -4,7 +4,7 @@ use IEEE.numeric_std.all;
 use IEEE.std_logic_textio.all;
 use std.textio.all;
 
-package tbs_pkg is
+package leaf_tb_pkg is
 
     constant CLK_PERIOD: time := 20 ns;
 
@@ -40,9 +40,9 @@ package tbs_pkg is
         );
     end component wb_ram;
 
-end package tbs_pkg;
+end package leaf_tb_pkg;
 
-package body tbs_pkg is
+package body leaf_tb_pkg is
 
     procedure read_memory (
         constant program : in string;
@@ -100,4 +100,4 @@ package body tbs_pkg is
         file_close(dump);
     end procedure;
 
-end package body tbs_pkg;
+end package body leaf_tb_pkg;
