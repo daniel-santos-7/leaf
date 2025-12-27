@@ -40,6 +40,7 @@ architecture leaf_tb_arch of leaf_tb is
     constant HALT_CMD_ADDR : natural := MEM_SIZE/4-1;
     constant HALT_CMD_DATA : std_logic_vector(31 downto 0) := x"DEADBEEF";
 
+    -- Clock enable signal --
     signal clk_en : std_logic;
 
 begin
@@ -90,9 +91,7 @@ begin
         rst_i <= '1';
         clk_en <= '1';
 
-        for i in 0 to 1 loop
-            wait until rising_edge(clk_i);
-        end loop;
+        wait until rising_edge(clk_i);
         rst_i <= '0';
 
         loop
@@ -100,11 +99,9 @@ begin
             exit when mem_o(HALT_CMD_ADDR) = HALT_CMD_DATA;
         end loop;
 
-        for i in 0 to 1 loop
-            wait until rising_edge(clk_i);
-        end loop;
-        rst_i <= '1';
+        wait until rising_edge(clk_i);
         clk_en <= '0';
+
         wait;
     end process test;
 

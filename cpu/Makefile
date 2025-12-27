@@ -19,13 +19,13 @@ SIMXOPTS = --wave=$(WAVES_DIR)/$(TBS_TOP).ghw
 RTL_SRC = $(wildcard $(RTL_DIR)/*.vhdl)
 TBS_SRC = $(wildcard $(TBS_DIR)/*.vhdl)
 
-PROGRAM   = program.bin
-DUMP_FILE = program.dump
+PROGRAM   = tests/dump/out.bin
+DUMP_FILE = tests/dump/out.dump
 
 $(WORK_DIR) $(WAVES_DIR) $(STEPS_DIR):
 	@mkdir $@
 
-$(STEPS_DIR)/import: $(RTL_SRC) $(TBS_SRC) | $(STEPS_DIR) $(WORK_DIR) 
+$(STEPS_DIR)/import: $(RTL_SRC) $(TBS_SRC) | $(STEPS_DIR) $(WORK_DIR)
 	@$(SIM) import $(SIMFLAGS) $(RTL_SRC) $(TBS_SRC) | tee $@
 
 $(STEPS_DIR)/make: $(STEPS_DIR)/import

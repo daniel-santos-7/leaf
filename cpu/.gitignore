@@ -1,3 +1,7 @@
 work
 waves
 steps
+
+tests/*/*.elf
+tests/*/*.bin
+tests/*/*.debug
