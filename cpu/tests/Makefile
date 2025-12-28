@@ -6,14 +6,17 @@ RISCV_OBJCOPY = $(RISCV_PREFIX)-objcopy
 MARCH = rv32i
 MABI  = ilp32
 
-RISCV_GCC_OPTS ?= -nostartfiles -nostdlib -Ttext 0x00000000 -march=$(MARCH) -mabi=$(MABI) -O0
+RISCV_GCC_OPTS ?= -nostartfiles -nostdlib -Ttext 0x00000000 -march=$(MARCH) -mabi=$(MABI) -O0 -g -I./common
 
-TEST = addi
+TEST ?= dump
 
 APP_SRC  ?= $(wildcard $(TEST)/*.s) $(wildcard $(TEST)/*.S)
 APP_OUT  ?= $(TEST)/out
 
-.PHONY: all clean
+.PHONY: run all clean
+
+run: $(APP_OUT).bin
+	@$(MAKE) -C .. run PROGRAM=$(CURDIR)/$<
 
 all: $(APP_OUT).elf $(APP_OUT).bin $(APP_OUT).debug
 
