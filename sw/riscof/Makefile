@@ -20,4 +20,4 @@ run: $(VENV_DIR) riscv-arch-test config.ini
 	$(RISCOF) run --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env --no-browser
 
 clean:
-	rm -rf $(VENV_DIR)
+	rm -rf $(VENV_DIR) riscv-arch-test riscof_work
