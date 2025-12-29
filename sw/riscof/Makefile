@@ -3,12 +3,12 @@ VENV_DIR = venv
 PIP      = ./$(VENV_DIR)/bin/pip
 RISCOF   = ./$(VENV_DIR)/bin/riscof
 
-$(VENV_DIR): 
+$(VENV_DIR):
 	$(PYTHON) -m venv $(VENV_DIR)
 	$(PIP) install riscof
 
 riscv-arch-test: $(VENV_DIR)
-	$(RISCOF) --verbose info arch-test --clone
+	$(RISCOF) --verbose info arch-test --clone --get-version 3.9.1
 
 validateyaml: $(VENV_DIR) config.ini
 	$(RISCOF) validateyaml --config=config.ini
