@@ -9,3 +9,5 @@ tests/*/*.dump
 
 e~leaf_tb.o
 leaf_tb
+
+riscof/*/__pycache__/
