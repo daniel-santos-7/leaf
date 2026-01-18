@@ -11,3 +11,6 @@ e~leaf_tb.o
 leaf_tb
 
 riscof/*/__pycache__/
+riscof/venv
+riscof/riscof_work
+riscof/riscv-arch-test
