@@ -9,7 +9,7 @@ entity leaf_tb is
     generic (
         PROGRAM   : string;
         DUMP_FILE : string;
-        MEM_SIZE  : natural := 4096
+        MEM_SIZE  : natural := 4194304 -- Memory size = 4MiB --
     );
 end entity leaf_tb;
 
@@ -33,16 +33,9 @@ architecture leaf_tb_arch of leaf_tb is
     signal adr_o  : std_logic_vector(31 downto 0);
     signal dat_o  : std_logic_vector(31 downto 0);
 
-    -- memory --
-    signal mem_o : memory_array(0 to MEM_SIZE/4-1);
-
-    -- dump control --
-    constant DUMP_START_ADDR : natural := MEM_SIZE/4-3;
-    constant DUMP_STOP_ADDR  : natural := MEM_SIZE/4-2;
-
-    -- interrupt command --
-    constant HALT_CMD_ADDR : natural := MEM_SIZE/4-1;
-    constant HALT_CMD_DATA : std_logic_vector(31 downto 0) := x"DEADBEEF";
+    signal wr_mem_i : std_logic;
+    signal rd_mem_i : std_logic;
+    signal halt_o   : std_logic;
 
     -- Clock enable signal --
     signal clk_en : std_logic;
@@ -68,7 +61,8 @@ begin
 
     mem: wb_ram generic map (
         MEM_SIZE => MEM_SIZE,
-        PROGRAM  => PROGRAM
+        PROGRAM  => PROGRAM,
+        DUMP_FILE => DUMP_FILE
     ) port map (
         clk_i => clk_i,
         rst_i => rst_i,
@@ -80,7 +74,9 @@ begin
         adr_i => adr_o,
         ack_o => ack_i,
         dat_o => dat_i,
-        mem_o => mem_o
+        wr_mem_i => wr_mem_i,
+        rd_mem_i => rd_mem_i,
+        halt_o   => halt_o
     );
 
     clk_i <= not clk_i after (CLK_PERIOD/2) when clk_en = '1' else '0';
@@ -91,31 +87,30 @@ begin
     err_i  <= '0';
 
     test: process
-
-        variable dump_start  : natural := 0;
-        variable dump_stop   : natural := 0;
-
     begin
         rst_i <= '1';
         clk_en <= '1';
+        wr_mem_i <= '0';
+        rd_mem_i <= '0';
 
         wait until rising_edge(clk_i);
+        rd_mem_i <= '1';
+
+        wait until rising_edge(clk_i);
+        rd_mem_i <= '0';
         rst_i <= '0';
 
         loop
             wait until rising_edge(clk_i);
-            exit when mem_o(HALT_CMD_ADDR) = HALT_CMD_DATA;
+            exit when halt_o = '1';
         end loop;
 
         wait until rising_edge(clk_i);
+        wr_mem_i <= '1';
+
+        wait until rising_edge(clk_i);
+        wr_mem_i <= '0';
         clk_en <= '0';
-
-        dump_start := to_integer(unsigned(mem_o(DUMP_START_ADDR)(31 downto 2)));
-        dump_stop  := to_integer(unsigned(mem_o(DUMP_STOP_ADDR)(31 downto 2)));
-
-        if dump_stop >= dump_start and dump_stop < MEM_SIZE/4 then
-            write_memory(DUMP_FILE, mem_o(dump_start to dump_stop));
-        end if;
 
         wait;
     end process test;

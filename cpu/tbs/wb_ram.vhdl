@@ -13,7 +13,8 @@ use work.leaf_tb_pkg.all;
 entity wb_ram is
     generic (
         MEM_SIZE : natural;
-        PROGRAM  : string
+        PROGRAM  : string;
+        DUMP_FILE : string
     );
     port (
         clk_i : in  std_logic;
@@ -26,13 +27,21 @@ entity wb_ram is
         adr_i : in  std_logic_vector(31 downto 0);
         ack_o : out std_logic;
         dat_o : out std_logic_vector(31 downto 0);
-        mem_o : out memory_array
+        wr_mem_i : in std_logic;
+        rd_mem_i : in std_logic;
+        halt_o   : out std_logic
     );
 end entity wb_ram;
 
 architecture arch of wb_ram is
 
-    signal mem : memory_array(0 to MEM_SIZE/4-1);
+    -- dump control --
+    constant DUMP_START_ADDR : natural := MEM_SIZE/4-3;
+    constant DUMP_STOP_ADDR  : natural := MEM_SIZE/4-2;
+
+    -- interrupt command --
+    constant HALT_CMD_ADDR : natural := MEM_SIZE/4-1;
+    constant HALT_CMD_DATA : std_logic_vector(31 downto 0) := x"DEADBEEF";
 
     signal addr : integer;
 
@@ -56,6 +65,9 @@ architecture arch of wb_ram is
     signal mem1_re : std_logic;
     signal mem2_re : std_logic;
     signal mem3_re : std_logic;
+
+    signal adr_reg : std_logic_vector(31 downto 0);
+    signal dat_reg : std_logic_vector(31 downto 0);
 
 begin
 
@@ -90,36 +102,34 @@ begin
     mem3_re <= mem3_en and not we_i;
 
     write_mem: process(clk_i)
+
+        variable mem : memory_array(0 to MEM_SIZE/4-1);
+
+        variable dump_start  : natural := 0;
+        variable dump_stop   : natural := 0;
+
     begin
         if rising_edge(clk_i) then
             if rst_i = '1' then
-                read_memory(PROGRAM, mem);
+                if rd_mem_i = '1' then
+                    read_memory(PROGRAM, mem);
+                end if;
+                dat_o <= (others => '0');
+                halt_o <= '0';
             else
                 if addr < mem'length then
                     if mem0_we = '1' then
-                        mem(addr)(7  downto 0) <= dat_i(7  downto 0);
+                        mem(addr)(7  downto 0) := dat_i(7  downto 0);
                     end if;
                     if mem1_we = '1' then
-                        mem(addr)(15 downto 8) <= dat_i(15 downto 8);
+                        mem(addr)(15 downto 8) := dat_i(15 downto 8);
                     end if;
                     if mem2_we = '1' then
-                        mem(addr)(23 downto 16) <= dat_i(23 downto 16);
+                        mem(addr)(23 downto 16) := dat_i(23 downto 16);
                     end if;
                     if mem3_we = '1' then
-                        mem(addr)(31 downto 24) <= dat_i(31 downto 24);
+                        mem(addr)(31 downto 24) := dat_i(31 downto 24);
                     end if;
-                end if;
-            end if;
-        end if;
-    end process write_mem;
-
-    read_mem: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if rst_i = '1' then
-                dat_o <= (others => '0');
-            else
-                if addr < mem'length then
                     if mem0_re = '1' then
                         dat_o(7  downto  0) <= mem(addr)(7  downto  0);
                     end if;
@@ -134,10 +144,21 @@ begin
                     end if;
                 end if;
             end if;
+            if mem(HALT_CMD_ADDR) = HALT_CMD_DATA then
+                halt_o <= '1';
+            else
+                halt_o <= '0';
+            end if;
+            if wr_mem_i = '1' then
+                dump_start := to_integer(unsigned(mem(DUMP_START_ADDR)(31 downto 2)));
+                dump_stop  := to_integer(unsigned(mem(DUMP_STOP_ADDR)(31 downto 2))) - 1;
+                if dump_stop >= dump_start and dump_stop < MEM_SIZE/4 then
+                    write_memory(DUMP_FILE, mem(dump_start to dump_stop));
+                end if;
+            end if;
         end if;
-    end process read_mem;
+    end process write_mem;
 
-    ack_o <= not idle;
-    mem_o <= mem;
+    ack_o  <= not idle;
 
 end architecture arch;
