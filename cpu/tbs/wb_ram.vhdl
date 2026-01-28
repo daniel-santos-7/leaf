@@ -58,14 +58,14 @@ architecture arch of wb_ram is
     signal mem3_re : std_logic;
 
     procedure dump_memory (
-        variable file_path : in string;
+        constant file_path : in string;
         variable memory    : in memory_array
     ) is
         variable dump_start : integer;
         variable dump_stop  : integer;
     begin
-        dump_start := to_integer(unsigned(mem(DUMP_START_ADDR)(31 downto 2)));
-        dump_stop  := to_integer(unsigned(mem(DUMP_STOP_ADDR)(31 downto 2))) - 1;
+        dump_start := to_integer(unsigned(memory(DUMP_START_ADDR)(31 downto 2)));
+        dump_stop  := to_integer(unsigned(memory(DUMP_STOP_ADDR)(31 downto 2))) - 1;
         if dump_stop >= dump_start and dump_stop < MEM_SIZE/4 then
             write_memory(file_path, memory(dump_start to dump_stop));
         end if;
