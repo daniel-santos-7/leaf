@@ -2,15 +2,14 @@ work
 waves
 steps
 
-tests/*/*.elf
-tests/*/*.bin
-tests/*/*.debug
-tests/*/*.dump
-
 e~leaf_tb.o
 leaf_tb
 
-riscof/*/__pycache__/
-riscof/venv
-riscof/riscof_work
-riscof/riscv-arch-test
+verif/tests/*/*.elf
+verif/tests/*/*.bin
+verif/tests/*/*.debug
+verif/tests/*/*.dump
+verif/riscof/*/__pycache__/
+verif/riscof/venv
+verif/riscof/riscof_work
+verif/riscof/riscv-arch-test
