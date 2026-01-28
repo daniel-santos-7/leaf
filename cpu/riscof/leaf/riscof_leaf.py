@@ -170,7 +170,7 @@ class leaf(pluginTemplate):
             if self.target_run:
                 # set up the simulation command. Template is for spike. Please change.
                 # simcmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
-                simcmd = "make --no-print-directory -sC ~/projects/leaf leaf_sim PROGRAM={0}/out.bin | xxd -c 4 -p > {1}".format(
+                simcmd = "make --no-print-directory -sC ~/projects/leaf/cpu run PROGRAM={0}/out.bin DUMP_FILE={1} SIMXOPTS=--ieee-asserts=disable".format(
                     test_dir, sig_file
                 )
             else:
@@ -179,10 +179,11 @@ class leaf(pluginTemplate):
             # Leaf utilizes binary files
             bin_name = "out.bin"
             bincmd = self.objcopy_cmd.format(self.xlen, elf, bin_name)
+            sed_cmd = "sed -i 's/.*/\L&/' {0}".format(sig_file)
 
             # concatenate all commands that need to be executed within a make-target.
-            execute = "@cd {0}; {1}; {2}; {3};".format(
-                testentry["work_dir"], cmd, bincmd, simcmd
+            execute = "@cd {0}; {1}; {2}; {3}; {4}".format(
+                testentry["work_dir"], cmd, bincmd, simcmd, sed_cmd
             )
 
             # create a target. The makeutil will create a target with the name "TARGET<num>" where num

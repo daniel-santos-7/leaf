@@ -7,7 +7,7 @@ _start:
     sw t1, 0x0(t0)
 
     li t0, DUMP_STOP_ADDR
-    li t1, MEM_SIZE-1
+    li t1, 0x33
     sw t1, 0x0(t0)
 
     li t0, HALT_CMD_ADDR

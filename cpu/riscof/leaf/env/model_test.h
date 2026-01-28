@@ -10,28 +10,45 @@
   .word 128;                                        \
   .align 8; .global end_regstate; end_regstate:     \
   .word 4;
-  
-#define OUTPUT_ADDR 0x0000000C
-#define HALT_ADDR 0x00000010
+
+// #define OUTPUT_ADDR 0x0000000C
+// #define HALT_ADDR 0x00000010
+
+// #define RVMODEL_HALT        \
+//   li t0, OUTPUT_ADDR;       \
+//   li t1, HALT_ADDR;         \
+//   la t2, begin_signature;   \
+//   la t3, end_signature;     \
+//   write:                    \
+//     lb t4, 0x3(t2);         \
+//     sb t4, 0x0(t0);         \
+//     lb t4, 0x2(t2);         \
+//     sb t4, 0x0(t0);         \
+//     lb t4, 0x1(t2);         \
+//     sb t4, 0x0(t0);         \
+//     lb t4, 0x0(t2);         \
+//     sb t4, 0x0(t0);         \
+//     addi t2, t2, 0x4;       \
+//     blt t2, t3, write;      \
+//   li t5, 0x1;               \
+//   sw t5, 0x0(t1);
+
+#define MEM_SIZE 0x400000
+#define DUMP_START_ADDR (MEM_SIZE - 0xC)
+#define DUMP_STOP_ADDR (MEM_SIZE - 0x8)
+#define HALT_CMD_ADDR (MEM_SIZE - 0x4)
+#define HALT_CMD_DATA 0xDEADBEEF
 
 #define RVMODEL_HALT        \
-  li t0, OUTPUT_ADDR;       \
-  li t1, HALT_ADDR;         \
+  li t0, DUMP_START_ADDR;   \
+  li t1, DUMP_STOP_ADDR;    \
   la t2, begin_signature;   \
   la t3, end_signature;     \
-  write:                    \
-    lb t4, 0x3(t2);         \
-    sb t4, 0x0(t0);         \
-    lb t4, 0x2(t2);         \
-    sb t4, 0x0(t0);         \
-    lb t4, 0x1(t2);         \
-    sb t4, 0x0(t0);         \
-    lb t4, 0x0(t2);         \
-    sb t4, 0x0(t0);         \
-    addi t2, t2, 0x4;       \
-    blt t2, t3, write;      \
-  li t5, 0x1;               \
-  sw t5, 0x0(t1);           
+  li t5, HALT_CMD_ADDR;     \
+  li t6, HALT_CMD_DATA;     \
+  sw t2, 0x0(t0);           \
+  sw t3, 0x0(t1);           \
+  sw t6, 0x0(t5);
 
 #define RVMODEL_DATA_BEGIN \
   .align 4; .global begin_signature; begin_signature:
