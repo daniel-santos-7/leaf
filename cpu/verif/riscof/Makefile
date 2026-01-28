@@ -14,10 +14,10 @@ validateyaml: $(VENV_DIR) config.ini
 	$(RISCOF) validateyaml --config=config.ini
 
 testlist: $(VENV_DIR) riscv-arch-test config.ini
-	$(RISCOF) testlist --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env
+	$(RISCOF) testlist --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env/
 
 run: $(VENV_DIR) riscv-arch-test config.ini
-	$(RISCOF) run --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env --no-browser
+	$(RISCOF) run --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env/ --no-browser
 
 clean:
 	rm -rf $(VENV_DIR) riscv-arch-test riscof_work
