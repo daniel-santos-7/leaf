@@ -1,3 +1,10 @@
+----------------------------------------------------------------------
+-- Project: Leaf
+-- Developed by: Daniel Santos
+-- Module: Leaf testbench.
+-- Date: 2026
+----------------------------------------------------------------------
+
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
@@ -8,8 +15,7 @@ use work.leaf_tb_pkg.all;
 entity leaf_tb is
     generic (
         PROGRAM   : string;
-        DUMP_FILE : string;
-        MEM_SIZE  : natural := 4194304 -- Memory size = 4MiB --
+        DUMP_FILE : string
     );
 end entity leaf_tb;
 
@@ -60,7 +66,6 @@ begin
     );
 
     mem: wb_ram generic map (
-        MEM_SIZE => MEM_SIZE,
         PROGRAM  => PROGRAM,
         DUMP_FILE => DUMP_FILE
     ) port map (

@@ -1,3 +1,10 @@
+----------------------------------------------------------------------
+-- Project: Leaf
+-- Developed by: Daniel Santos
+-- Module: Leaf testbench package.
+-- Date: 2026
+----------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
@@ -7,6 +14,17 @@ use std.textio.all;
 package leaf_tb_pkg is
 
     constant CLK_PERIOD: time := 20 ns;
+
+    -- Memory size = 4MiB --
+    constant MEM_SIZE : natural := 4194304;
+
+    -- dump control --
+    constant HALT_CMD_ADDR   : natural := MEM_SIZE/4-1;
+    constant DUMP_START_ADDR : natural := MEM_SIZE/4-3;
+    constant DUMP_STOP_ADDR  : natural := MEM_SIZE/4-2;
+
+    -- interrupt command --
+    constant HALT_CMD_DATA : std_logic_vector(31 downto 0) := x"DEADBEEF";
 
     type byte_array is array (natural range <>) of std_logic_vector(7 downto 0);
 
@@ -24,7 +42,6 @@ package leaf_tb_pkg is
 
     component wb_ram is
         generic (
-            MEM_SIZE : natural;
             PROGRAM  : string;
             DUMP_FILE  : string
         );

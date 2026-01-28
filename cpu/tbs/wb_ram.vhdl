@@ -1,8 +1,8 @@
 ----------------------------------------------------------------------
--- Leaf project
--- developed by: Daniel Santos
--- module: simulator memory with wishbone interface
--- 2022
+-- Project: Leaf
+-- Developed by: Daniel Santos
+-- Module: Simulator memory with wishbone interface.
+-- Date: 2026
 ----------------------------------------------------------------------
 
 library IEEE;
@@ -12,8 +12,7 @@ use work.leaf_tb_pkg.all;
 
 entity wb_ram is
     generic (
-        MEM_SIZE : natural;
-        PROGRAM  : string;
+        PROGRAM   : string;
         DUMP_FILE : string
     );
     port (
@@ -34,14 +33,6 @@ entity wb_ram is
 end entity wb_ram;
 
 architecture arch of wb_ram is
-
-    -- dump control --
-    constant DUMP_START_ADDR : natural := MEM_SIZE/4-3;
-    constant DUMP_STOP_ADDR  : natural := MEM_SIZE/4-2;
-
-    -- interrupt command --
-    constant HALT_CMD_ADDR : natural := MEM_SIZE/4-1;
-    constant HALT_CMD_DATA : std_logic_vector(31 downto 0) := x"DEADBEEF";
 
     signal addr : integer;
 
@@ -66,8 +57,19 @@ architecture arch of wb_ram is
     signal mem2_re : std_logic;
     signal mem3_re : std_logic;
 
-    signal adr_reg : std_logic_vector(31 downto 0);
-    signal dat_reg : std_logic_vector(31 downto 0);
+    procedure dump_memory (
+        variable file_path : in string;
+        variable memory    : in memory_array
+    ) is
+        variable dump_start : integer;
+        variable dump_stop  : integer;
+    begin
+        dump_start := to_integer(unsigned(mem(DUMP_START_ADDR)(31 downto 2)));
+        dump_stop  := to_integer(unsigned(mem(DUMP_STOP_ADDR)(31 downto 2))) - 1;
+        if dump_stop >= dump_start and dump_stop < MEM_SIZE/4 then
+            write_memory(file_path, memory(dump_start to dump_stop));
+        end if;
+    end procedure;
 
 begin
 
@@ -104,9 +106,6 @@ begin
     write_mem: process(clk_i)
 
         variable mem : memory_array(0 to MEM_SIZE/4-1);
-
-        variable dump_start  : natural := 0;
-        variable dump_stop   : natural := 0;
 
     begin
         if rising_edge(clk_i) then
@@ -150,11 +149,7 @@ begin
                 halt_o <= '0';
             end if;
             if wr_mem_i = '1' then
-                dump_start := to_integer(unsigned(mem(DUMP_START_ADDR)(31 downto 2)));
-                dump_stop  := to_integer(unsigned(mem(DUMP_STOP_ADDR)(31 downto 2))) - 1;
-                if dump_stop >= dump_start and dump_stop < MEM_SIZE/4 then
-                    write_memory(DUMP_FILE, mem(dump_start to dump_stop));
-                end if;
+                dump_memory(DUMP_FILE, mem);
             end if;
         end if;
     end process write_mem;
