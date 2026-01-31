@@ -72,6 +72,7 @@ class leaf(pluginTemplate):
         # Note the march is not hardwired here, because it will change for each
         # test. Similarly the output elf name and compile macros will be assigned later in the
         # runTests function
+        self.objdump_cmd = 'riscv{1}-unknown-elf-objdump -D {0} > {2}'
         self.compile_cmd = (
             "riscv{1}-unknown-elf-gcc -march={0} \
          -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g\
@@ -164,26 +165,28 @@ class leaf(pluginTemplate):
                 testentry["isa"].lower(), self.xlen, test, elf, compile_macros
             )
 
+            disass_cmd = self.objdump_cmd.format(elf, self.xlen, "out.disass")
+
             # if the user wants to disable running the tests and only compile the tests, then
             # the "else" clause is executed below assigning the sim command to simple no action
             # echo statement.
             if self.target_run:
                 # set up the simulation command. Template is for spike. Please change.
-                # simcmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
-                simcmd = "make --no-print-directory -sC ~/projects/leaf/cpu run PROGRAM={0}/out.bin DUMP_FILE={1} SIMXOPTS=--ieee-asserts=disable".format(
+                # sim_cmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
+                sim_cmd = "make --no-print-directory -sC ~/projects/leaf/cpu run PROGRAM={0}/out.bin DUMP_FILE={1} SIMXOPTS=--ieee-asserts=disable".format(
                     test_dir, sig_file
                 )
             else:
-                simcmd = 'echo "NO RUN"'
+                sim_cmd = 'echo "NO RUN"'
 
             # Leaf utilizes binary files
             bin_name = "out.bin"
-            bincmd = self.objcopy_cmd.format(self.xlen, elf, bin_name)
+            bin_cmd = self.objcopy_cmd.format(self.xlen, elf, bin_name)
             sed_cmd = "sed -i 's/.*/\L&/' {0}".format(sig_file)
 
             # concatenate all commands that need to be executed within a make-target.
-            execute = "@cd {0}; {1}; {2}; {3}; {4}".format(
-                testentry["work_dir"], cmd, bincmd, simcmd, sed_cmd
+            execute = "@cd {0}; {1}; {2}; {3}; {4}; {5}".format(
+                testentry["work_dir"], cmd, disass_cmd, bin_cmd, sim_cmd, sed_cmd
             )
 
             # create a target. The makeutil will create a target with the name "TARGET<num>" where num
