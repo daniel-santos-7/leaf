@@ -19,8 +19,8 @@ SIMXOPTS = --wave=$(WAVES_DIR)/$(TBS_TOP).ghw
 RTL_SRC = $(wildcard $(RTL_DIR)/*.vhdl)
 TBS_SRC = $(wildcard $(TBS_DIR)/*.vhdl)
 
-PROGRAM   = tests/dump/out.bin
-DUMP_FILE = tests/dump/out.dump
+PROGRAM   = verif/tests/dump/out.bin
+DUMP_FILE = verif/tests/dump/out.dump
 
 $(WORK_DIR) $(WAVES_DIR) $(STEPS_DIR):
 	@mkdir $@
