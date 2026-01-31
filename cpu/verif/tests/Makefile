@@ -16,7 +16,7 @@ APP_OUT  ?= $(TEST)/out
 .PHONY: run all clean
 
 run: $(APP_OUT).bin
-	@$(MAKE) -C .. run PROGRAM=$(CURDIR)/$<
+	@$(MAKE) -C ../../ run PROGRAM=$(CURDIR)/$< DUMP_FILE=$(CURDIR)/$(APP_OUT).dump
 
 all: $(APP_OUT).elf $(APP_OUT).bin $(APP_OUT).debug
 
