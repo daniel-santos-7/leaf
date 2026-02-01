@@ -41,5 +41,5 @@ with open(csv_file, newline='', encoding='utf-8') as file:
                 instr = instr_value(previous_row)
                 regs = reg_values(row)
                 if not (pc == 0 and instr == 0):
-                    print(f"PC: {pc:08x} INSTRUCTION: {instr:08x} {format_regs(regs)}")
+                    print(f"{pc:08x} {instr:08x} {format_regs(regs)}")
             previous_row = row
