@@ -81,7 +81,7 @@ architecture rtl of csrs is
     signal exc_taken : std_logic;
 
 begin
-    
+
     env_exc <= '1' when wr_en = '1' and wr_mode = b"000" else '0';
     ecall   <= '1' when env_exc = '1' and rw_addr = x"000" else '0';
     ebreak  <= '1' when env_exc = '1' and rw_addr = x"001" else '0';
@@ -100,7 +100,7 @@ begin
         case rw_addr is
             when CSR_ADDR_MHARTID  => rd_data <= MHART_ID;
             when CSR_ADDR_MISA     => rd_data <= (30 => '1', 8 => '1', others => '0');
-            when CSR_ADDR_MSTATUS  => rd_data <= (7 => mstatus_mpie, 3 => mstatus_mie, others => '0');
+            when CSR_ADDR_MSTATUS  => rd_data <= (12 downto 11 => '1', 7 => mstatus_mpie, 3 => mstatus_mie, others => '0');
             when CSR_ADDR_MIE      => rd_data <= (11 => mie_meie, 7 => mie_mtie, 3 => mie_msie, others => '0');
             when CSR_ADDR_MTVEC    => rd_data <= mtvec_base & b"00";
             when CSR_ADDR_MSCRATCH => rd_data <= mscratch;
@@ -182,7 +182,7 @@ begin
             elsif exc_taken = '1' then
                 if wfi = '1' then
                     mepc <= next_pc(31 downto 2);
-                else 
+                else
                     mepc <= pc(31 downto 2);
                 end if;
             elsif rw_addr = CSR_ADDR_MEPC and wr_en = '1' then
@@ -266,7 +266,7 @@ begin
             mip_mtip <= tm_irq;
         end if;
     end process write_mip;
-    
+
     pcwr_en     <= exi_taken or tmi_taken or swi_taken or not wfi;
     trap_taken  <= exc_taken;
     trap_target <= mepc & b"00" when mret = '1' else mtvec_base & b"00";
