@@ -6,7 +6,7 @@ RISCV_OBJCOPY = $(RISCV_PREFIX)-objcopy
 MARCH = rv32i
 MABI  = ilp32
 
-RISCV_GCC_OPTS ?= -nostartfiles -nostdlib -Ttext 0x00000000 -march=$(MARCH) -mabi=$(MABI) -O0 -g -I./common
+RISCV_GCC_OPTS ?= -nostartfiles -nostdlib -Ttext 0x80000000 -march=$(MARCH) -mabi=$(MABI) -O0 -g -I./common
 
 TEST ?= dump
 
