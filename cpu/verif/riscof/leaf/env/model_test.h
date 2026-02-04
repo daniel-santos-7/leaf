@@ -33,10 +33,11 @@
 //   li t5, 0x1;               \
 //   sw t5, 0x0(t1);
 
+#define MEM_BASE 0x80000000
 #define MEM_SIZE 0x400000
-#define DUMP_START_ADDR (MEM_SIZE - 0xC)
-#define DUMP_STOP_ADDR (MEM_SIZE - 0x8)
-#define HALT_CMD_ADDR (MEM_SIZE - 0x4)
+#define DUMP_START_ADDR (MEM_BASE + MEM_SIZE - 0xC)
+#define DUMP_STOP_ADDR (MEM_BASE + MEM_SIZE - 0x8)
+#define HALT_CMD_ADDR (MEM_BASE + MEM_SIZE - 0x4)
 #define HALT_CMD_DATA 0xDEADBEEF
 
 #define RVMODEL_HALT        \
