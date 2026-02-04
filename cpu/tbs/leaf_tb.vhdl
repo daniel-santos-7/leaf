@@ -48,7 +48,9 @@ architecture leaf_tb_arch of leaf_tb is
 
 begin
 
-    uut: leaf port map (
+    uut: leaf generic map (
+        RESET_ADDR => RESET_ADDR
+    ) port map (
         clk_i  => clk_i,
         rst_i  => rst_i,
         ex_irq => ex_irq,

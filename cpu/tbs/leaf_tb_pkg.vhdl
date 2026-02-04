@@ -15,6 +15,9 @@ package leaf_tb_pkg is
 
     constant CLK_PERIOD: time := 20 ns;
 
+    -- Reset address = 0x80000000 --
+    constant RESET_ADDR : std_logic_vector(31 downto 0) := x"80000000";
+
     -- Memory size = 4MiB --
     constant MEM_SIZE : natural := 4194304;
 
@@ -33,8 +36,6 @@ package leaf_tb_pkg is
     procedure read_bytes (constant file_path : in string; signal bytes : out byte_array);
 
     procedure write_bytes (constant file_path : in string; signal bytes : in byte_array);
-
-    -- procedure read_memory (constant program : in string; signal memory : out memory_array); --
 
     procedure read_memory (constant program : in string; variable memory : out memory_array);
 
@@ -105,36 +106,6 @@ package body leaf_tb_pkg is
         file_close(txt_file);
     end procedure;
 
-    --procedure read_memory (
-    --    constant program : in string;
-    --    signal memory  : out memory_array
-    --) is
-
-    --    type sw_type is file of character;
-    --    file sw_file : sw_type;
-
-    --    variable data : std_logic_vector(31 downto 0);
-    --    variable byte : character;
-    --    variable addr : integer range 0 to memory'length-1;
-
-    --begin
-    --    file_open(sw_file, program);
-    --    addr := 0;
-    --    while not endfile(sw_file) and addr <= memory'length-1 loop
-    --        read(sw_file, byte);
-    --        data(7 downto 0) <= std_logic_vector(to_unsigned(character'pos(byte), 8));
-    --        read(sw_file, byte);
-    --        data(15 downto 8) <= std_logic_vector(to_unsigned(character'pos(byte), 8));
-    --        read(sw_file, byte);
-    --        data(23 downto 16) <= std_logic_vector(to_unsigned(character'pos(byte), 8));
-    --        read(sw_file, byte);
-    --        data(31 downto 24) <= std_logic_vector(to_unsigned(character'pos(byte), 8));
-    --        memory(addr) <= data;
-    --        addr := addr + 1;
-    --    end loop;
-    --    file_close(sw_file);
-    --end procedure;
-
     procedure read_memory (
         constant program : in string;
         variable memory  : out memory_array
@@ -145,12 +116,16 @@ package body leaf_tb_pkg is
 
         variable data : std_logic_vector(31 downto 0);
         variable byte : character;
-        variable addr : integer range 0 to memory'length-1;
+        variable addr : integer range 0 to memory'length;
 
     begin
         file_open(sw_file, program);
         addr := 0;
-        while not endfile(sw_file) and addr <= memory'length-1 loop
+        while not endfile(sw_file) loop
+            if addr >= memory'length then
+                report "read_memory: program too large for memory" severity error;
+                exit;
+            end if;
             read(sw_file, byte);
             data(7 downto 0) := std_logic_vector(to_unsigned(character'pos(byte), 8));
             read(sw_file, byte);

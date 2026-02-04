@@ -34,6 +34,8 @@ end entity wb_ram;
 
 architecture arch of wb_ram is
 
+    constant MEM_BASE_ADDR : unsigned(29 downto 0) := unsigned(RESET_ADDR(31 downto 2));
+
     signal addr : integer;
 
     -- idle state --
@@ -64,8 +66,8 @@ architecture arch of wb_ram is
         variable dump_start : integer;
         variable dump_stop  : integer;
     begin
-        dump_start := to_integer(unsigned(memory(DUMP_START_ADDR)(31 downto 2)));
-        dump_stop  := to_integer(unsigned(memory(DUMP_STOP_ADDR)(31 downto 2))) - 1;
+        dump_start := to_integer(unsigned(memory(DUMP_START_ADDR)(31 downto 2))-MEM_BASE_ADDR);
+        dump_stop  := to_integer(unsigned(memory(DUMP_STOP_ADDR)(31 downto 2))-MEM_BASE_ADDR) - 1;
         if dump_stop >= dump_start and dump_stop < MEM_SIZE/4 then
             write_memory(file_path, memory(dump_start to dump_stop));
         end if;
@@ -73,8 +75,8 @@ architecture arch of wb_ram is
 
 begin
 
-    addr <= to_integer(unsigned(adr_i(31 downto 2)));
-
+    addr <= to_integer(unsigned(adr_i(31 downto 2))-MEM_BASE_ADDR);
+    
     idle_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
