@@ -17,7 +17,7 @@ entity core is
         REG_FILE_SIZE : natural := 32
     );
     port (
-        clk       : in  std_logic; 
+        clk       : in  std_logic;
         reset     : in  std_logic;
         ex_irq    : in  std_logic;
         sw_irq    : in  std_logic;
@@ -52,38 +52,9 @@ architecture rtl of core is
     signal pc         : std_logic_vector(31 downto 0);
     signal next_pc    : std_logic_vector(31 downto 0);
     signal instr      : std_logic_vector(31 downto 0);
-    
-    -- pipeline registers --
-
-    signal imrd_fault_reg : std_logic;
-    signal flush_reg      : std_logic;
-    signal pc_reg         : std_logic_vector(31 downto 0);
-    signal next_pc_reg    : std_logic_vector(31 downto 0);
-    signal instr_reg      : std_logic_vector(31 downto 0);
 
 begin
 
-    -- pipeline registers process --
-
-    pipeline_regs: process(clk)
-    begin
-        if rising_edge(clk) then
-            if reset = '1' then
-                imrd_fault_reg <= '0';
-                flush_reg      <= '1';
-                pc_reg         <= (others => '0');
-                next_pc_reg    <= (others => '0');
-                instr_reg      <= (others => '0');
-            else
-                imrd_fault_reg <= imrd_fault;
-                flush_reg      <= flush;
-                pc_reg         <= pc;
-                next_pc_reg    <= next_pc;
-                instr_reg      <= instr;
-            end if;
-        end if;
-    end process pipeline_regs;
-    
     -- instruction fetch stage --
 
     core_if_stage: if_stage generic map (
@@ -100,7 +71,7 @@ begin
         imrd_fault => imrd_fault,
         flush      => flush,
         imrd_addr  => imrd_addr,
-        pc         => pc, 
+        pc         => pc,
         next_pc    => next_pc,
         instr      => instr
     );
@@ -118,11 +89,11 @@ begin
         tm_irq     => tm_irq,
         dmrd_err   => dmrd_err,
         dmwr_err   => dmwr_err,
-        imrd_fault => imrd_fault_reg,
-        flush      => flush_reg,
-        instr      => instr_reg,
-        pc         => pc_reg,
-        next_pc    => next_pc_reg,
+        imrd_fault => imrd_fault,
+        flush      => flush,
+        instr      => instr,
+        pc         => pc,
+        next_pc    => next_pc,
         dmrd_data  => dmrd_data,
         cycle      => cycle,
         timer      => timer,
@@ -132,9 +103,9 @@ begin
         pcwr_en    => pcwr_en,
         taken      => taken,
         target     => target,
-        dmwr_data  => dmwr_data,        
+        dmwr_data  => dmwr_data,
         dmrw_addr  => dmrw_addr,
         dm_byte_en => dmwr_be
     );
-    
+
 end architecture rtl;
