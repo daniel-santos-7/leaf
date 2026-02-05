@@ -33,7 +33,6 @@ architecture id_block_arch of id_block is
     signal rd_addr  : std_logic_vector(4  downto 0);
     signal rs1_addr : std_logic_vector(4  downto 0);
     signal rs2_addr : std_logic_vector(4  downto 0);
-    signal imm_type : std_logic_vector(2  downto 0);
 
 begin
     
@@ -43,17 +42,12 @@ begin
     rs1_addr <= instr(19 downto 15);
     rs2_addr <= instr(24 downto 20);
 
-    id_imm_gen: imm_gen port map (
-        payload => payload,
-        itype   => imm_type,
-        imm     => imm
-    );
-
     id_main_ctrl: main_ctrl port map (
         flush     => flush,
         opcode    => opcode,
+        payload   => payload,
         instr_err => instr_err,
-        imm_type  => imm_type,
+        imm       => imm,
         istg_ctrl => istg_ctrl,
         exec_ctrl => exec_ctrl, 
         dmls_ctrl => dmls_ctrl

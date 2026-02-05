@@ -117,20 +117,13 @@ package core_pkg is
         );
     end component if_stage;
 
-    component imm_gen is
-        port (
-            payload : in  std_logic_vector(24 downto 0);
-            itype   : in  std_logic_vector(2  downto 0);
-            imm     : out std_logic_vector(31 downto 0)
-        );
-    end component imm_gen;
-
     component main_ctrl is
         port (
             flush     : in  std_logic;
             opcode    : in  std_logic_vector(6 downto 0);
+            payload   : in  std_logic_vector(24 downto 0);
             instr_err : out std_logic;
-            imm_type  : out std_logic_vector(2 downto 0);
+            imm       : out std_logic_vector(31 downto 0);
             istg_ctrl : out std_logic_vector(3 downto 0);
             exec_ctrl : out std_logic_vector(7 downto 0);
             dmls_ctrl : out std_logic_vector(1 downto 0)
