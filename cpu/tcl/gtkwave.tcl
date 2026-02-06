@@ -12,7 +12,7 @@ set flush_signal "$leaf_core.flush"
 set pc_signal "$leaf_core.pc_reg"
 set instr_signal "$leaf_core.instr_reg"
 
-set reg_file "$leaf_core.core_id_ex_stage.stage_istg_block.istg_reg_file.regs"
+set reg_file "$leaf_core.core_id_ex_stage.stage_id_block.stage_istg_block.istg_reg_file.regs"
 set regs [list]
 for {set i 0} {$i < 32} {incr i} {
     lappend regs "$reg_file\[$i\]"

@@ -19,7 +19,7 @@ set dmrw_addr "$leaf_core.dmrw_addr"
 set dmrd_data "$leaf_core.dmrd_data"
 set dmwr_data "$leaf_core.dmwr_data"
 
-set reg_file "$leaf_core.core_id_ex_stage.stage_istg_block.istg_reg_file.regs"
+set reg_file "$leaf_core.core_id_ex_stage.stage_id_block.stage_istg_block.istg_reg_file.regs"
 set regs [list]
 
 for {set i 0} {$i < 32} {incr i} {
