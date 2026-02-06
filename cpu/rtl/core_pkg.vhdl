@@ -11,9 +11,9 @@ use IEEE.std_logic_1164.all;
 package core_pkg is
 
     -- opcodes --
-    
-    constant RR_OPCODE     : std_logic_vector(6 downto 0) := b"0110011"; 
-    constant IMM_OPCODE    : std_logic_vector(6 downto 0) := b"0010011"; 
+
+    constant RR_OPCODE     : std_logic_vector(6 downto 0) := b"0110011";
+    constant IMM_OPCODE    : std_logic_vector(6 downto 0) := b"0010011";
     constant JALR_OPCODE   : std_logic_vector(6 downto 0) := b"1100111";
     constant LOAD_OPCODE   : std_logic_vector(6 downto 0) := b"0000011";
     constant STORE_OPCODE  : std_logic_vector(6 downto 0) := b"0100011";
@@ -30,7 +30,7 @@ package core_pkg is
     constant CSR_ADDR_MSTATUS  : std_logic_vector(11 downto 0) := x"300";
     constant CSR_ADDR_MISA     : std_logic_vector(11 downto 0) := x"301";
     constant CSR_ADDR_MIE      : std_logic_vector(11 downto 0) := x"304";
-    constant CSR_ADDR_MTVEC    : std_logic_vector(11 downto 0) := x"305";    
+    constant CSR_ADDR_MTVEC    : std_logic_vector(11 downto 0) := x"305";
     constant CSR_ADDR_MSCRATCH : std_logic_vector(11 downto 0) := x"340";
     constant CSR_ADDR_MEPC     : std_logic_vector(11 downto 0) := x"341";
     constant CSR_ADDR_MCAUSE   : std_logic_vector(11 downto 0) := x"342";
@@ -120,19 +120,6 @@ package core_pkg is
     component main_ctrl is
         port (
             flush     : in  std_logic;
-            opcode    : in  std_logic_vector(6 downto 0);
-            payload   : in  std_logic_vector(24 downto 0);
-            instr_err : out std_logic;
-            imm       : out std_logic_vector(31 downto 0);
-            istg_ctrl : out std_logic_vector(3 downto 0);
-            exec_ctrl : out std_logic_vector(7 downto 0);
-            dmls_ctrl : out std_logic_vector(1 downto 0)
-        );
-    end component main_ctrl;
-
-    component id_block is
-        port (
-            flush     : in  std_logic;
             instr     : in  std_logic_vector(31 downto 0);
             instr_err : out std_logic;
             func3     : out std_logic_vector(2  downto 0);
@@ -144,7 +131,7 @@ package core_pkg is
             regs_addr : out std_logic_vector(14 downto 0);
             imm       : out std_logic_vector(31 downto 0)
         );
-    end component id_block;
+    end component main_ctrl;
 
     component reg_file is
         generic (
@@ -242,7 +229,7 @@ package core_pkg is
             rd_data0   : out std_logic_vector(31 downto 0);
             rd_data1   : out std_logic_vector(31 downto 0)
         );
-    end component istg_block;    
+    end component istg_block;
 
     component alu is
         port(
@@ -265,7 +252,7 @@ package core_pkg is
 
     component br_detector is
         port (
-            reg0   : in  std_logic_vector(31 downto 0); 
+            reg0   : in  std_logic_vector(31 downto 0);
             reg1   : in  std_logic_vector(31 downto 0);
             mode   : in  std_logic_vector(2  downto 0);
             en     : in  std_logic;
@@ -304,12 +291,12 @@ package core_pkg is
             dmld_fault : out std_logic;
             dmst_malgn : out std_logic;
             dmst_fault : out std_logic;
-            dmrd_en    : out std_logic; 
+            dmrd_en    : out std_logic;
             dmwr_en    : out std_logic;
             dmwr_data  : out std_logic_vector(31 downto 0);
             dmrw_addr  : out std_logic_vector(31 downto 0);
             dm_byte_en : out std_logic_vector(3  downto 0);
-            dmld_data  : out std_logic_vector(31 downto 0)       
+            dmld_data  : out std_logic_vector(31 downto 0)
         );
     end component dmls_block;
 
@@ -353,7 +340,7 @@ package core_pkg is
             REG_FILE_SIZE : natural := 32
         );
         port (
-            clk       : in  std_logic; 
+            clk       : in  std_logic;
             reset     : in  std_logic;
             ex_irq    : in  std_logic;
             sw_irq    : in  std_logic;
@@ -448,5 +435,5 @@ package core_pkg is
             clk    : out std_logic
         );
     end component clk_ctrl;
-    
+
 end package core_pkg;

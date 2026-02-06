@@ -14,19 +14,27 @@ use work.core_pkg.all;
 entity main_ctrl is
     port (
         flush     : in  std_logic;
-        opcode    : in  std_logic_vector(6 downto 0);
-        payload   : in  std_logic_vector(24 downto 0);
+        instr     : in  std_logic_vector(31 downto 0);
         instr_err : out std_logic;
-        imm       : out std_logic_vector(31 downto 0);
-        istg_ctrl : out std_logic_vector(3 downto 0);
-        exec_ctrl : out std_logic_vector(7 downto 0);
-        dmls_ctrl : out std_logic_vector(1 downto 0)
+        func3     : out std_logic_vector(2  downto 0);
+        func7     : out std_logic_vector(6  downto 0);
+        dmls_ctrl : out std_logic_vector(1  downto 0);
+        istg_ctrl : out std_logic_vector(3  downto 0);
+        exec_ctrl : out std_logic_vector(7  downto 0);
+        csrs_addr : out std_logic_vector(11 downto 0);
+        regs_addr : out std_logic_vector(14 downto 0);
+        imm       : out std_logic_vector(31 downto 0)
     );
 end entity main_ctrl;
 
 architecture main_ctrl_arch of main_ctrl is
 
     signal imm_type : std_logic_vector(2  downto 0);
+    signal opcode   : std_logic_vector(6  downto 0);
+    signal payload  : std_logic_vector(24 downto 0);
+    signal rd_addr  : std_logic_vector(4  downto 0);
+    signal rs1_addr : std_logic_vector(4  downto 0);
+    signal rs2_addr : std_logic_vector(4  downto 0);
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -34,6 +42,16 @@ architecture main_ctrl_arch of main_ctrl is
     end function resize_signed;
 
 begin
+
+    opcode    <= instr(6  downto  0);
+    payload   <= instr(31 downto  7);
+    rd_addr   <= instr(11 downto  7);
+    rs1_addr  <= instr(19 downto 15);
+    rs2_addr  <= instr(24 downto 20);
+    func3     <= instr(14 downto 12);
+    func7     <= instr(31 downto 25);
+    regs_addr <= rs2_addr & rs1_addr & rd_addr;
+    csrs_addr <= instr(31 downto 20);
 
     imm_gen_ctrl: process(opcode, flush)
     begin
@@ -141,5 +159,5 @@ begin
             end case;
         end if;
     end process exception_ctrl;
-            
+
 end architecture main_ctrl_arch;
