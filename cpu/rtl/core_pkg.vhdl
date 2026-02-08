@@ -310,7 +310,21 @@ package core_pkg is
             pc          : in  std_logic_vector(31 downto 0);
             imm         : in  std_logic_vector(31 downto 0);
             exec_ctrl   : in  std_logic_vector(7  downto 0);
+            dmls_ctrl   : in  std_logic_vector(1  downto 0);
+            dmrd_err    : in  std_logic;
+            dmwr_err    : in  std_logic;
+            dmrd_data   : in  std_logic_vector(31 downto 0);
             imrd_malgn  : out std_logic;
+            dmld_malgn  : out std_logic;
+            dmld_fault  : out std_logic;
+            dmst_malgn  : out std_logic;
+            dmst_fault  : out std_logic;
+            dmrd_en     : out std_logic;
+            dmwr_en     : out std_logic;
+            dmwr_data   : out std_logic_vector(31 downto 0);
+            dmrw_addr   : out std_logic_vector(31 downto 0);
+            dm_byte_en  : out std_logic_vector(3  downto 0);
+            dmld_data   : out std_logic_vector(31 downto 0);
             taken       : out std_logic;
             target      : out std_logic_vector(31 downto 0);
             res         : out std_logic_vector(31 downto 0)

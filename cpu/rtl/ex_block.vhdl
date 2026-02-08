@@ -21,7 +21,21 @@ entity ex_block is
         pc          : in  std_logic_vector(31 downto 0);
         imm         : in  std_logic_vector(31 downto 0);
         exec_ctrl   : in  std_logic_vector(7  downto 0);
+        dmls_ctrl   : in  std_logic_vector(1  downto 0);
+        dmrd_err    : in  std_logic;
+        dmwr_err    : in  std_logic;
+        dmrd_data   : in  std_logic_vector(31 downto 0);
         imrd_malgn  : out std_logic;
+        dmld_malgn  : out std_logic;
+        dmld_fault  : out std_logic;
+        dmst_malgn  : out std_logic;
+        dmst_fault  : out std_logic;
+        dmrd_en     : out std_logic;
+        dmwr_en     : out std_logic;
+        dmwr_data   : out std_logic_vector(31 downto 0);
+        dmrw_addr   : out std_logic_vector(31 downto 0);
+        dm_byte_en  : out std_logic_vector(3  downto 0);
+        dmld_data   : out std_logic_vector(31 downto 0);
         taken       : out std_logic;
         target      : out std_logic_vector(31 downto 0);
         res         : out std_logic_vector(31 downto 0)
@@ -94,5 +108,25 @@ begin
     taken  <= branch or jmp or trap_taken;
     target <= trap_target when trap_taken = '1' else alu_res(31 downto 1) & b"0";
     res    <= alu_res;
+
+    exec_dmls_block: dmls_block port map (
+        dmrd_err   => dmrd_err,
+        dmwr_err   => dmwr_err,
+        dmls_ctrl  => dmls_ctrl,
+        dmls_dtype => func3,
+        dmst_data  => reg1,
+        dmls_addr  => alu_res,
+        dmrd_data  => dmrd_data,
+        dmld_malgn => dmld_malgn,
+        dmld_fault => dmld_fault,
+        dmst_malgn => dmst_malgn,
+        dmst_fault => dmst_fault,
+        dmrd_en    => dmrd_en,
+        dmwr_en    => dmwr_en,
+        dmwr_data  => dmwr_data,
+        dmrw_addr  => dmrw_addr,
+        dm_byte_en => dm_byte_en,
+        dmld_data  => dmld_data
+    );
     
 end architecture ex_block_arch;

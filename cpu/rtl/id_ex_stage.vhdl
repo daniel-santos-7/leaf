@@ -116,29 +116,23 @@ begin
         imm         => imm,
         exec_ctrl   => exec_ctrl,
         imrd_malgn  => imrd_malgn,
+        dmls_ctrl   => dmls_ctrl,
+        dmrd_err    => dmrd_err,
+        dmwr_err    => dmwr_err,
+        dmrd_data   => dmrd_data,
+        dmld_malgn  => dmld_malgn,
+        dmld_fault  => dmld_fault,
+        dmst_malgn  => dmst_malgn,
+        dmst_fault  => dmst_fault,
+        dmrd_en     => dmrd_en,
+        dmwr_en     => dmwr_en,
+        dmwr_data   => dmwr_data,
+        dmrw_addr   => dmrw_addr,
+        dm_byte_en  => dm_byte_en,
+        dmld_data   => dmld_data,
         taken       => taken,
         target      => target,
         res         => exec_res
-    );
-
-    stage_dmls_block: dmls_block port map (
-        dmrd_err   => dmrd_err,
-        dmwr_err   => dmwr_err,
-        dmls_ctrl  => dmls_ctrl,
-        dmls_dtype => func3,
-        dmst_data  => reg1_data,
-        dmls_addr  => exec_res,
-        dmrd_data  => dmrd_data,
-        dmld_malgn => dmld_malgn,
-        dmld_fault => dmld_fault,
-        dmst_malgn => dmst_malgn,
-        dmst_fault => dmst_fault,
-        dmrd_en    => dmrd_en,
-        dmwr_en    => dmwr_en,
-        dmwr_data  => dmwr_data,
-        dmrw_addr  => dmrw_addr,
-        dm_byte_en => dm_byte_en,
-        dmld_data  => dmld_data
     );
 
 end architecture rtl;
