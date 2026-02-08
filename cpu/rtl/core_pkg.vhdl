@@ -10,6 +10,8 @@ use IEEE.std_logic_1164.all;
 
 package core_pkg is
 
+    constant XLEN : natural := 32;
+
     -- opcodes --
 
     constant RR_OPCODE     : std_logic_vector(6 downto 0) := b"0110011";
