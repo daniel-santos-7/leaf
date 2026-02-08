@@ -52,7 +52,6 @@ end entity id_stage;
 architecture rtl of id_stage is
 
     signal instr_err : std_logic;
-    signal regs_addr : std_logic_vector(14 downto 0);
     signal csrs_addr : std_logic_vector(11 downto 0);
     signal istg_ctrl : std_logic_vector(3  downto 0);
 
@@ -78,19 +77,18 @@ begin
         flush     => flush,
         instr     => instr,
         instr_err => instr_err,
-        func3     => func3_value,
-        func7     => func7,
         dmls_ctrl => dmls_ctrl,
         istg_ctrl => istg_ctrl,
         exec_ctrl => exec_ctrl,
-        csrs_addr => csrs_addr,
-        regs_addr => regs_addr,
         imm       => imm_value
     );
 
-    regwr_addr  <= regs_addr(4  downto  0);
-    regrd_addr0 <= regs_addr(9  downto  5);
-    regrd_addr1 <= regs_addr(14 downto 10);
+    func3_value <= instr(14 downto 12);
+    func7       <= instr(31 downto 25);
+    regwr_addr  <= instr(11 downto  7);
+    regrd_addr0 <= instr(19 downto 15);
+    regrd_addr1 <= instr(24 downto 20);
+    csrs_addr   <= instr(31 downto 20);
 
     regwr_en  <= istg_ctrl(0) and not (imrd_malgn or dmld_malgn or dmld_fault);
     regwr_sel <= istg_ctrl(2 downto 1);

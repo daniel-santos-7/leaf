@@ -124,13 +124,9 @@ package leaf_pkg is
             flush     : in  std_logic;
             instr     : in  std_logic_vector(31 downto 0);
             instr_err : out std_logic;
-            func3     : out std_logic_vector(2  downto 0);
-            func7     : out std_logic_vector(6  downto 0);
             dmls_ctrl : out std_logic_vector(1  downto 0);
             istg_ctrl : out std_logic_vector(3  downto 0);
             exec_ctrl : out std_logic_vector(7  downto 0);
-            csrs_addr : out std_logic_vector(11 downto 0);
-            regs_addr : out std_logic_vector(14 downto 0);
             imm       : out std_logic_vector(31 downto 0)
         );
     end component main_ctrl;
