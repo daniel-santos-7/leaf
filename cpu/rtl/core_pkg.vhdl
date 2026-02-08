@@ -353,39 +353,6 @@ package core_pkg is
         );
     end component dmls_block;
 
-    component id_ex_stage is
-        generic (
-            REG_FILE_SIZE : natural := 32;
-            CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0')
-        );
-        port (
-            clk        : in  std_logic;
-            reset      : in  std_logic;
-            ex_irq     : in  std_logic;
-            sw_irq     : in  std_logic;
-            tm_irq     : in  std_logic;
-            dmrd_err   : in  std_logic;
-            dmwr_err   : in  std_logic;
-            imrd_fault : in  std_logic;
-            flush      : in  std_logic;
-            instr      : in  std_logic_vector(31 downto 0);
-            pc         : in  std_logic_vector(31 downto 0);
-            next_pc    : in  std_logic_vector(31 downto 0);
-            dmrd_data  : in  std_logic_vector(31 downto 0);
-            cycle      : in  std_logic_vector(63 downto 0);
-            timer      : in  std_logic_vector(63 downto 0);
-            instret    : in  std_logic_vector(63 downto 0);
-            dmrd_en    : out std_logic;
-            dmwr_en    : out std_logic;
-            pcwr_en    : out std_logic;
-            taken      : out std_logic;
-            target     : out std_logic_vector(31 downto 0);
-            dmwr_data  : out std_logic_vector(31 downto 0);
-            dmrw_addr  : out std_logic_vector(31 downto 0);
-            dm_byte_en : out std_logic_vector(3  downto 0)
-        );
-    end component id_ex_stage;
-
     component core is
         generic (
             RESET_ADDR    : std_logic_vector(31 downto 0) := (others => '0');

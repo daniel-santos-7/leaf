@@ -53,6 +53,26 @@ architecture rtl of core is
     signal next_pc    : std_logic_vector(31 downto 0);
     signal instr      : std_logic_vector(31 downto 0);
 
+    signal func3     : std_logic_vector(2  downto 0);
+    signal func7     : std_logic_vector(6  downto 0);
+    signal imm       : std_logic_vector(31 downto 0);
+    signal exec_ctrl : std_logic_vector(7  downto 0);
+    signal dmls_ctrl : std_logic_vector(1  downto 0);
+
+    signal trap_taken  : std_logic;
+    signal trap_target : std_logic_vector(31 downto 0);
+
+    signal reg0_data : std_logic_vector(31 downto 0);
+    signal reg1_data : std_logic_vector(31 downto 0);
+    signal exec_res  : std_logic_vector(31 downto 0);
+    signal dmld_data : std_logic_vector(31 downto 0);
+
+    signal imrd_malgn : std_logic;
+    signal dmld_malgn : std_logic;
+    signal dmld_fault : std_logic;
+    signal dmst_malgn : std_logic;
+    signal dmst_fault : std_logic;
+
 begin
 
     -- instruction fetch stage --
@@ -78,7 +98,7 @@ begin
 
     -- instruction decode and execute stage --
 
-    core_id_ex_stage: id_ex_stage generic map (
+    core_id_stage: id_stage generic map (
         REG_FILE_SIZE => REG_FILE_SIZE,
         CSRS_MHART_ID => CSRS_MHART_ID
     ) port map (
@@ -87,25 +107,61 @@ begin
         ex_irq     => ex_irq,
         sw_irq     => sw_irq,
         tm_irq     => tm_irq,
-        dmrd_err   => dmrd_err,
-        dmwr_err   => dmwr_err,
+        imrd_malgn => imrd_malgn,
         imrd_fault => imrd_fault,
-        flush      => flush,
-        instr      => instr,
-        pc         => pc,
-        next_pc    => next_pc,
-        dmrd_data  => dmrd_data,
+        dmld_malgn => dmld_malgn,
+        dmld_fault => dmld_fault,
+        dmst_malgn => dmst_malgn,
+        dmst_fault => dmst_fault,
         cycle      => cycle,
         timer      => timer,
         instret    => instret,
-        dmrd_en    => dmrd_en,
-        dmwr_en    => dmwr_en,
+        exec_res   => exec_res,
+        dmld_data  => dmld_data,
+        pc         => pc,
+        next_pc    => next_pc,
+        instr      => instr,
+        flush      => flush,
+        func3      => func3,
+        func7      => func7,
+        imm        => imm,
+        exec_ctrl  => exec_ctrl,
+        dmls_ctrl  => dmls_ctrl,
         pcwr_en    => pcwr_en,
-        taken      => taken,
-        target     => target,
-        dmwr_data  => dmwr_data,
-        dmrw_addr  => dmrw_addr,
-        dm_byte_en => dmwr_be
+        trap_taken => trap_taken,
+        trap_target=> trap_target,
+        rd_data0   => reg0_data,
+        rd_data1   => reg1_data
+    );
+
+    core_ex_block: ex_block port map (
+        trap_taken  => trap_taken,
+        trap_target => trap_target,
+        func3       => func3,
+        func7       => func7,
+        reg0        => reg0_data,
+        reg1        => reg1_data,
+        pc          => pc,
+        imm         => imm,
+        exec_ctrl   => exec_ctrl,
+        dmls_ctrl   => dmls_ctrl,
+        dmrd_err    => dmrd_err,
+        dmwr_err    => dmwr_err,
+        dmrd_data   => dmrd_data,
+        imrd_malgn  => imrd_malgn,
+        dmld_malgn  => dmld_malgn,
+        dmld_fault  => dmld_fault,
+        dmst_malgn  => dmst_malgn,
+        dmst_fault  => dmst_fault,
+        dmrd_en     => dmrd_en,
+        dmwr_en     => dmwr_en,
+        dmwr_data   => dmwr_data,
+        dmrw_addr   => dmrw_addr,
+        dm_byte_en  => dmwr_be,
+        dmld_data   => dmld_data,
+        taken       => taken,
+        target      => target,
+        res         => exec_res
     );
 
 end architecture rtl;
