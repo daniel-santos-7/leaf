@@ -53,7 +53,6 @@ architecture rtl of id_stage is
 
     signal instr_err : std_logic;
     signal csrs_addr : std_logic_vector(11 downto 0);
-    signal istg_ctrl : std_logic_vector(3  downto 0);
 
     signal imm_value   : std_logic_vector(31 downto 0);
     signal func3_value : std_logic_vector(2  downto 0);
@@ -74,13 +73,18 @@ architecture rtl of id_stage is
 begin
 
     stage_main_ctrl: main_ctrl port map (
-        flush     => flush,
-        instr     => instr,
-        instr_err => instr_err,
-        dmls_ctrl => dmls_ctrl,
-        istg_ctrl => istg_ctrl,
-        exec_ctrl => exec_ctrl,
-        imm       => imm_value
+        imrd_malgn => imrd_malgn,
+        dmld_malgn => dmld_malgn,
+        dmld_fault => dmld_fault,
+        flush      => flush,
+        instr      => instr,
+        instr_err  => instr_err,
+        csrwr_en   => csrwr_en,
+        regwr_en   => regwr_en,
+        regwr_sel  => regwr_sel,
+        dmls_ctrl  => dmls_ctrl,
+        exec_ctrl  => exec_ctrl,
+        imm        => imm_value
     );
 
     func3_value <= instr(14 downto 12);
@@ -89,10 +93,6 @@ begin
     regrd_addr0 <= instr(19 downto 15);
     regrd_addr1 <= instr(24 downto 20);
     csrs_addr   <= instr(31 downto 20);
-
-    regwr_en  <= istg_ctrl(0) and not (imrd_malgn or dmld_malgn or dmld_fault);
-    regwr_sel <= istg_ctrl(2 downto 1);
-    csrwr_en  <= istg_ctrl(3);
 
     regwr_data_mux: process(regwr_sel, exec_res, dmld_data, next_pc, csrrd_data)
     begin
@@ -105,7 +105,7 @@ begin
         end case;
     end process regwr_data_mux;
 
-    istg_reg_file: reg_file generic map (
+    id_stage_reg_file: reg_file generic map (
         SIZE => REG_FILE_SIZE
     ) port map (
         clk      => clk,
@@ -118,7 +118,7 @@ begin
         rd_data1 => regrd_data1
     );
 
-    istg_csrs_logic: csrs_logic port map (
+    id_stage_csrs_logic: csrs_logic port map (
         csrwr_mode => func3_value,
         csrrd_data => csrrd_data,
         regwr_data => regrd_data0,
@@ -126,7 +126,7 @@ begin
         csrwr_data => csrwr_data
     );
 
-    istg_csrs: csrs generic map (
+    id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
     ) port map (
         clk         => clk,

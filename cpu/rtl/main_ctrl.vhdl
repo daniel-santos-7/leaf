@@ -13,13 +13,18 @@ use work.leaf_pkg.all;
 
 entity main_ctrl is
     port (
-        flush     : in  std_logic;
-        instr     : in  std_logic_vector(31 downto 0);
-        instr_err : out std_logic;
-        dmls_ctrl : out std_logic_vector(1  downto 0);
-        istg_ctrl : out std_logic_vector(3  downto 0);
-        exec_ctrl : out std_logic_vector(7  downto 0);
-        imm       : out std_logic_vector(31 downto 0)
+        imrd_malgn  : in std_logic; 
+        dmld_malgn  : in std_logic;
+        dmld_fault  : in std_logic;
+        flush       : in  std_logic;
+        instr       : in  std_logic_vector(31 downto 0);
+        instr_err   : out std_logic;       
+        csrwr_en    : out std_logic;
+        regwr_en    : out std_logic;
+        regwr_sel   : out std_logic_vector(1  downto 0);
+        dmls_ctrl   : out std_logic_vector(1  downto 0);
+        exec_ctrl   : out std_logic_vector(7  downto 0);
+        imm         : out std_logic_vector(31 downto 0)
     );
 end entity main_ctrl;
 
@@ -28,6 +33,8 @@ architecture main_ctrl_arch of main_ctrl is
     signal imm_type : std_logic_vector(2  downto 0);
     signal opcode   : std_logic_vector(6  downto 0);
     signal payload  : std_logic_vector(24 downto 0);
+    
+    signal istg_ctrl : std_logic_vector(3  downto 0);
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -145,5 +152,9 @@ begin
             end case;
         end if;
     end process exception_ctrl;
+
+    regwr_en  <= istg_ctrl(0) and not (imrd_malgn or dmld_malgn or dmld_fault);
+    regwr_sel <= istg_ctrl(2 downto 1);
+    csrwr_en  <= istg_ctrl(3);
 
 end architecture main_ctrl_arch;
