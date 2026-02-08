@@ -193,44 +193,6 @@ package core_pkg is
         );
     end component csrs;
 
-    component istg_block is
-        generic (
-            REG_FILE_SIZE : natural := 32;
-            CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0')
-        );
-        port (
-            clk        : in  std_logic;
-            reset      : in  std_logic;
-            ex_irq     : in  std_logic;
-            sw_irq     : in  std_logic;
-            tm_irq     : in  std_logic;
-            instr_err  : in  std_logic;
-            imrd_malgn : in  std_logic;
-            imrd_fault : in  std_logic;
-            dmld_malgn : in  std_logic;
-            dmld_fault : in  std_logic;
-            dmst_malgn : in  std_logic;
-            dmst_fault : in  std_logic;
-            cycle      : in  std_logic_vector(63 downto 0);
-            timer      : in  std_logic_vector(63 downto 0);
-            instret    : in  std_logic_vector(63 downto 0);
-            exec_res   : in  std_logic_vector(31 downto 0);
-            dmld_data  : in  std_logic_vector(31 downto 0);
-            pc         : in  std_logic_vector(31 downto 0);
-            next_pc    : in  std_logic_vector(31 downto 0);
-            imm        : in  std_logic_vector(31 downto 0);
-            func3      : in  std_logic_vector(2  downto 0);
-            regs_addr  : in  std_logic_vector(14 downto 0);
-            csrs_addr  : in  std_logic_vector(11 downto 0);
-            istg_ctrl  : in  std_logic_vector(3  downto 0);
-            pcwr_en    : out std_logic;
-            trap_taken : out std_logic;
-            trap_target: out std_logic_vector(31 downto 0);
-            rd_data0   : out std_logic_vector(31 downto 0);
-            rd_data1   : out std_logic_vector(31 downto 0)
-        );
-    end component istg_block;
-
     component id_stage is
         generic (
             REG_FILE_SIZE : natural := 32;
