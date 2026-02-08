@@ -8,7 +8,7 @@
 library IEEE;
 library work;
 use IEEE.std_logic_1164.all;
-use work.core_pkg.all;
+use work.leaf_pkg.all;
 use work.leaf_sim_pkg.all;
 
 entity leaf_sim is

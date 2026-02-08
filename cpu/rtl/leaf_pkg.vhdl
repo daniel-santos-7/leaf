@@ -8,7 +8,7 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 
-package core_pkg is
+package leaf_pkg is
 
     constant XLEN : natural := 32;
 
@@ -420,4 +420,4 @@ package core_pkg is
         );
     end component clk_ctrl;
 
-end package core_pkg;
+end package leaf_pkg;
