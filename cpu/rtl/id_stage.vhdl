@@ -95,24 +95,17 @@ begin
         imm        => imm_value
     );
 
-    regwr_data_mux: process(regwr_sel, exec_res, dmld_data, next_pc, csrrd_data_i)
-    begin
-        case regwr_sel is
-            when b"00" => regwr_data <= exec_res;
-            when b"01" => regwr_data <= dmld_data;
-            when b"10" => regwr_data <= next_pc;
-            when b"11" => regwr_data <= csrrd_data_i;
-            when others => null;
-        end case;
-    end process regwr_data_mux;
-
     id_stage_reg_file: reg_file generic map (
         SIZE => REG_FILE_SIZE
     ) port map (
         clk      => clk,
         we       => regwr_en,
+        wr_sel   => regwr_sel,
         wr_addr  => regwr_addr,
-        wr_data  => regwr_data,
+        wr_data0 => exec_res,
+        wr_data1 => dmld_data,
+        wr_data2 => next_pc,
+        wr_data3 => csrrd_data_i,
         rd_addr0 => regrd_addr0,
         rd_addr1 => regrd_addr1,
         rd_data0 => regrd_data0,
