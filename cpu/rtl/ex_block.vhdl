@@ -20,6 +20,7 @@ entity ex_block is
         reg1        : in  std_logic_vector(31 downto 0);
         pc          : in  std_logic_vector(31 downto 0);
         imm         : in  std_logic_vector(31 downto 0);
+        csrrd_data  : in  std_logic_vector(31 downto 0);
         exec_ctrl   : in  std_logic_vector(7  downto 0);
         dmls_ctrl   : in  std_logic_vector(1  downto 0);
         dmrd_err    : in  std_logic;
@@ -36,6 +37,7 @@ entity ex_block is
         dmrw_addr   : out std_logic_vector(31 downto 0);
         dm_byte_en  : out std_logic_vector(3  downto 0);
         dmld_data   : out std_logic_vector(31 downto 0);
+        csrwr_data  : out std_logic_vector(31 downto 0);
         taken       : out std_logic;
         target      : out std_logic_vector(31 downto 0);
         res         : out std_logic_vector(31 downto 0)
@@ -93,6 +95,14 @@ begin
         opd1 => gtd_opd1,
         op   => alu_op,
         res  => alu_res
+    );
+
+    exec_csrs_logic: csrs_logic port map (
+        csrwr_mode => func3,
+        csrrd_data => csrrd_data,
+        regwr_data => reg0,
+        immwr_data => imm,
+        csrwr_data => csrwr_data
     );
 
     exec_br_detector: br_detector port map (

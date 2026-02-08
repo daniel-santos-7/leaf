@@ -66,6 +66,8 @@ architecture rtl of core is
     signal reg1_data : std_logic_vector(31 downto 0);
     signal exec_res  : std_logic_vector(31 downto 0);
     signal dmld_data : std_logic_vector(31 downto 0);
+    signal csrrd_data : std_logic_vector(31 downto 0);
+    signal csrwr_data : std_logic_vector(31 downto 0);
 
     signal imrd_malgn : std_logic;
     signal dmld_malgn : std_logic;
@@ -131,7 +133,9 @@ begin
         trap_taken => trap_taken,
         trap_target=> trap_target,
         rd_data0   => reg0_data,
-        rd_data1   => reg1_data
+        rd_data1   => reg1_data,
+        csrwr_data => csrwr_data,
+        csrrd_data => csrrd_data
     );
 
     core_ex_block: ex_block port map (
@@ -143,6 +147,7 @@ begin
         reg1        => reg1_data,
         pc          => pc,
         imm         => imm,
+        csrrd_data  => csrrd_data,
         exec_ctrl   => exec_ctrl,
         dmls_ctrl   => dmls_ctrl,
         dmrd_err    => dmrd_err,
@@ -159,6 +164,7 @@ begin
         dmrw_addr   => dmrw_addr,
         dm_byte_en  => dmwr_be,
         dmld_data   => dmld_data,
+        csrwr_data  => csrwr_data,
         taken       => taken,
         target      => target,
         res         => exec_res

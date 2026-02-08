@@ -45,7 +45,9 @@ entity id_stage is
         trap_taken  : out std_logic;
         trap_target : out std_logic_vector(31 downto 0);
         rd_data0    : out std_logic_vector(31 downto 0);
-        rd_data1    : out std_logic_vector(31 downto 0)
+        rd_data1    : out std_logic_vector(31 downto 0);
+        csrwr_data  : in  std_logic_vector(31 downto 0);
+        csrrd_data  : out std_logic_vector(31 downto 0)
     );
 end entity id_stage;
 
@@ -66,12 +68,18 @@ architecture rtl of id_stage is
     signal regrd_data0 : std_logic_vector(31 downto 0);
     signal regrd_data1 : std_logic_vector(31 downto 0);
 
-    signal csrwr_en   : std_logic;
-    signal csrrd_data : std_logic_vector(31 downto 0);
-    signal csrwr_data : std_logic_vector(31 downto 0);
+    signal csrwr_en     : std_logic;
+    signal csrrd_data_i : std_logic_vector(31 downto 0);
 
 begin
 
+    func3_value <= instr(14 downto 12);
+    func7       <= instr(31 downto 25);
+    regwr_addr  <= instr(11 downto  7);
+    regrd_addr0 <= instr(19 downto 15);
+    regrd_addr1 <= instr(24 downto 20);
+    csrs_addr   <= instr(31 downto 20);
+    
     stage_main_ctrl: main_ctrl port map (
         imrd_malgn => imrd_malgn,
         dmld_malgn => dmld_malgn,
@@ -87,20 +95,13 @@ begin
         imm        => imm_value
     );
 
-    func3_value <= instr(14 downto 12);
-    func7       <= instr(31 downto 25);
-    regwr_addr  <= instr(11 downto  7);
-    regrd_addr0 <= instr(19 downto 15);
-    regrd_addr1 <= instr(24 downto 20);
-    csrs_addr   <= instr(31 downto 20);
-
-    regwr_data_mux: process(regwr_sel, exec_res, dmld_data, next_pc, csrrd_data)
+    regwr_data_mux: process(regwr_sel, exec_res, dmld_data, next_pc, csrrd_data_i)
     begin
         case regwr_sel is
             when b"00" => regwr_data <= exec_res;
             when b"01" => regwr_data <= dmld_data;
             when b"10" => regwr_data <= next_pc;
-            when b"11" => regwr_data <= csrrd_data;
+            when b"11" => regwr_data <= csrrd_data_i;
             when others => null;
         end case;
     end process regwr_data_mux;
@@ -116,14 +117,6 @@ begin
         rd_addr1 => regrd_addr1,
         rd_data0 => regrd_data0,
         rd_data1 => regrd_data1
-    );
-
-    id_stage_csrs_logic: csrs_logic port map (
-        csrwr_mode => func3_value,
-        csrrd_data => csrrd_data,
-        regwr_data => regrd_data0,
-        immwr_data => imm_value,
-        csrwr_data => csrwr_data
     );
 
     id_stage_csrs: csrs generic map (
@@ -154,12 +147,13 @@ begin
         pcwr_en     => pcwr_en,
         trap_taken  => trap_taken,
         trap_target => trap_target,
-        rd_data     => csrrd_data
+        rd_data     => csrrd_data_i
     );
 
-    imm <= imm_value;
-    func3 <= func3_value;
+    imm      <= imm_value;
+    func3    <= func3_value;
     rd_data0 <= regrd_data0;
     rd_data1 <= regrd_data1;
+    csrrd_data <= csrrd_data_i;
 
 end architecture rtl;

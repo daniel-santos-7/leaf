@@ -13,9 +13,9 @@ use work.leaf_pkg.all;
 
 entity main_ctrl is
     port (
-        imrd_malgn  : in std_logic; 
-        dmld_malgn  : in std_logic;
-        dmld_fault  : in std_logic;
+        imrd_malgn  : in  std_logic; 
+        dmld_malgn  : in  std_logic;
+        dmld_fault  : in  std_logic;
         flush       : in  std_logic;
         instr       : in  std_logic_vector(31 downto 0);
         instr_err   : out std_logic;       
@@ -43,8 +43,8 @@ architecture main_ctrl_arch of main_ctrl is
 
 begin
 
-    opcode    <= instr(6  downto  0);
-    payload   <= instr(31 downto  7);
+    opcode  <= instr(6  downto  0);
+    payload <= instr(31 downto  7);
 
     imm_gen_ctrl: process(opcode, flush)
     begin
