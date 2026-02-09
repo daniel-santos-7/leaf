@@ -173,7 +173,7 @@ class leaf(pluginTemplate):
             if self.target_run:
                 # set up the simulation command. Template is for spike. Please change.
                 # sim_cmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
-                sim_cmd = "make --no-print-directory -sC ~/projects/leaf/cpu run PROGRAM={0}/out.bin DUMP_FILE={1} SIMXOPTS=--ieee-asserts=disable".format(
+                sim_cmd = "make --no-print-directory -sC ~/projects/leaf run PROGRAM={0}/out.bin DUMP_FILE={1} SIMXOPTS=--ieee-asserts=disable".format(
                     test_dir, sig_file
                 )
             else:
