@@ -41,6 +41,10 @@ entity id_stage is
         imm         : out std_logic_vector(31 downto 0);
         exec_ctrl   : out std_logic_vector(7  downto 0);
         dmls_ctrl   : out std_logic_vector(1  downto 0);
+        cop_csr_rdata : in  std_logic_vector(31 downto 0);
+        cop_csr_addr  : out std_logic_vector(5 downto 0);
+        cop_csr_wdata : out std_logic_vector(31 downto 0);
+        cop_csr_we    : out std_logic;
         pcwr_en     : out std_logic;
         trap_taken  : out std_logic;
         trap_target : out std_logic_vector(31 downto 0);
@@ -79,7 +83,6 @@ begin
     regrd_addr0 <= instr(19 downto 15);
     regrd_addr1 <= instr(24 downto 20);
     csrs_addr   <= instr(31 downto 20);
-    
     stage_main_ctrl: main_ctrl port map (
         imrd_malgn => imrd_malgn,
         dmld_malgn => dmld_malgn,
@@ -137,6 +140,10 @@ begin
         cycle       => cycle,
         timer       => timer,
         instret     => instret,
+        cop_csr_rdata => cop_csr_rdata,
+        cop_csr_addr  => cop_csr_addr,
+        cop_csr_wdata => cop_csr_wdata,
+        cop_csr_we    => cop_csr_we,
         pcwr_en     => pcwr_en,
         trap_taken  => trap_taken,
         trap_target => trap_target,

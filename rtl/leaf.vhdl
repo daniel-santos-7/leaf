@@ -25,6 +25,10 @@ entity leaf is
         ack_i  : in  std_logic;
         err_i  : in  std_logic;
         dat_i  : in  std_logic_vector(31 downto 0);
+        cop_csr_rdata_i : in  std_logic_vector(31 downto 0);
+        cop_csr_addr_o  : out std_logic_vector(5 downto 0);
+        cop_csr_wdata_o : out std_logic_vector(31 downto 0);
+        cop_csr_we_o    : out std_logic;
         cyc_o  : out std_logic;
         stb_o  : out std_logic;
         we_o   : out std_logic;
@@ -140,6 +144,10 @@ begin
         cycle     => cycle,
         timer     => timer,
         instret   => instret,
+        cop_csr_rdata => cop_csr_rdata_i,
+        cop_csr_addr  => cop_csr_addr_o,
+        cop_csr_wdata => cop_csr_wdata_o,
+        cop_csr_we    => cop_csr_we_o,
         imrd_en   => imrd_en,
         dmrd_en   => dmrd_en,
         dmwr_en   => dmwr_en,

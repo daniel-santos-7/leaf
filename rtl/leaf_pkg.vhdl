@@ -45,6 +45,11 @@ package leaf_pkg is
     constant CSR_ADDR_TIMEH    : std_logic_vector(11 downto 0) := x"C81";
     constant CSR_ADDR_INSTRETH : std_logic_vector(11 downto 0) := x"C82";
 
+    -- Custom machine-mode CSR window for coprocessors --
+
+    constant CSR_ADDR_COP0_MIN : std_logic_vector(11 downto 0) := x"7C0";
+    constant CSR_ADDR_COP0_MAX : std_logic_vector(11 downto 0) := x"7FF";
+
     -- ALU op --
 
     constant ALU_ADD  : std_logic_vector(5 downto 0) := b"001111";
@@ -121,12 +126,12 @@ package leaf_pkg is
 
     component main_ctrl is
         port (
-            imrd_malgn  : in std_logic; 
+            imrd_malgn  : in std_logic;
             dmld_malgn  : in std_logic;
             dmld_fault  : in std_logic;
             flush       : in  std_logic;
             instr       : in  std_logic_vector(31 downto 0);
-            instr_err   : out std_logic;       
+            instr_err   : out std_logic;
             csrwr_en    : out std_logic;
             regwr_en    : out std_logic;
             regwr_sel   : out std_logic_vector(1  downto 0);
@@ -193,6 +198,10 @@ package leaf_pkg is
             cycle       : in  std_logic_vector(63 downto 0);
             timer       : in  std_logic_vector(63 downto 0);
             instret     : in  std_logic_vector(63 downto 0);
+            cop_csr_rdata : in  std_logic_vector(31 downto 0);
+            cop_csr_addr  : out std_logic_vector(5 downto 0);
+            cop_csr_wdata : out std_logic_vector(31 downto 0);
+            cop_csr_we    : out std_logic;
             pcwr_en     : out std_logic;
             trap_taken  : out std_logic;
             trap_target : out std_logic_vector(31 downto 0);
@@ -231,6 +240,10 @@ package leaf_pkg is
             imm         : out std_logic_vector(31 downto 0);
             exec_ctrl   : out std_logic_vector(7  downto 0);
             dmls_ctrl   : out std_logic_vector(1  downto 0);
+            cop_csr_rdata : in  std_logic_vector(31 downto 0);
+            cop_csr_addr  : out std_logic_vector(5 downto 0);
+            cop_csr_wdata : out std_logic_vector(31 downto 0);
+            cop_csr_we    : out std_logic;
             pcwr_en     : out std_logic;
             trap_taken  : out std_logic;
             trap_target : out std_logic_vector(31 downto 0);
@@ -346,6 +359,10 @@ package leaf_pkg is
             cycle     : in  std_logic_vector(63 downto 0);
             timer     : in  std_logic_vector(63 downto 0);
             instret   : in  std_logic_vector(63 downto 0);
+            cop_csr_rdata : in  std_logic_vector(31 downto 0);
+            cop_csr_addr  : out std_logic_vector(5 downto 0);
+            cop_csr_wdata : out std_logic_vector(31 downto 0);
+            cop_csr_we    : out std_logic;
             imrd_en   : out std_logic;
             dmrd_en   : out std_logic;
             dmwr_en   : out std_logic;
@@ -371,6 +388,10 @@ package leaf_pkg is
             ack_i  : in  std_logic;
             err_i  : in  std_logic;
             dat_i  : in  std_logic_vector(31 downto 0);
+            cop_csr_rdata_i : in  std_logic_vector(31 downto 0);
+            cop_csr_addr_o  : out std_logic_vector(5 downto 0);
+            cop_csr_wdata_o : out std_logic_vector(31 downto 0);
+            cop_csr_we_o    : out std_logic;
             cyc_o  : out std_logic;
             stb_o  : out std_logic;
             we_o   : out std_logic;

@@ -30,6 +30,10 @@ entity core is
         cycle     : in  std_logic_vector(63 downto 0);
         timer     : in  std_logic_vector(63 downto 0);
         instret   : in  std_logic_vector(63 downto 0);
+        cop_csr_rdata : in  std_logic_vector(31 downto 0);
+        cop_csr_addr  : out std_logic_vector(5 downto 0);
+        cop_csr_wdata : out std_logic_vector(31 downto 0);
+        cop_csr_we    : out std_logic;
         imrd_en   : out std_logic;
         dmrd_en   : out std_logic;
         dmwr_en   : out std_logic;
@@ -129,6 +133,10 @@ begin
         imm        => imm,
         exec_ctrl  => exec_ctrl,
         dmls_ctrl  => dmls_ctrl,
+        cop_csr_rdata => cop_csr_rdata,
+        cop_csr_addr  => cop_csr_addr,
+        cop_csr_wdata => cop_csr_wdata,
+        cop_csr_we    => cop_csr_we,
         pcwr_en    => pcwr_en,
         trap_taken => trap_taken,
         trap_target=> trap_target,

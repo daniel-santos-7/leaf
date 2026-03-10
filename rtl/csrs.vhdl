@@ -38,6 +38,10 @@ entity csrs is
         cycle       : in  std_logic_vector(63 downto 0);
         timer       : in  std_logic_vector(63 downto 0);
         instret     : in  std_logic_vector(63 downto 0);
+        cop_csr_rdata : in  std_logic_vector(31 downto 0);
+        cop_csr_addr  : out std_logic_vector(5 downto 0);
+        cop_csr_wdata : out std_logic_vector(31 downto 0);
+        cop_csr_we    : out std_logic;
         pcwr_en     : out std_logic;
         trap_taken  : out std_logic;
         trap_target : out std_logic_vector(31 downto 0);
@@ -79,6 +83,7 @@ architecture rtl of csrs is
     signal tmi_taken : std_logic;
     signal int_taken : std_logic;
     signal exc_taken : std_logic;
+    signal cop_csr_sel : std_logic;
 
 begin
 
@@ -94,8 +99,9 @@ begin
 
     int_taken <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie;
     exc_taken <= imrd_malgn or imrd_fault or instr_err or ebreak or dmld_malgn or dmld_fault or dmst_malgn or dmst_fault or ecall or int_taken or mret;
+    cop_csr_sel <= '1' when rw_addr(11 downto 6) = b"011111" else '0';
 
-    read_csr: process(rw_addr, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle, timer, instret)
+    read_csr: process(rw_addr, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle, timer, instret, cop_csr_sel, cop_csr_rdata)
     begin
         case rw_addr is
             when CSR_ADDR_MHARTID  => rd_data <= MHART_ID;
@@ -114,7 +120,12 @@ begin
             when CSR_ADDR_CYCLEH   => rd_data <= cycle(63 downto 32);
             when CSR_ADDR_TIMEH    => rd_data <= timer(63 downto 32);
             when CSR_ADDR_INSTRETH => rd_data <= instret(63 downto 32);
-            when others            => rd_data <= (others => '0');
+            when others            =>
+                if cop_csr_sel = '1' then
+                    rd_data <= cop_csr_rdata;
+                else
+                    rd_data <= (others => '0');
+                end if;
         end case;
     end process read_csr;
 
@@ -266,6 +277,10 @@ begin
             mip_mtip <= tm_irq;
         end if;
     end process write_mip;
+
+    cop_csr_addr  <= rw_addr(5 downto 0);
+    cop_csr_wdata <= wr_data;
+    cop_csr_we    <= wr_en and cop_csr_sel;
 
     pcwr_en     <= exi_taken or tmi_taken or swi_taken or not wfi;
     trap_taken  <= exc_taken;
