@@ -6,19 +6,18 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.leaf_pkg.all;
 
 entity main_ctrl is
     port (
-        imrd_malgn  : in  std_logic; 
+        imrd_malgn  : in  std_logic;
         dmld_malgn  : in  std_logic;
         dmld_fault  : in  std_logic;
         flush       : in  std_logic;
         instr       : in  std_logic_vector(31 downto 0);
-        instr_err   : out std_logic;       
+        instr_err   : out std_logic;
         csrwr_en    : out std_logic;
         regwr_en    : out std_logic;
         regwr_sel   : out std_logic_vector(1  downto 0);
@@ -33,7 +32,7 @@ architecture main_ctrl_arch of main_ctrl is
     signal imm_type : std_logic_vector(2  downto 0);
     signal opcode   : std_logic_vector(6  downto 0);
     signal payload  : std_logic_vector(24 downto 0);
-    
+
     signal istg_ctrl : std_logic_vector(3  downto 0);
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is

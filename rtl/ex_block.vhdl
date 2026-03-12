@@ -6,7 +6,6 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use work.leaf_pkg.all;
 
@@ -65,7 +64,7 @@ architecture ex_block_arch of ex_block is
     signal branch   : std_logic;
 
 begin
-    
+
     jmp   <= exec_ctrl(7);
     br_en <= exec_ctrl(6);
 
@@ -91,7 +90,7 @@ begin
     );
 
     exec_alu: alu port map (
-        opd0 => gtd_opd0, 
+        opd0 => gtd_opd0,
         opd1 => gtd_opd1,
         op   => alu_op,
         res  => alu_res
@@ -138,5 +137,5 @@ begin
         dm_byte_en => dm_byte_en,
         dmld_data  => dmld_data
     );
-    
+
 end architecture ex_block_arch;
