@@ -73,7 +73,7 @@ begin
             when IMM_B_TYPE => imm <= resize_signed(payload(24) & payload(0) & payload(23 downto 18) & payload(4 downto 1) & '0');
             when IMM_U_TYPE => imm <= payload(24 downto 5) & (11 downto 0 => '0');
             when IMM_J_TYPE => imm <= resize_signed(payload(24) & payload(12 downto 5) & payload(13) & payload(23 downto 14) & '0');
-            when IMM_Z_TYPE => imm <= std_logic_vector(resize(unsigned(payload(19 downto 15)), 32));
+            when IMM_Z_TYPE => imm <= std_logic_vector(resize(unsigned(payload(12 downto 8)), 32));
             when others     => imm <= (31 downto 0 => '-');
         end case;
     end process gen;
