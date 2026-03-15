@@ -6,7 +6,6 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use work.leaf_pkg.all;
 
@@ -83,7 +82,8 @@ begin
     regrd_addr0 <= instr(19 downto 15);
     regrd_addr1 <= instr(24 downto 20);
     csrs_addr   <= instr(31 downto 20);
-    stage_main_ctrl: main_ctrl port map (
+
+    id_stage_main_ctrl: main_ctrl port map (
         imrd_malgn => imrd_malgn,
         dmld_malgn => dmld_malgn,
         dmld_fault => dmld_fault,

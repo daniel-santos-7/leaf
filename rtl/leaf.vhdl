@@ -6,7 +6,6 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use work.leaf_pkg.all;
 
@@ -39,21 +38,21 @@ entity leaf is
 end entity leaf;
 
 architecture rtl of leaf is
-    
+
     -- internal clock and reset --
-    
+
     signal clk_en : std_logic;
     signal clk    : std_logic;
     signal reset  : std_logic;
 
     -- instruction memory signals --
-    
+
     signal imrd_en   : std_logic;
     signal imrd_addr : std_logic_vector(31 downto 0);
     signal imrd_data : std_logic_vector(31 downto 0);
 
     -- data memory signals --
-    
+
     signal dmrd_en   : std_logic;
     signal dmwr_en   : std_logic;
     signal dmwr_be   : std_logic_vector(3  downto 0);
@@ -68,7 +67,7 @@ architecture rtl of leaf is
     signal dmwr_err : std_logic;
 
     -- counters --
-    
+
     signal cycle   : std_logic_vector(63 downto 0);
     signal timer   : std_logic_vector(63 downto 0);
     signal instret : std_logic_vector(63 downto 0);
@@ -108,7 +107,7 @@ begin
     -- counters --
 
     leaf_counters: counters port map (
-        clk     => clk_i, 
+        clk     => clk_i,
         reset   => rst_i,
         cycle   => cycle,
         timer   => timer,
@@ -125,13 +124,13 @@ begin
     );
 
     -- leaf core --
-    
+
     leaf_core: core generic map (
         RESET_ADDR    => RESET_ADDR,
         CSRS_MHART_ID => CSRS_MHART_ID,
         REG_FILE_SIZE => REG_FILE_SIZE
     ) port map (
-        clk       => clk, 
+        clk       => clk,
         reset     => reset,
         ex_irq    => ex_irq,
         sw_irq    => sw_irq,
@@ -156,5 +155,4 @@ begin
         dmrw_addr => dmrw_addr,
         dmwr_data => dmwr_data
     );
-    
 end architecture rtl;

@@ -6,19 +6,18 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.leaf_pkg.all;
 
 entity main_ctrl is
     port (
-        imrd_malgn  : in  std_logic; 
+        imrd_malgn  : in  std_logic;
         dmld_malgn  : in  std_logic;
         dmld_fault  : in  std_logic;
         flush       : in  std_logic;
         instr       : in  std_logic_vector(31 downto 0);
-        instr_err   : out std_logic;       
+        instr_err   : out std_logic;
         csrwr_en    : out std_logic;
         regwr_en    : out std_logic;
         regwr_sel   : out std_logic_vector(1  downto 0);
@@ -33,7 +32,7 @@ architecture main_ctrl_arch of main_ctrl is
     signal imm_type : std_logic_vector(2  downto 0);
     signal opcode   : std_logic_vector(6  downto 0);
     signal payload  : std_logic_vector(24 downto 0);
-    
+
     signal istg_ctrl : std_logic_vector(3  downto 0);
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
@@ -74,7 +73,7 @@ begin
             when IMM_B_TYPE => imm <= resize_signed(payload(24) & payload(0) & payload(23 downto 18) & payload(4 downto 1) & '0');
             when IMM_U_TYPE => imm <= payload(24 downto 5) & (11 downto 0 => '0');
             when IMM_J_TYPE => imm <= resize_signed(payload(24) & payload(12 downto 5) & payload(13) & payload(23 downto 14) & '0');
-            when IMM_Z_TYPE => imm <= std_logic_vector(resize(unsigned(payload(19 downto 15)), 32));
+            when IMM_Z_TYPE => imm <= std_logic_vector(resize(unsigned(payload(12 downto 8)), 32));
             when others     => imm <= (31 downto 0 => '-');
         end case;
     end process gen;

@@ -1,40 +1,52 @@
-# :leaves: Leaf
+# Leaf
 
-Leaf é um pequeno processador RISC-V de 32 bits adequado para aplicações que tenham como principal requisito a economia de recursos, em detrimento de elevado poder de processamento, como as aplicações em Internet das Coisas (IoT).
+Leaf is a compact 32-bit RISC-V processor core designed for resource-constrained systems where area and simplicity matter more than raw throughput. The core is implemented in VHDL and targets RV32I-compatible software.
 
-## :star: Recursos
+## Features
 
-- Suporte a especificação base RISC-V (RV32I)
-- Pipeline de 2 estágios (busca de instruções / decodificação e execução)
-- Interface compatível com o protocolo Wishbone B4
+- RV32I base ISA support
+- Two-stage pipeline (fetch / decode+execute)
+- Wishbone B4-compatible bus interface
 
-## :file_folder: Diretórios
+## Project Structure
 
-Este repositório apresenta a seguinte estrutura de diretórios:
+Directory | Description
+--------- | -----------
+`docs/`   | Documentation and design notes
+`ip/`     | Auxiliary or third-party IP blocks
+`py/`     | Python tooling and utilities
+`rtl/`    | VHDL RTL source files
+`steps/`  | Build artifacts from simulation steps
+`tbs/`    | VHDL testbenches
+`tcl/`    | TCL scripts for tool automation
+`verif/`  | Verification collateral, tests, and binaries
+`waves/`  | Waveform outputs (`.ghw`)
+`work/`   | GHDL work library
 
-Diretório        | Descrição
----------------- | ----------------
-[cpu](/cpu/)     | Projeto do processador Leaf
-[soc](/soc/)     | Exemplo de um simples (*System On Chip*) sintetizável em FPGA com o processador Leaf
-[sim](/sim/)     | Exemplo de um sistema não sintetizável (simulador) com um processador Leaf
-[uart](/uart/)   | Projeto de um módulo UART (interface serial)
-[sw](/sw)        | Exemplos de programas e recursos para programação
+## Requirements
 
-## :computer: Ambiente de desenvolvimento
+- GHDL (VHDL simulator)
+- GNU Make
+- GTKWave (optional, for waveform viewing)
 
-Este projeto tem sido desenvolvido com o auxílio das seguintes ferramentas:
-
-- [GHDL v0.37](https://github.com/ghdl/ghdl): ferramenta *open-source* para interpretação e simulação de projetos desenvolvidos com VHDL.
-- [GtkWave](http://gtkwave.sourceforge.net/): software para visualização de formatos de ondas digitais.
-- [GNU Make](https://www.gnu.org/software/make/): interpretador de Makefiles, utilizado para execução de scripts e compilações.
-
-Em qualquer sistema operacional baseado no linux, essas ferramentas podem ser instaladas com facilidade por meio de um gerenciador de pacotes.
+On Debian/Ubuntu:
 
 ```bash
-# apt é o gerenciador de pacotes padrão de distros beseadas no Debian, como o Ubuntu
 sudo apt install ghdl gtkwave make
 ```
 
----
+## Quick Start (Simulation)
 
-<p align="center">2022</p>
+Run the default testbench:
+
+```bash
+make run
+```
+
+By default the simulation is configured to read `verif/tests/dump/out.bin` and write `verif/tests/dump/out.dump` while producing a waveform at `waves/leaf_tb.ghw`. See `Makefile` for the exact simulation flags.
+
+Clean generated artifacts:
+
+```bash
+make clean
+```

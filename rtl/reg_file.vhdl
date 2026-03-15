@@ -6,7 +6,6 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.leaf_pkg.all;
@@ -36,7 +35,7 @@ architecture reg_file_arch of reg_file is
     constant EMBEDDED : boolean := SIZE = 16;
 
     type regs_array is array(0 to SIZE-1) of std_logic_vector(XLEN-1 downto 0);
-    
+
     signal regs: regs_array;
 
     signal wr_data: std_logic_vector(XLEN-1 downto 0);

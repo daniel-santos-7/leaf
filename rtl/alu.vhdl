@@ -6,7 +6,6 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.leaf_pkg.all;
@@ -46,7 +45,7 @@ architecture alu_arch of alu is
     signal shifter_shamt  : std_logic_vector(4  downto 0);
     signal shifter_bypass : std_logic_vector(31 downto 0);
     signal shifter_res    : std_logic_vector(31 downto 0);
-    
+
 begin
 
     arith_op   <= op(4) or op(5);
@@ -92,7 +91,7 @@ begin
     begin
         if comp_opd0 = comp_opd1 then
             comp_res_i := comp_opd2;
-        else 
+        else
             if comp_op = '0' then
                 comp_res_i := comp_opd0 and not comp_opd1;
             else
@@ -134,7 +133,7 @@ begin
             when SHIFTER_SRL => shifter_res <= std_logic_vector(shift_right(unsigned(shifter_opd), shamt));
             when SHIFTER_SRA => shifter_res <= std_logic_vector(shift_right(signed(shifter_opd), shamt));
             when others      => shifter_res <= shifter_bypass;
-        end case;       
+        end case;
     end process shifter;
 
     res <= shifter_res;

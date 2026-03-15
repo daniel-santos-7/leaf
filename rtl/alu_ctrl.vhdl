@@ -6,7 +6,6 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use work.leaf_pkg.all;
 
@@ -51,5 +50,5 @@ begin
             end case;
         end if;
     end process alu_op_ctrl;
-    
+
 end architecture alu_ctrl_arch;

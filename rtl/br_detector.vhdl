@@ -6,14 +6,13 @@
 ----------------------------------------------------------------------
 
 library IEEE;
-library work;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.leaf_pkg.all;
 
 entity br_detector is
     port (
-        reg0   : in  std_logic_vector(31 downto 0); 
+        reg0   : in  std_logic_vector(31 downto 0);
         reg1   : in  std_logic_vector(31 downto 0);
         mode   : in  std_logic_vector(2  downto 0);
         en     : in  std_logic;
@@ -22,18 +21,18 @@ entity br_detector is
 end entity br_detector;
 
 architecture br_detector_arch of br_detector is
-    
+
     signal equal:         std_logic;
     signal less:          std_logic;
     signal less_unsigned: std_logic;
     signal branch_i:      std_logic;
 
 begin
-    
+
     equal <= '1' when reg0 = reg1 else '0';
-    
+
     less <= '1' when signed(reg0) < signed(reg1) else '0';
-    
+
     less_unsigned <= '1' when unsigned(reg0) < unsigned(reg1) else '0';
 
     exec: process(mode, equal, less, less_unsigned)
