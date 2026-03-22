@@ -10,7 +10,7 @@ RISCV_GCC_OPTS ?= -nostartfiles -nostdlib -Ttext 0x80000000 -march=$(MARCH) -mab
 
 TEST ?= dump
 
-APP_SRC  ?= $(wildcard $(TEST)/*.s) $(wildcard $(TEST)/*.S)
+APP_SRC  ?= $(wildcard $(TEST)/*.s) $(wildcard $(TEST)/*.S) common/common.S
 APP_OUT  ?= $(TEST)/out
 
 .PHONY: run all clean
