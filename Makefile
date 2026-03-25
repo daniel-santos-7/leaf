@@ -37,6 +37,9 @@ $(WORK_DIR)/.make: $(WORK_DIR)/.import
 run: $(WORK_DIR)/.make $(PROGRAM)
 	@$(SIM) run  $(TBS_TOP) $(SIMXOPTS) -gPROGRAM=$(PROGRAM) -gDUMP_FILE=$(DUMP_FILE)
 
+synthesis: $(WORK_DIR)/.make
+	@$(SIM) synth $(SIMFLAGS) --latches --out=verilog $(RTL_TOP) > $(RTL_TOP).v
+
 clean:
 	$(SIM) clean --workdir=$(WORK_DIR)
 	@rm -rf $(WORK_DIR)
