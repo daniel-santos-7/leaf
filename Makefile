@@ -37,8 +37,10 @@ $(WORK_DIR)/.make: $(WORK_DIR)/.import
 run: $(WORK_DIR)/.make $(PROGRAM)
 	@$(SIM) run  $(TBS_TOP) $(SIMXOPTS) -gPROGRAM=$(PROGRAM) -gDUMP_FILE=$(DUMP_FILE)
 
+REG_FILE=32
 synthesis: $(WORK_DIR)/.make
-	@$(SIM) synth $(SIMFLAGS) --latches --out=verilog $(RTL_TOP) > $(RTL_TOP).v
+	@mkdir -p syn
+	@$(SIM) synth $(SIMFLAGS) --latches --out=verilog -gREG_FILE_SIZE=$(REG_FILE) $(RTL_TOP) > syn/$(RTL_TOP).v
 
 clean:
 	$(SIM) clean --workdir=$(WORK_DIR)
