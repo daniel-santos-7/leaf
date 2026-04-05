@@ -40,9 +40,3 @@ _start:
     lui_walking_ones
     lui_walking_zeros
     call halt
-    
-halt:
-    li t0, HALT_CMD_ADDR
-    li t1, HALT_CMD_DATA
-    sw t1, 0x0(t0)
-    ret

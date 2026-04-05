@@ -1,7 +1,8 @@
 .include "defs.inc"
 
 .section .text
-.globl set_dump_pointers halt
+.globl set_dump_pointers
+.globl halt
 
 set_dump_pointers:
     li t0, DUMP_START_ADDR
