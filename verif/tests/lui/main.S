@@ -1,5 +1,3 @@
-.include "defs.inc"
-
 .altmacro
 
 .macro _lui_one r, val
@@ -39,4 +37,5 @@ _start:
     lui_all 0x55555
     lui_walking_ones
     lui_walking_zeros
-    call halt
+    call store_regs
+    call finish_test

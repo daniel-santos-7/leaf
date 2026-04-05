@@ -39,4 +39,5 @@ _start:
     li_all 0x55555555
     li_walking_ones
     li_walking_zeros
-    call halt
+    call store_regs
+    call finish_test

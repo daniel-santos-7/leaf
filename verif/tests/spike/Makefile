@@ -1,10 +1,9 @@
 SPIKE      ?= spike
 SPIKE_ISA  ?= rv32i
 SIGNATURE  ?= main.signature
-SIGNATURE_WORDS ?= 4
-APP_SRC    := $(wildcard *.S)
+APP_SRC    = $(filter-out spike.S signature.S,$(wildcard *.S)) $(COMMON_DIR)/spike.S
 APP_OUT    := main
-RISCV_GCC_OPTS = -nostartfiles -nostdlib -T link.ld -march=$(MARCH) -mabi=$(MABI) -O0 -g -DSIGNATURE_WORDS=$(SIGNATURE_WORDS)
+RISCV_GCC_OPTS = -nostartfiles -nostdlib -T $(COMMON_DIR)/spike.ld -march=$(MARCH) -mabi=$(MABI) -O0 -g -I$(COMMON_DIR) -DDUMP_SIZE=$(DUMP_SIZE)
 
 include ../common/common.mk
 
@@ -23,6 +22,9 @@ $(APP_OUT).bin:
 
 $(APP_OUT).debug:
 	@true
+
+$(APP_OUT).elf: $(APP_SRC) $(COMMON_DIR)/common.S $(COMMON_DIR)/spike.ld
+	$(RISCV_GCC) $(RISCV_GCC_OPTS) $(APP_SRC) $(COMMON_DIR)/common.S -o $@
 
 $(SIGNATURE): $(APP_OUT).elf
 	$(SPIKE) --isa=$(SPIKE_ISA) +signature=$@ +signature-granularity=4 $<
