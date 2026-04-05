@@ -2,11 +2,11 @@
 .globl store_regs
 
 store_regs:
-    csrw mscratch, x31
+    csrw mepc, x31
     la x31, begin_dump
+    add x31, x31, a0
 
     sw x0, 0(x31)
-    sw x1, 4(x31)
     sw x2, 8(x31)
     sw x3, 12(x31)
     sw x4, 16(x31)
@@ -15,7 +15,6 @@ store_regs:
     sw x7, 28(x31)
     sw x8, 32(x31)
     sw x9, 36(x31)
-    sw x10, 40(x31)
     sw x11, 44(x31)
     sw x12, 48(x31)
     sw x13, 52(x31)
@@ -37,6 +36,10 @@ store_regs:
     sw x29, 116(x31)
     sw x30, 120(x31)
 
+    csrr x30, mcause
+    sw x30, 4(x31)
     csrr x30, mscratch
+    sw x30, 40(x31)
+    csrr x30, mepc
     sw x30, 124(x31)
     ret

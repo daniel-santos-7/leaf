@@ -7,4 +7,5 @@ run all:
 	@false
 
 clean:
-	@rm -f out.elf out.bin out.debug
+	@rm -f out.leaf.elf out.leaf.bin out.leaf.debug out.leaf.dump
+	@rm -f out.spike.elf out.spike.bin out.spike.debug out.spike.signature

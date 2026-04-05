@@ -15,25 +15,51 @@ RISCV_GCC_OPTS ?= -nostartfiles -nostdlib -march=$(MARCH) -mabi=$(MABI) -O0 -g -
 APP_SRC ?= $(wildcard *.s) $(wildcard *.S)
 APP_OUT ?= out
 
-.PHONY: run all clean
+.PHONY: run run-leaf run-spike all all-leaf all-spike clean clean-leaf clean-spike compare
 
-run: $(APP_OUT).bin $(APP_OUT).signature
-	@$(MAKE) -C ../../../ run PROGRAM=$(CURDIR)/$< DUMP_FILE=$(CURDIR)/$(APP_OUT).dump
+run: run-leaf run-spike
 
-all: $(APP_OUT).elf $(APP_OUT).bin $(APP_OUT).debug $(APP_OUT).spike.elf $(APP_OUT).spike.bin $(APP_OUT).spike.debug $(APP_OUT).signature
+run-leaf: $(APP_OUT).leaf.dump
 
-clean:
-	@rm -f $(APP_OUT).elf $(APP_OUT).bin $(APP_OUT).debug
-	@rm -f $(APP_OUT).spike.elf $(APP_OUT).spike.bin $(APP_OUT).spike.debug $(APP_OUT).signature
+run-spike: $(APP_OUT).spike.signature
 
-$(APP_OUT).elf: $(APP_SRC) $(COMMON_DIR)/common.S $(COMMON_DIR)/leaf.S $(COMMON_DIR)/leaf.ld
+all: all-leaf all-spike
+
+all-leaf: $(APP_OUT).leaf.elf $(APP_OUT).leaf.bin $(APP_OUT).leaf.debug
+
+all-spike: $(APP_OUT).spike.elf $(APP_OUT).spike.bin $(APP_OUT).spike.debug
+
+clean: clean-leaf clean-spike
+
+clean-leaf:
+	@rm -f $(APP_OUT).leaf.elf $(APP_OUT).leaf.bin $(APP_OUT).leaf.debug $(APP_OUT).leaf.dump
+
+clean-spike:
+	@rm -f $(APP_OUT).spike.elf $(APP_OUT).spike.bin $(APP_OUT).spike.debug $(APP_OUT).spike.signature
+
+compare: run
+	@leaf_tmp=$$(mktemp); spike_tmp=$$(mktemp); \
+	trap 'rm -f $$leaf_tmp $$spike_tmp' EXIT; \
+	tr '[:upper:]' '[:lower:]' < $(APP_OUT).leaf.dump > $$leaf_tmp; \
+	tr '[:upper:]' '[:lower:]' < $(APP_OUT).spike.signature > $$spike_tmp; \
+	if diff -u $$leaf_tmp $$spike_tmp; then \
+		echo "🟢 Leaf dump matches Spike signature"; \
+	else \
+		echo "🔴 Leaf dump differs from Spike signature"; \
+		exit 1; \
+	fi
+
+$(APP_OUT).leaf.elf: $(APP_SRC) $(COMMON_DIR)/common.S $(COMMON_DIR)/leaf.S $(COMMON_DIR)/leaf.ld
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) -T $(COMMON_DIR)/leaf.ld $(APP_SRC) $(COMMON_DIR)/common.S $(COMMON_DIR)/leaf.S -o $@
 
-$(APP_OUT).bin: $(APP_OUT).elf
+$(APP_OUT).leaf.bin: $(APP_OUT).leaf.elf
 	$(RISCV_OBJCOPY) -O binary $^ $@
 
-$(APP_OUT).debug: $(APP_OUT).elf
+$(APP_OUT).leaf.debug: $(APP_OUT).leaf.elf
 	$(RISCV_OBJDUMP) $^ --source > $@
+
+$(APP_OUT).leaf.dump: $(APP_OUT).leaf.bin
+	@$(MAKE) -C ../../../ run PROGRAM=$(CURDIR)/$< DUMP_FILE=$(CURDIR)/$@
 
 $(APP_OUT).spike.elf: $(APP_SRC) $(COMMON_DIR)/common.S $(COMMON_DIR)/spike.S $(COMMON_DIR)/spike.ld
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) -T $(COMMON_DIR)/spike.ld $(APP_SRC) $(COMMON_DIR)/common.S $(COMMON_DIR)/spike.S -o $@
@@ -44,5 +70,5 @@ $(APP_OUT).spike.bin: $(APP_OUT).spike.elf
 $(APP_OUT).spike.debug: $(APP_OUT).spike.elf
 	$(RISCV_OBJDUMP) $^ --source > $@
 
-$(APP_OUT).signature: $(APP_OUT).spike.elf
+$(APP_OUT).spike.signature: $(APP_OUT).spike.elf
 	$(SPIKE) --isa=$(SPIKE_ISA) +signature=$@ +signature-granularity=4 $<

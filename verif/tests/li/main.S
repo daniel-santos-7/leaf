@@ -39,5 +39,8 @@ _start:
     li_all 0x55555555
     li_walking_ones
     li_walking_zeros
+    csrw mcause, x1
+    csrw mscratch, x10
+    li a0, 0
     call store_regs
     call finish_test
