@@ -4,6 +4,7 @@ RISCV_GCC    ?= $(RISCV_PREFIX)-gcc
 SPIKE      ?= spike
 SPIKE_ISA  ?= rv32i
 SIGNATURE  ?= main.signature
+SIGNATURE_WORDS ?= 4
 APP_SRC    := $(wildcard *.S)
 
 main.elf: $(APP_SRC) link.ld
@@ -13,6 +14,7 @@ main.elf: $(APP_SRC) link.ld
 		-T link.ld \
 		-march=rv32i \
 		-mabi=ilp32 \
+		-DSIGNATURE_WORDS=$(SIGNATURE_WORDS) \
 		-O0 \
 		-g \
 		-o $@ $(APP_SRC)

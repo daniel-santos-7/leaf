@@ -1,7 +1,7 @@
 .section .text
-.globl spike_finish
+.globl halt
 
-spike_finish:
+halt:
     la   t0, tohost
     li   t1, 1
     sw   t1, 0(t0)
