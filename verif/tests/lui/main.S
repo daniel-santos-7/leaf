@@ -33,9 +33,9 @@
 _start:
     lui_all 0x00000
     lui_all 0xFFFFF
+    call store_regs
     lui_all 0xAAAAA
     lui_all 0x55555
     lui_walking_ones
     lui_walking_zeros
-    call store_regs
     call finish_test
