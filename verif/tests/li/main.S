@@ -2,45 +2,53 @@
 
 .altmacro
 
-.macro _li_one r, val
-    li x\r, \val
+.set dump_offset, 0
+
+.macro test_li_case reg, addr_reg, val, off
+    li x\reg, \val
+    la x\addr_reg, begin_dump + \off
+    sw x\reg, 0(x\addr_reg)
 .endm
 
-.macro li_all val
+.macro test_li_all_regs val
     .set i, 0
     .rept 32
-        _li_one %i, \val
+        .if i == 31
+            test_li_case %i, 1, \val, dump_offset
+        .else
+            test_li_case %i, %(i + 1), \val, dump_offset
+        .endif
+        .set dump_offset, dump_offset + 4
         .set i, i + 1
     .endr
 .endm
 
-.macro li_walking_ones
+.macro test_li_basic_patterns
+    test_li_all_regs 0x00000000
+    test_li_all_regs 0xFFFFFFFF
+    test_li_all_regs 0xAAAAAAAA
+    test_li_all_regs 0x55555555
+.endm
+
+.macro test_li_walking_ones
     .set bit, 0x80000000
     .rept 32
-        li_all %bit
+        test_li_all_regs %bit
         .set bit, bit >> 1
     .endr
 .endm
 
-.macro li_walking_zeros
+.macro test_li_walking_zeros
     .set bit, 0x80000000
     .rept 32
-        li_all %(0xFFFFF - bit)
+        test_li_all_regs %(0xFFFFFFFF ^ bit)
         .set bit, bit >> 1
     .endr
 .endm
 
 .globl _start
-
 _start:
-    li_all 0x00000000
-    li_all 0xFFFFFFFF
-    li_all 0xAAAAAAAA
-    li_all 0x55555555
-    li_walking_ones
-    li_walking_zeros
-    csrw mcause, x1
-    csrw mscratch, x10
-    li a0, 0
-    call store_regs
+    test_li_basic_patterns
+    test_li_walking_ones
+    test_li_walking_zeros
     call finish_test
