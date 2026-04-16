@@ -1,33 +1,24 @@
-RISCV_PREFIX  = riscv32-unknown-elf
-RISCV_GCC     = $(RISCV_PREFIX)-gcc
-RISCV_OBJDUMP = $(RISCV_PREFIX)-objdump
-RISCV_OBJCOPY = $(RISCV_PREFIX)-objcopy
+TEST_DIRS := $(sort $(patsubst %/,%,$(filter-out common/,$(wildcard */))))
 
-MARCH = rv32i
-MABI  = ilp32
+.PHONY: list run compare clean $(TEST_DIRS)
 
-RISCV_GCC_OPTS ?= -nostartfiles -nostdlib -Ttext 0x80000000 -march=$(MARCH) -mabi=$(MABI) -O0 -g -I./common
+list:
+	@printf '%s\n' $(TEST_DIRS)
 
-TEST ?= dump
+run: $(addprefix run-,$(TEST_DIRS))
 
-APP_SRC  ?= $(wildcard $(TEST)/*.s) $(wildcard $(TEST)/*.S) common/common.S
-APP_OUT  ?= $(TEST)/out
+compare: $(addprefix compare-,$(TEST_DIRS))
 
-.PHONY: run all clean
+clean: $(addprefix clean-,$(TEST_DIRS))
 
-run: $(APP_OUT).bin
-	@$(MAKE) -C ../../ run PROGRAM=$(CURDIR)/$< DUMP_FILE=$(CURDIR)/$(APP_OUT).dump
+$(TEST_DIRS):
+	@$(MAKE) -C $@ run
 
-all: $(APP_OUT).elf $(APP_OUT).bin $(APP_OUT).debug
+run-%:
+	@$(MAKE) -C $* run
 
-clean:
-	@rm -f $(APP_OUT).elf $(APP_OUT).bin $(APP_OUT).debug
+compare-%:
+	@$(MAKE) -C $* compare
 
-$(APP_OUT).elf: $(APP_SRC)
-	$(RISCV_GCC) $(RISCV_GCC_OPTS) $^ -o $@
-
-$(APP_OUT).bin: $(APP_OUT).elf
-	$(RISCV_OBJCOPY) -O binary $^ $@
-
-$(APP_OUT).debug: $(APP_OUT).elf
-	$(RISCV_OBJDUMP) $^ --source > $@
+clean-%:
+	@$(MAKE) -C $* clean

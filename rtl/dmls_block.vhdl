@@ -60,7 +60,7 @@ begin
                         when b"01" => dmld_data <= std_logic_vector(resize(signed(dmrd_data(15 downto 8)), 32));
                         when b"10" => dmld_data <= std_logic_vector(resize(signed(dmrd_data(23 downto 16)), 32));
                         when b"11" => dmld_data <= std_logic_vector(resize(signed(dmrd_data(31 downto 24)), 32));
-                        when others => null;
+                        when others => dmld_data <= (others => '-');
                     end case;
                     dmld_malgn <= '0';
                     dmrd_en    <= '1';
@@ -70,7 +70,7 @@ begin
                         when b"01" => dmld_data <= std_logic_vector(resize(unsigned(dmrd_data(15 downto 8)), 32));
                         when b"10" => dmld_data <= std_logic_vector(resize(unsigned(dmrd_data(23 downto 16)), 32));
                         when b"11" => dmld_data <= std_logic_vector(resize(unsigned(dmrd_data(31 downto 24)), 32));
-                        when others => null;
+                        when others => dmld_data <= (others => '-');
                     end case;
                     dmld_malgn <= '0';
                     dmrd_en    <= '1';
@@ -92,7 +92,10 @@ begin
                             dmld_data  <= std_logic_vector(resize(signed(dmrd_data(31 downto 16)), 32));
                             dmld_malgn <= '1';
                             dmrd_en    <= '0';
-                        when others => null;
+                        when others =>
+                            dmld_data  <= (others => '-');
+                            dmld_malgn <= '-';
+                            dmrd_en    <= '-';
                     end case;
                 when LSU_HALFU =>
                     case addr_base is
@@ -112,7 +115,10 @@ begin
                             dmld_data  <= std_logic_vector(resize(unsigned(dmrd_data(31 downto 16)), 32));
                             dmld_malgn <= '1';
                             dmrd_en    <= '0';
-                        when others => null;
+                        when others =>
+                            dmld_data  <= (others => '-');
+                            dmld_malgn <= '-';
+                            dmrd_en    <= '-';
                     end case;
                 when LSU_WORD =>
                     dmld_data <= dmrd_data;
@@ -153,7 +159,9 @@ begin
                         when b"11" =>
                             dmwr_data  <= dmst_data(7  downto 0) & dmst_data(31 downto  8);
                             dm_byte_en <= b"1000";
-                        when others => null;
+                        when others =>
+                            dmwr_data  <= (others => '-');
+                            dm_byte_en <= (others => '-');
                     end case;
                     dmst_malgn <= '0';
                     dmwr_en    <= '1';
@@ -179,7 +187,11 @@ begin
                             dm_byte_en <= b"1100";
                             dmst_malgn <= '1';
                             dmwr_en    <= '0';
-                        when others => null;
+                        when others =>
+                            dmwr_data  <= (others => '-');
+                            dm_byte_en <= (others => '-');
+                            dmst_malgn <= '-';
+                            dmwr_en    <= '-';
                     end case;
                 when LSU_WORD  =>
                     dmwr_data  <= dmst_data;

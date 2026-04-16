@@ -1,48 +1,52 @@
-.include "defs.inc"
-
 .altmacro
 
-.macro _lui_one r, val
-    lui x\r, \val
+.set dump_offset, 0
+
+.macro test_lui_case reg, addr_reg, val, off
+    lui x\reg, \val
+    la x\addr_reg, begin_dump + \off
+    sw x\reg, 0(x\addr_reg)
 .endm
 
-.macro lui_all val
+.macro test_lui_all_regs val
     .set i, 0
     .rept 32
-        _lui_one %i, \val
+        .if i == 31
+            test_lui_case %i, 1, \val, dump_offset
+        .else
+            test_lui_case %i, %(i + 1), \val, dump_offset
+        .endif
+        .set dump_offset, dump_offset + 4
         .set i, i + 1
     .endr
 .endm
 
-.macro lui_walking_ones
+.macro test_lui_basic_patterns
+    test_lui_all_regs 0x00000
+    test_lui_all_regs 0xFFFFF
+    test_lui_all_regs 0xAAAAA
+    test_lui_all_regs 0x55555
+.endm
+
+.macro test_lui_walking_ones
     .set bit, 0x80000
     .rept 20
-        lui_all %bit
+        test_lui_all_regs %bit
         .set bit, bit >> 1
     .endr
 .endm
 
-.macro lui_walking_zeros
+.macro test_lui_walking_zeros
     .set bit, 0x80000
     .rept 20
-        lui_all %(0xFFFFF - bit)
+        test_lui_all_regs %(0xFFFFF - bit)
         .set bit, bit >> 1
     .endr
 .endm
 
 .globl _start
-
 _start:
-    lui_all 0x00000
-    lui_all 0xFFFFF
-    lui_all 0xAAAAA
-    lui_all 0x55555
-    lui_walking_ones
-    lui_walking_zeros
-    call halt
-    
-halt:
-    li t0, HALT_CMD_ADDR
-    li t1, HALT_CMD_DATA
-    sw t1, 0x0(t0)
-    ret
+    test_lui_basic_patterns
+    test_lui_walking_ones
+    test_lui_walking_zeros
+    call finish_test

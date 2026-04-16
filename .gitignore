@@ -1,6 +1,7 @@
 work
 waves
 steps
+syn
 
 e~leaf_tb.o
 leaf_tb
@@ -9,6 +10,8 @@ verif/tests/*/*.elf
 verif/tests/*/*.bin
 verif/tests/*/*.debug
 verif/tests/*/*.dump
+verif/tests/*/*.signature
+
 verif/riscof/*/__pycache__/
 verif/riscof/venv
 verif/riscof/riscof_work

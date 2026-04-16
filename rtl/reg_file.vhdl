@@ -58,7 +58,7 @@ begin
             when b"01" => wr_data <= wr_data1;
             when b"10" => wr_data <= wr_data2;
             when b"11" => wr_data <= wr_data3;
-            when others => null;
+            when others => wr_data <= (others => '-');
         end case;
     end process wr_data_mux;
 
