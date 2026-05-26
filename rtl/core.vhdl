@@ -29,7 +29,7 @@ entity core is
         cycle     : in  std_logic_vector(63 downto 0);
         timer     : in  std_logic_vector(63 downto 0);
         instret   : in  std_logic_vector(63 downto 0);
-        cop_dat_i : in  std_logic_vector(31 downto 0);
+        cop_dat_i : in  std_logic_vector(31 downto 0) := (others => '0');
         cop_adr_o : out std_logic_vector(5 downto 0);
         cop_dat_o : out std_logic_vector(31 downto 0);
         cop_we_o  : out std_logic;

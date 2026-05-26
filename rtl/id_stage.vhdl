@@ -40,7 +40,7 @@ entity id_stage is
         imm         : out std_logic_vector(31 downto 0);
         exec_ctrl   : out std_logic_vector(7  downto 0);
         dmls_ctrl   : out std_logic_vector(1  downto 0);
-        cop_dat_i     : in  std_logic_vector(31 downto 0);
+        cop_dat_i     : in  std_logic_vector(31 downto 0) := (others => '0');
         cop_adr_o     : out std_logic_vector(5 downto 0);
         cop_dat_o     : out std_logic_vector(31 downto 0);
         cop_we_o      : out std_logic;
