@@ -37,7 +37,10 @@ architecture leaf_tb_arch of leaf_tb is
     signal sel_o  : std_logic_vector(3  downto 0);
     signal adr_o  : std_logic_vector(31 downto 0);
     signal dat_o  : std_logic_vector(31 downto 0);
-
+    signal cop_dat_i : std_logic_vector(31 downto 0);
+    signal cop_adr_o : std_logic_vector(5 downto 0);
+    signal cop_dat_o : std_logic_vector(31 downto 0);
+    signal cop_we_o  : std_logic;
     signal wr_mem_i : std_logic;
     signal rd_mem_i : std_logic;
     signal halt_o   : std_logic;
@@ -58,6 +61,10 @@ begin
         ack_i  => ack_i,
         err_i  => err_i,
         dat_i  => dat_i,
+        cop_dat_i       => cop_dat_i,
+        cop_adr_o       => cop_adr_o,
+        cop_dat_o       => cop_dat_o,
+        cop_we_o        => cop_we_o,
         cyc_o  => cyc_o,
         stb_o  => stb_o,
         we_o   => we_o,
@@ -91,6 +98,7 @@ begin
     sw_irq <= '0';
     tm_irq <= '0';
     err_i  <= '0';
+    cop_dat_i <= (others => '0');
 
     test: process
     begin

@@ -24,6 +24,10 @@ entity leaf is
         ack_i  : in  std_logic;
         err_i  : in  std_logic;
         dat_i  : in  std_logic_vector(31 downto 0);
+        cop_dat_i       : in  std_logic_vector(31 downto 0) := (others => '0');
+        cop_adr_o       : out std_logic_vector(5 downto 0);
+        cop_dat_o       : out std_logic_vector(31 downto 0);
+        cop_we_o        : out std_logic;
         cyc_o  : out std_logic;
         stb_o  : out std_logic;
         we_o   : out std_logic;
@@ -139,6 +143,10 @@ begin
         cycle     => cycle,
         timer     => timer,
         instret   => instret,
+        cop_dat_i     => cop_dat_i,
+        cop_adr_o     => cop_adr_o,
+        cop_dat_o     => cop_dat_o,
+        cop_we_o      => cop_we_o,
         imrd_en   => imrd_en,
         dmrd_en   => dmrd_en,
         dmwr_en   => dmwr_en,
@@ -147,5 +155,4 @@ begin
         dmrw_addr => dmrw_addr,
         dmwr_data => dmwr_data
     );
-
 end architecture rtl;
