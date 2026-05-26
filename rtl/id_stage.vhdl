@@ -40,10 +40,10 @@ entity id_stage is
         imm         : out std_logic_vector(31 downto 0);
         exec_ctrl   : out std_logic_vector(7  downto 0);
         dmls_ctrl   : out std_logic_vector(1  downto 0);
-        cop_csr_rdata : in  std_logic_vector(31 downto 0);
-        cop_csr_addr  : out std_logic_vector(5 downto 0);
-        cop_csr_wdata : out std_logic_vector(31 downto 0);
-        cop_csr_we    : out std_logic;
+        cop_dat_i     : in  std_logic_vector(31 downto 0);
+        cop_adr_o     : out std_logic_vector(5 downto 0);
+        cop_dat_o     : out std_logic_vector(31 downto 0);
+        cop_we_o      : out std_logic;
         pcwr_en     : out std_logic;
         trap_taken  : out std_logic;
         trap_target : out std_logic_vector(31 downto 0);
@@ -140,10 +140,10 @@ begin
         cycle       => cycle,
         timer       => timer,
         instret     => instret,
-        cop_csr_rdata => cop_csr_rdata,
-        cop_csr_addr  => cop_csr_addr,
-        cop_csr_wdata => cop_csr_wdata,
-        cop_csr_we    => cop_csr_we,
+        cop_dat_i     => cop_dat_i,
+        cop_adr_o     => cop_adr_o,
+        cop_dat_o     => cop_dat_o,
+        cop_we_o      => cop_we_o,
         pcwr_en     => pcwr_en,
         trap_taken  => trap_taken,
         trap_target => trap_target,
