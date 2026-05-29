@@ -31,7 +31,7 @@ tbs/     Testbench (3 files)
 verif/   Tests and RISCOF compliance
 tcl/     GTKWave helper scripts
 docs/    Documentation and RISC-V ISA PDFs
-syn/     Synthesis scripts and IHP SG13G2 liberty
+syn/     Synthesis scripts
 waves/   Waveform outputs (gitignored)
 work/    GHDL build artifacts (gitignored)
 ```

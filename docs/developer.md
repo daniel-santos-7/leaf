@@ -58,7 +58,6 @@ tcl/     GTKWave helper TCL scripts
 docs/    Documentation and RISC-V ISA PDFs
 syn/     Synthesis scripts
   leaf_analysis.ys    — Yosys synthesis script
-  sg13g2_stdcell_typ_1p20V_25C.lib  — IHP liberty (gitignored)
 waves/   Waveform outputs (gitignored)
 work/    Build artifacts (gitignored)
 ```

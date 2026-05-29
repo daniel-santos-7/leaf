@@ -41,7 +41,7 @@ This produces:
 | `work/leaf.rpt` | Yosys area/timing report |
 | `work/leaf_netlist.v` | Post-synthesis gate-level netlist |
 
-The synthesis targets the IHP SG13G2 (130 nm) open-source standard cell library via `syn/leaf_analysis.ys`. Edit the `abc -D 20` command in that script to change the timing constraint.
+Edit the `abc -D 20` command in `syn/leaf_analysis.ys` to change the timing constraint.
 
 ## Running Tests
 

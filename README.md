@@ -19,7 +19,7 @@ make -C verif/tests/addi run
 # Run custom program
 make run PROGRAM=/path/to/prog.bin DUMP_FILE=/path/to/out.dump
 
-# Synthesize (GHDL + Yosys + IHP SG13G2)
+# Synthesize (GHDL + Yosys)
 make synthesis
 
 # View waveform
