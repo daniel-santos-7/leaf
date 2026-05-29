@@ -64,12 +64,25 @@ work/    Build artifacts (gitignored)
 
 ## Known RTL Issues
 
-See [rtl-review.md](../rtl-review.md) for documented bugs:
+See [rtl-review.md](../rtl-review.md) for legacy findings and [review.md](review.md) for the ongoing systematic review.
+
+### Legacy Issues (rtl-review.md)
 
 1. `mret` is implemented as an exception instead of exception return — breaks trap return flow
 2. Load-fault signal miswired (`dmld_fault => dmst_fault`) in `id_stage.vhdl`
 3. Don't-care values (`'-'`) propagate from main_ctrl into ALU during flush/unknown opcodes
 4. Invalid CSR accesses do not raise traps
+
+### Review Findings (docs/review.md)
+
+| ID | Severity | Component | Description |
+|----|----------|-----------|-------------|
+| R1 | BUG | `counters` | `instret` and `timer` hardwired to zero |
+| R2 | WARN | `leaf` | Reset distribution asymmetry (core vs counters) |
+| R3 | WARN | `leaf` | COP interface lacks handshake signals |
+| R4 | INFO | `clk_ctrl` | Gated clock via transparent latch |
+| R5 | INFO | `wb_ctrl` | Error reporting uses current enable, not latched source |
+| R6 | INFO | `wb_ctrl` | No bus timeout mechanism |
 
 ## Adding a New Test
 

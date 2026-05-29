@@ -2,30 +2,149 @@
 
 ## Architecture Overview
 
-Leaf implements a two-stage pipeline:
+Leaf implements a two-stage pipeline with Wishbone B4 bus interface:
 
 ```
-┌─────────────┐     ┌──────────────────┐
-│  IF Stage   │────▶│   ID/EX Stage    │
-│             │     │                  │
-│ • PC fetch  │     │ • Decode         │
-│ • imem rd   │     │ • Register file  │
-│ • flush     │     │ • CSR access     │
-│             │     │ • ALU            │
-│             │     │ • Branch detect  │
-│             │     │ • Load/store     │
-└─────────────┘     └──────────────────┘
-       │                      │
-       │     Wishbone B4      │
-       └──────────┬───────────┘
-                  │
-        ┌─────────────────┐
-        │   wb_ctrl FSM   │
-        │ (arbitrates bus) │
-        └─────────────────┘
+                   ┌──────────────────────────────────────┐
+                   │              leaf (top)               │
+                   │  ┌──────────┐  ┌──────────────────┐   │
+clk_i ─────────────┼─▶│clk_ctrl  │──▶│    core          │   │
+rst_i ─────────────┼─▶│          │  │  ┌─────────────┐  │   │
+                   │  └──────────┘  │  │  IF Stage    │  │   │
+                   │  ┌──────────┐  │  │ (if_stage)   │  │   │
+ack_i ─────────────┼─▶│ wb_ctrl  │◀─┼──│ • PC fetch   │  │   │
+err_i ─────────────┼─▶│ (FSM)    │──┼──│ • imem rd    │  │   │
+dat_i ◀────────────┼──│          │  │  │ • flush      │  │   │
+                   │  └──────────┘  │  └──────┬──────┘  │   │
+                   │                │         │pipeline  │   │
+                   │  ┌──────────┐  │  ┌──────▼──────┐  │   │
+                   │  │ counters │  │  │  ID/EX      │  │   │
+                   │  │ (cycle,  │  │  │ (id_stage + │  │   │
+                   │  │  time,   │  │  │  ex_block)  │  │   │
+                   │  │  instret)│  │  │ • decode    │  │   │
+                   │  └──────────┘  │  │ • reg file  │  │   │
+                   │                │  │ • CSR       │  │   │
+                   │                │  │ • ALU       │  │   │
+                   │                │  │ • branch    │  │   │
+                   │                │  │ • load/store│  │   │
+                   │                │  └─────────────┘  │   │
+                   └──────────────────────────────────────┘
 ```
 
-IF stage writes to pipeline registers on each clock; ID/EX operates combinatorially from those registers and writes results back in the same cycle.
+### Pipeline Operation
+
+IF stage writes to pipeline registers on each clock; ID/EX operates combinatorially from those registers and writes results back in the same cycle. Both stages advance together — there is no independent stall per stage.
+
+### Clock Domains
+
+Two clock domains exist:
+
+| Domain | Signal | Source | Consumers |
+|--------|--------|--------|-----------|
+| Free-running | `clk_i` | External input | `wb_ctrl`, `counters`, `clk_ctrl` |
+| Gated | `clk` | `clk_ctrl(clk_i, clk_en)` | `core` (pipeline) |
+
+The `clk_ctrl` module generates a glitch-free gated clock using a transparent latch (enable sampled on falling edge) + AND gate. The `clk_en` is asserted when the Wishbone FSM is in `START`, `EXECUTE`, or `ERROR` states — meaning the core clock is **stopped** during bus transactions and **running** when the pipeline has work to do.
+
+```
+clk_i   ─┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──
+clk_en  ─┐    └──────┐    └──────┐    └──────┐    └──
+en_latch ─┐    └──────┐    └──────┐    └──────┐    └──
+clk      ─┐──┐  └──┐──┐  └──┐──┐  └──┐──┐  └──┐──┐
+         FETCH EXEC FETCH EXEC FETCH EXEC FETCH EXEC
+```
+
+### Reset Architecture
+
+Three different reset behaviors:
+
+| Component | Reset Signal | Source | Deassertion |
+|-----------|-------------|--------|-------------|
+| `wb_ctrl` | `rst_i` | External | Immediate after `rst_i` |
+| `clk_ctrl` | `rst_i` | External | Immediate (clock forced on during reset) |
+| `counters` | `rst_i` | External | Immediate after `rst_i` |
+| `core` | `reset` | `wb_ctrl` | 1 cycle after `rst_i` (when FSM exits START) |
+
+The core's `reset` is derived from the Wishbone FSM START state, introducing a 1-cycle skew relative to `rst_i`.
+
+## Top-Level Interface
+
+### Ports (`rtl/leaf.vhdl`)
+
+| Port | Direction | Description |
+|------|-----------|-------------|
+| `clk_i` | in | Master clock (50 MHz, 20 ns) |
+| `rst_i` | in | Asynchronous reset (active high) |
+| `ex_irq` | in | External interrupt (level-sensitive) |
+| `sw_irq` | in | Software interrupt (level-sensitive) |
+| `tm_irq` | in | Timer interrupt (level-sensitive) |
+| `ack_i` | in | Wishbone acknowledge |
+| `err_i` | in | Wishbone error |
+| `dat_i` | in | Wishbone read data bus |
+| `cop_dat_i` | in | Coprocessor read data (default 0) |
+| `cop_adr_o` | out | Coprocessor address (6 bits, CSR address offset) |
+| `cop_dat_o` | out | Coprocessor write data |
+| `cop_we_o` | out | Coprocessor write strobe |
+| `cyc_o` | out | Wishbone cycle |
+| `stb_o` | out | Wishbone strobe |
+| `we_o` | out | Wishbone write enable |
+| `sel_o` | out | Wishbone byte selects |
+| `adr_o` | out | Wishbone address |
+| `dat_o` | out | Wishbone write data |
+
+### Data Flow
+
+```
+                leaf.vhdl
+    ┌────────────────────────────────────┐
+    │                                    │
+    │  ┌──────────────┐                  │
+    │  │   wb_ctrl    │ ◀── imrd_en      │
+    │  │              │ ◀── dmrd_en      │◀── core
+    │  │              │ ◀── dmwr_en      │
+    │  │              │ ◀── imrd_addr ───│
+    │  │  (arbitrates)│ ◀── dmrw_addr ───│
+    │  │              │ ◀── dmwr_data ───│
+    │  │              │ ◀── dmwr_be ─────│
+    │  │              │                  │
+    │  │  ──▶ imrd_err ────▶ core        │
+    │  │  ──▶ dmrd_err ────▶ core        │
+    │  │  ──▶ dmwr_err ────▶ core        │
+    │  │  ──▶ imrd_data ──▶ core        │
+    │  │  ──▶ dmrd_data ──▶ core        │
+    │  │  ──▶ clk_en ──▶ clk_ctrl       │
+    │  │  ──▶ reset ──▶ core            │
+    │  └──────────────┘                  │
+    │                                    │
+    │  ┌──────────────┐                  │
+    │  │  clk_ctrl    │ ──▶ clk ──▶ core│
+    │  └──────────────┘                  │
+    │                                    │
+    │  ┌──────────────┐                  │
+    │  │  counters    │ ──▶ cycle ──▶ core
+    │  │              │ ──▶ timer ──▶ core
+    │  │              │ ──▶ instret ─▶ core
+    │  └──────────────┘                  │
+    │                                    │
+    │  cop_adr_o ◀────── core (direct)   │
+    │  cop_dat_o ◀────── core (direct)   │
+    │  cop_we_o  ◀────── core (direct)   │
+    │  cop_dat_i ──────▶ core (direct)   │
+    └────────────────────────────────────┘
+```
+
+The COP interface bypasses `wb_ctrl` — it is a private channel between core and external coprocessor. No bus arbitration or error handling is performed on this path.
+
+### Error Flow
+
+1. `wb_ctrl` receives `err_i` from Wishbone slave
+2. FSM transitions to `ERROR` state
+3. Combinatorial logic asserts `imrd_err`, `dmrd_err`, or `dmwr_err` based on current enable signals
+4. Error signals propagate to `core`:
+   - `imrd_err` → `if_stage` → sets `imrd_fault` in pipeline register
+   - `dmrd_err`/`dmwr_err` → `ex_block` → sets `dmld_fault`/`dmst_fault`
+5. `id_stage` detects fault in decode → `csrs` triggers exception
+6. FSM returns to `IDLE` on next clock
 
 ## Pipeline Stages
 
@@ -153,6 +272,21 @@ Trap flow:
 3. `mcause` and `mtval` are set
 4. PC jumps to `mtvec`
 
+## Counters (`rtl/counters.vhdl`)
+
+The counters module tracks three 64-bit values readable via CSRs:
+
+| Counter | CSR (low) | CSR (high) | Current Behavior |
+|---------|-----------|-------------|------------------|
+| `mcycle` | `0xC00` | `0xC80` | Increments every `clk_i` cycle (ungated) |
+| `time` | `0xC01` | `0xC81` | **Hardwired to zero** |
+| `minstret` | `0xC02` | `0xC82` | **Hardwired to zero** |
+
+**Known limitations:**
+- `time` and `minstret` are not implemented — both always read zero
+- `minstret` has no input port to receive a retirement signal from the core
+- `mcycle` increments on the free-running `clk_i`, not on the gated `clk` — it counts wall-clock cycles, not core-active cycles
+
 ## Register File
 
 The register file (`reg_file.vhdl`) has 32 × 32-bit registers with:
@@ -189,7 +323,7 @@ The register file (`reg_file.vhdl`) has 32 × 32-bit registers with:
 
 | File | Entity | Role |
 |------|--------|------|
-| `rtl/leaf.vhdl` | `leaf` | Top-level with Wishbone interface, clock gating, counters |
+| `rtl/leaf.vhdl` | `leaf` | Top-level: Wishbone interface, clock gating, counters, COP interface passthrough |
 | `rtl/core.vhdl` | `core` | Core integration: IF + ID/EX pipeline |
 | `rtl/if_stage.vhdl` | `if_stage` | Instruction fetch, PC register, flush |
 | `rtl/id_stage.vhdl` | `id_stage` | Decode, register file, CSRs |
