@@ -1,7 +1,5 @@
 work
 waves
-steps
-syn
 
 e~leaf_tb.o
 leaf_tb
@@ -16,3 +14,5 @@ verif/riscof/*/__pycache__/
 verif/riscof/venv
 verif/riscof/riscof_work
 verif/riscof/riscv-arch-test
+
+*.ghw

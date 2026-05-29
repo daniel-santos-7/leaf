@@ -74,6 +74,18 @@ make synthesis
 
 Output is written to `syn/leaf.v`.
 
+## Area And Timing Analysis
+
+The top-level Makefile can synthesize `leaf` to Verilog with GHDL and run a Yosys/ABC report for area and relative timing analysis:
+
+```bash
+make analyze
+```
+
+The top-level report is written to `reports/leaf.rpt`.
+
+The Yosys flow is defined in `syn/leaf_analysis.ys`; edit the `abc -D 20` command there to change the timing target. The reports use Yosys' generic CMOS estimates and longest topological path output, so they are best used to compare alternatives within this project. For signoff-quality area/timing, replace the generic mapping with the target FPGA/ASIC technology library.
+
 ## Running Tests
 
 Tests are organized per directory under `verif/tests/`. Run them from each test directory:
