@@ -1,4 +1,4 @@
-# Leaf
+# :leaves: Leaf
 
 Leaf is a compact 32-bit RISC-V core (RV32I) written in VHDL with a two-stage pipeline and Wishbone B4 bus interface.
 
