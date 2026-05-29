@@ -1,0 +1,230 @@
+# Reference
+
+## Architecture Overview
+
+Leaf implements a two-stage pipeline:
+
+```
+┌─────────────┐     ┌──────────────────┐
+│  IF Stage   │────▶│   ID/EX Stage    │
+│             │     │                  │
+│ • PC fetch  │     │ • Decode         │
+│ • imem rd   │     │ • Register file  │
+│ • flush     │     │ • CSR access     │
+│             │     │ • ALU            │
+│             │     │ • Branch detect  │
+│             │     │ • Load/store     │
+└─────────────┘     └──────────────────┘
+       │                      │
+       │     Wishbone B4      │
+       └──────────┬───────────┘
+                  │
+        ┌─────────────────┐
+        │   wb_ctrl FSM   │
+        │ (arbitrates bus) │
+        └─────────────────┘
+```
+
+IF stage writes to pipeline registers on each clock; ID/EX operates combinatorially from those registers and writes results back in the same cycle.
+
+## Pipeline Stages
+
+### IF Stage (`if_stage.vhdl`)
+
+- Maintains `pc_reg` — updated to `target` on branches/jumps, to `pc+4` otherwise
+- Drives `imrd_en` and `imrd_addr` to the Wishbone controller
+- Output pipeline register holds `pc`, `next_pc`, `instr`, `flush`, `imrd_fault`
+- Flush is asserted on reset, taken branches, or imem errors
+
+### ID/EX Stage (`id_stage.vhdl`)
+
+Combines decode, register file read, and CSR access:
+
+- **main_ctrl** decodes the instruction: opcode, funct3, funct7 → control signals and immediate
+- **reg_file** reads two source registers (combinatorial read)
+- **csrs** handles CSR read/write and trap/exception logic
+- Passes decoded signals to `ex_block`
+
+### Execution Block (`ex_block.vhdl`)
+
+Contains all datapath execution logic:
+
+- **alu_ctrl** — decodes ALU operation from funct3/funct7
+- **alu** — performs the selected operation (add, sub, sll, slt, etc.)
+- **br_detector** — evaluates branch conditions (eq, ne, lt, ge, ltu, geu)
+- **dmls_block** — load/store alignment and sign-extension
+- **csrs_logic** — CSR write data muxing (reg, immediate, or RS1-based modes)
+
+### Control Signals (`exec_ctrl`)
+
+8-bit control word from main_ctrl:
+
+| Bit | Signal | Description |
+|-----|--------|-------------|
+| 7 | `jmp` | Jump (JAL/JALR) |
+| 6 | `br_en` | Branch enable |
+| 5 | `opd0_src_sel` | Select PC vs reg0 as ALU operand 0 |
+| 4 | `opd1_src_sel` | Select imm vs reg1 as ALU operand 1 |
+| 3 | `opd0_pass` | Gate ALU operand 0 |
+| 2 | `opd1_pass` | Gate ALU operand 1 |
+| 1 | `ftype` | Instruction type for ALU control |
+| 0 | `op_en` | ALU operation enable |
+
+## Wishbone Bus Interface
+
+`wb_ctrl.vhdl` implements a Wishbone B4-compatible master with a single-cycle arbitration FSM:
+
+### States
+
+| State | Description |
+|-------|-------------|
+| `START` | Initial reset state, asserts internal reset |
+| `IDLE` | Waits for imem request (`imrd_en`) |
+| `READ_INSTR` | Instruction fetch cycle, waits for `ack_i` or `err_i` |
+| `BRD_CYCLE` | Transition to data read |
+| `READ_DATA` | Data read cycle, waits for `ack_i` or `err_i` |
+| `RMW_CYCLE` | Transition to data write |
+| `WRITE_DATA` | Data write cycle, waits for `ack_i` or `err_i` |
+| `EXECUTE` | Single-cycle execute — clock gating enabled, bus released |
+| `ERROR` | Bus error response — signals error to core |
+
+### Bus Arbitration
+
+Read-modify-write is used for stores: the FSM goes `READ_INSTR → RMW_CYCLE → WRITE_DATA → EXECUTE`, ensuring the bus is acquired for the full memory operation.
+
+## CSRs
+
+### Machine-Mode CSRs
+
+| Address | Register | Description |
+|---------|----------|-------------|
+| `0x300` | `mstatus` | Machine status (MIE, MPIE) |
+| `0x301` | `misa` | ISA and extensions (RV32I) |
+| `0x304` | `mie` | Interrupt enable (MEIE, MTIE, MSIE) |
+| `0x305` | `mtvec` | Trap vector base address |
+| `0x340` | `mscratch` | Machine scratchpad |
+| `0x341` | `mepc` | Exception program counter |
+| `0x342` | `mcause` | Trap cause |
+| `0x343` | `mtval` | Trap value |
+| `0x344` | `mip` | Interrupt pending |
+
+### Read-Only Counters
+
+| Address | Register | Description |
+|---------|----------|-------------|
+| `0xC00` | `cycle` | Cycle counter (low) |
+| `0xC01` | `time` | Timer (low) |
+| `0xC02` | `instret` | Instruction retired (low) |
+| `0xC80` | `cycleh` | Cycle counter (high) |
+| `0xC81` | `timeh` | Timer (high) |
+| `0xC82` | `instreth` | Instruction retired (high) |
+
+### Custom Coprocessor Window
+
+CSR addresses `0x7C0` to `0x7FF` are reserved for coprocessor attachment. Reads are forwarded to `cop_dat_i`, writes to `cop_dat_o` with `cop_we_o` strobe.
+
+## Exception and Trap Handling
+
+Exception sources and their `mcause` codes:
+
+| Code | Source |
+|------|--------|
+| 0 | Instruction address misaligned |
+| 1 | Instruction access fault |
+| 2 | Illegal instruction |
+| 3 | Breakpoint (ebreak) |
+| 4 | Load address misaligned |
+| 5 | Load access fault |
+| 6 | Store address misaligned |
+| 7 | Store access fault |
+| 11 | Environment call (ecall) |
+
+Interrupt codes (mscause bit 31 = 1):
+
+| Code | Source |
+|------|--------|
+| 3 | Machine software interrupt |
+| 7 | Machine timer interrupt |
+| 11 | Machine external interrupt |
+
+Trap flow:
+1. Current PC is saved to `mepc`
+2. `mstatus.MIE` is saved to `mstatus.MPIE`, then `MIE` is cleared
+3. `mcause` and `mtval` are set
+4. PC jumps to `mtvec`
+
+## Register File
+
+The register file (`reg_file.vhdl`) has 32 × 32-bit registers with:
+
+- 2 asynchronous read ports
+- 1 synchronous write port with 4-way write mux (ALU result, load data, next PC, CSR read data)
+- Register x0 is hardwired to zero (writes to x0 are discarded)
+
+## Block Diagram
+
+```
+                  ┌──────────┐
+  clk_i ─────────▶│clk_ctrl  │───▶ clk (gated)
+  rst_i ─────────▶│          │
+                  └──────────┘
+                  ┌──────────┐
+  ack_i ─────────▶│          │
+  err_i ─────────▶│ wb_ctrl  │◀─── imrd_en, dmrd_en, dmwr_en
+  dat_i ◀────────▶│          │───▶ cyc_o, stb_o, we_o, adr_o, dat_o
+                  └──────────┘
+                        │
+               ┌────────┴────────┐
+               │                 │
+        ┌──────────────┐  ┌──────────────┐
+        │   counters   │  │    core      │
+        │ (cycle,time, │  │              │
+        │  instret)    │  │ if_stage     │
+        └──────────────┘  │ id_stage     │
+                          │ ex_block     │
+                          └──────────────┘
+```
+
+## RTL File Map
+
+| File | Entity | Role |
+|------|--------|------|
+| `rtl/leaf.vhdl` | `leaf` | Top-level with Wishbone interface, clock gating, counters |
+| `rtl/core.vhdl` | `core` | Core integration: IF + ID/EX pipeline |
+| `rtl/if_stage.vhdl` | `if_stage` | Instruction fetch, PC register, flush |
+| `rtl/id_stage.vhdl` | `id_stage` | Decode, register file, CSRs |
+| `rtl/ex_block.vhdl` | `ex_block` | ALU, branch, CSR logic, load/store |
+| `rtl/alu.vhdl` | `alu` | ALU datapath |
+| `rtl/alu_ctrl.vhdl` | `alu_ctrl` | ALU operation decoder |
+| `rtl/br_detector.vhdl` | `br_detector` | Branch condition evaluation |
+| `rtl/dmls_block.vhdl` | `dmls_block` | Data memory load/store alignment |
+| `rtl/csrs.vhdl` | `csrs` | Machine CSRs and trap control |
+| `rtl/csrs_logic.vhdl` | `csrs_logic` | CSR write data muxing |
+| `rtl/counters.vhdl` | `counters` | mcycle, time, minstret counters |
+| `rtl/clk_ctrl.vhdl` | `clk_ctrl` | Clock gating |
+| `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file |
+| `rtl/wb_ctrl.vhdl` | `wb_ctrl` | Wishbone B4 master FSM |
+| `rtl/leaf_pkg.vhdl` | `leaf_pkg` | ISA constants, opcodes, ALU ops, component declarations |
+| `rtl/main_ctrl.vhdl` | `main_ctrl` | Main control decoder and immediate generator |
+
+## Test Support Files
+
+| File | Purpose |
+|------|---------|
+| `verif/tests/common/common.mk` | Build rules: .s → .elf → .bin → run/compare |
+| `verif/tests/common/leaf.ld` | Leaf linker script |
+| `verif/tests/common/spike.ld` | Spike linker script |
+| `verif/tests/common/leaf.S` | Leaf HALT routine |
+| `verif/tests/common/spike.S` | Spike finish routine |
+| `verif/tests/common/common.S` | `store_regs` helper (dumps x0-x31 + CSRs) |
+| `verif/tests/common/defs.inc` | Memory map constants |
+
+## Key Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `MEM_BASE` | `0x80000000` | Memory base address |
+| `MEM_SIZE` | `0x400000` | Memory size (4 MiB) |
+| `HALT_CMD_ADDR` | `0x803FFFFC` | HALT command address (last word) |
+| `CLK_PERIOD` | 20 ns | Clock period (50 MHz) |
+| `XLEN` | 32 | Register width |
