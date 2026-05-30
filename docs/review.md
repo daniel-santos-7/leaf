@@ -193,7 +193,8 @@ Ver seção Bugs Conhecidos abaixo.
 - `cycle`/`timer`/`instret` → `cycle_i` etc.
 - `exec_res`/`dmld_data`/`pc`/`next_pc`/`instr` → `exec_res_i` etc.
 - `flush`/`csrwr_data` → `flush_i`/`csrwr_data_i`
-- `func3`/`func7`/`imm`/`exec_ctrl`/`dmls_ctrl` → `func3_o` etc.
+- `func3`/`func7`/`imm`/`exec_ctrl` → `func3_o` etc.
+- `dmls_ctrl` → split em `dmls_mode_o`/`dmls_en_o`
 - `pcwr_en`/`trap_taken`/`trap_target` → `pcwr_en_o` etc.
 - `rd_data0`/`rd_data1` → `rd_data0_o`/`rd_data1_o`
 - `csrrd_data` → `csrrd_data_o`

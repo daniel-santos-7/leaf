@@ -227,7 +227,8 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 | `opd1_pass_o` | out | 1 | Gate ALU operand 1 |
 | `ftype_o` | out | 1 | Instruction type for ALU control |
 | `op_en_o` | out | 1 | ALU operation enable |
-| `dmls_ctrl_o` | out | 2 | Data memory load/store control |
+| `dmls_mode_o` | out | 1 | Data memory mode (0=load, 1=store) |
+| `dmls_en_o` | out | 1 | Data memory enable |
 | `cop_adr_o` | out | 6 | Coprocessor address |
 | `cop_dat_o` | out | XLEN | Coprocessor write data |
 | `cop_we_o` | out | 1 | Coprocessor write enable |
