@@ -70,11 +70,11 @@ begin
     gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass_i);
 
     exec_alu_ctrl: alu_ctrl port map (
-        op_en => op_en_i,
-        ftype => ftype_i,
-        func3 => func3_i,
-        func7 => func7_i,
-        op    => alu_op
+        op_en_i => op_en_i,
+        ftype_i => ftype_i,
+        func3_i => func3_i,
+        func7_i => func7_i,
+        op_o    => alu_op
     );
 
     exec_alu: alu port map (

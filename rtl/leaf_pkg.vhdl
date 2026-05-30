@@ -282,11 +282,11 @@ package leaf_pkg is
 
     component alu_ctrl is
         port (
-            op_en : in  std_logic;
-            ftype : in  std_logic;
-            func3 : in  std_logic_vector(2 downto 0);
-            func7 : in  std_logic_vector(6 downto 0);
-            op    : out std_logic_vector(5 downto 0)
+            op_en_i : in  std_logic;
+            ftype_i : in  std_logic;
+            func3_i : in  std_logic_vector(2 downto 0);
+            func7_i : in  std_logic_vector(6 downto 0);
+            op_o    : out std_logic_vector(5 downto 0)
         );
     end component alu_ctrl;
 
