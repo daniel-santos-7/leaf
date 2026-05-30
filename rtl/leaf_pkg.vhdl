@@ -213,45 +213,45 @@ package leaf_pkg is
     component id_stage is
         generic (
             REG_FILE_SIZE : natural := 32;
-            CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0')
+            CSRS_MHART_ID : std_logic_vector(XLEN-1 downto 0) := (others => '0')
         );
         port (
-            clk         : in  std_logic;
-            reset       : in  std_logic;
-            ex_irq      : in  std_logic;
-            sw_irq      : in  std_logic;
-            tm_irq      : in  std_logic;
-            imrd_malgn  : in  std_logic;
-            imrd_fault  : in  std_logic;
-            dmld_malgn  : in  std_logic;
-            dmld_fault  : in  std_logic;
-            dmst_malgn  : in  std_logic;
-            dmst_fault  : in  std_logic;
-            cycle       : in  std_logic_vector(63 downto 0);
-            timer       : in  std_logic_vector(63 downto 0);
-            instret     : in  std_logic_vector(63 downto 0);
-            exec_res    : in  std_logic_vector(31 downto 0);
-            dmld_data   : in  std_logic_vector(31 downto 0);
-            pc          : in  std_logic_vector(31 downto 0);
-            next_pc     : in  std_logic_vector(31 downto 0);
-            instr       : in  std_logic_vector(31 downto 0);
-            flush       : in  std_logic;
-            func3       : out std_logic_vector(2  downto 0);
-            func7       : out std_logic_vector(6  downto 0);
-            imm         : out std_logic_vector(31 downto 0);
-            exec_ctrl   : out std_logic_vector(7  downto 0);
-            dmls_ctrl   : out std_logic_vector(1  downto 0);
-            cop_dat_i   : in  std_logic_vector(31 downto 0) := (others => '0');
-            cop_adr_o   : out std_logic_vector(5 downto 0);
-            cop_dat_o   : out std_logic_vector(31 downto 0);
-            cop_we_o    : out std_logic;
-            pcwr_en     : out std_logic;
-            trap_taken  : out std_logic;
-            trap_target : out std_logic_vector(31 downto 0);
-            rd_data0    : out std_logic_vector(31 downto 0);
-            rd_data1    : out std_logic_vector(31 downto 0);
-            csrwr_data  : in  std_logic_vector(31 downto 0);
-            csrrd_data  : out std_logic_vector(31 downto 0)
+            clk_i         : in  std_logic;
+            reset_i       : in  std_logic;
+            ex_irq_i      : in  std_logic;
+            sw_irq_i      : in  std_logic;
+            tm_irq_i      : in  std_logic;
+            imrd_malgn_i  : in  std_logic;
+            imrd_fault_i  : in  std_logic;
+            dmld_malgn_i  : in  std_logic;
+            dmld_fault_i  : in  std_logic;
+            dmst_malgn_i  : in  std_logic;
+            dmst_fault_i  : in  std_logic;
+            cycle_i       : in  std_logic_vector(63 downto 0);
+            timer_i       : in  std_logic_vector(63 downto 0);
+            instret_i     : in  std_logic_vector(63 downto 0);
+            exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
+            dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+            pc_i          : in  std_logic_vector(XLEN-1 downto 0);
+            next_pc_i     : in  std_logic_vector(XLEN-1 downto 0);
+            instr_i       : in  std_logic_vector(XLEN-1 downto 0);
+            flush_i       : in  std_logic;
+            func3_o       : out std_logic_vector(2  downto 0);
+            func7_o       : out std_logic_vector(6  downto 0);
+            imm_o         : out std_logic_vector(XLEN-1 downto 0);
+            exec_ctrl_o   : out std_logic_vector(7  downto 0);
+            dmls_ctrl_o   : out std_logic_vector(1  downto 0);
+            cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
+            cop_adr_o     : out std_logic_vector(5 downto 0);
+            cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
+            cop_we_o      : out std_logic;
+            pcwr_en_o     : out std_logic;
+            trap_taken_o  : out std_logic;
+            trap_target_o : out std_logic_vector(XLEN-1 downto 0);
+            rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
+            rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
+            csrwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+            csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0)
         );
     end component id_stage;
 
