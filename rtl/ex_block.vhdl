@@ -78,10 +78,10 @@ begin
     );
 
     exec_alu: alu port map (
-        opd0 => gtd_opd0,
-        opd1 => gtd_opd1,
-        op   => alu_op,
-        res  => alu_res
+        opd0_i => gtd_opd0,
+        opd1_i => gtd_opd1,
+        op_i   => alu_op,
+        res_o  => alu_res
     );
 
     exec_csrs_logic: csrs_logic port map (

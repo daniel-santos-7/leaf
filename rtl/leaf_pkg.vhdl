@@ -273,10 +273,10 @@ package leaf_pkg is
 
     component alu is
         port(
-            opd0 : in  std_logic_vector(31 downto 0);
-            opd1 : in  std_logic_vector(31 downto 0);
-            op   : in  std_logic_vector(5  downto 0);
-            res  : out std_logic_vector(31 downto 0)
+            opd0_i : in  std_logic_vector(XLEN-1 downto 0);
+            opd1_i : in  std_logic_vector(XLEN-1 downto 0);
+            op_i   : in  std_logic_vector(5          downto 0);
+            res_o  : out std_logic_vector(XLEN-1 downto 0)
         );
     end component alu;
 
