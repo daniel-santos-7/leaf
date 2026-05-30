@@ -127,18 +127,18 @@ package leaf_pkg is
 
     component main_ctrl is
         port (
-            imrd_malgn  : in std_logic;
-            dmld_malgn  : in std_logic;
-            dmld_fault  : in std_logic;
-            flush       : in  std_logic;
-            instr       : in  std_logic_vector(31 downto 0);
-            instr_err   : out std_logic;
-            csrwr_en    : out std_logic;
-            regwr_en    : out std_logic;
-            regwr_sel   : out std_logic_vector(1  downto 0);
-            dmls_ctrl   : out std_logic_vector(1  downto 0);
-            exec_ctrl   : out std_logic_vector(7  downto 0);
-            imm         : out std_logic_vector(31 downto 0)
+            imrd_malgn_i  : in std_logic;
+            dmld_malgn_i  : in std_logic;
+            dmld_fault_i  : in std_logic;
+            flush_i       : in  std_logic;
+            instr_i       : in  std_logic_vector(XLEN-1 downto 0);
+            instr_err_o   : out std_logic;
+            csrwr_en_o    : out std_logic;
+            regwr_en_o    : out std_logic;
+            regwr_sel_o   : out std_logic_vector(1  downto 0);
+            dmls_ctrl_o   : out std_logic_vector(1  downto 0);
+            exec_ctrl_o   : out std_logic_vector(7  downto 0);
+            imm_o         : out std_logic_vector(XLEN-1 downto 0)
         );
     end component main_ctrl;
 

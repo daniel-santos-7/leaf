@@ -2,7 +2,7 @@
 -- Leaf project
 -- developed by: Daniel Santos
 -- module: main control
--- 2022
+-- 2026
 ----------------------------------------------------------------------
 
 library IEEE;
@@ -12,18 +12,18 @@ use work.leaf_pkg.all;
 
 entity main_ctrl is
     port (
-        imrd_malgn  : in  std_logic;
-        dmld_malgn  : in  std_logic;
-        dmld_fault  : in  std_logic;
-        flush       : in  std_logic;
-        instr       : in  std_logic_vector(31 downto 0);
-        instr_err   : out std_logic;
-        csrwr_en    : out std_logic;
-        regwr_en    : out std_logic;
-        regwr_sel   : out std_logic_vector(1  downto 0);
-        dmls_ctrl   : out std_logic_vector(1  downto 0);
-        exec_ctrl   : out std_logic_vector(7  downto 0);
-        imm         : out std_logic_vector(31 downto 0)
+        imrd_malgn_i  : in  std_logic;
+        dmld_malgn_i  : in  std_logic;
+        dmld_fault_i  : in  std_logic;
+        flush_i       : in  std_logic;
+        instr_i       : in  std_logic_vector(XLEN-1 downto 0);
+        instr_err_o   : out std_logic;
+        csrwr_en_o    : out std_logic;
+        regwr_en_o    : out std_logic;
+        regwr_sel_o   : out std_logic_vector(1  downto 0);
+        dmls_ctrl_o   : out std_logic_vector(1  downto 0);
+        exec_ctrl_o   : out std_logic_vector(7  downto 0);
+        imm_o         : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity main_ctrl;
 
@@ -37,17 +37,17 @@ architecture main_ctrl_arch of main_ctrl is
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
-        return std_logic_vector(resize(signed(value), 32));
+        return std_logic_vector(resize(signed(value), XLEN));
     end function resize_signed;
 
 begin
 
-    opcode  <= instr(6  downto  0);
-    payload <= instr(31 downto  7);
+    opcode  <= instr_i(6  downto  0);
+    payload <= instr_i(31 downto  7);
 
-    imm_gen_ctrl: process(opcode, flush)
+    imm_gen_ctrl: process(opcode, flush_i)
     begin
-        if flush = '1' then
+        if flush_i = '1' then
             imm_type <= (others => '-');
         else
             case opcode is
@@ -68,19 +68,19 @@ begin
     gen: process(imm_type, payload)
     begin
         case imm_type is
-            when IMM_I_TYPE => imm <= resize_signed(payload(24 downto 13));
-            when IMM_S_TYPE => imm <= resize_signed(payload(24 downto 18) & payload(4 downto 0));
-            when IMM_B_TYPE => imm <= resize_signed(payload(24) & payload(0) & payload(23 downto 18) & payload(4 downto 1) & '0');
-            when IMM_U_TYPE => imm <= payload(24 downto 5) & (11 downto 0 => '0');
-            when IMM_J_TYPE => imm <= resize_signed(payload(24) & payload(12 downto 5) & payload(13) & payload(23 downto 14) & '0');
-            when IMM_Z_TYPE => imm <= std_logic_vector(resize(unsigned(payload(12 downto 8)), 32));
-            when others     => imm <= (31 downto 0 => '-');
+            when IMM_I_TYPE => imm_o <= resize_signed(payload(24 downto 13));
+            when IMM_S_TYPE => imm_o <= resize_signed(payload(24 downto 18) & payload(4 downto 0));
+            when IMM_B_TYPE => imm_o <= resize_signed(payload(24) & payload(0) & payload(23 downto 18) & payload(4 downto 1) & '0');
+            when IMM_U_TYPE => imm_o <= payload(24 downto 5) & (XLEN-21 downto 0 => '0');
+            when IMM_J_TYPE => imm_o <= resize_signed(payload(24) & payload(12 downto 5) & payload(13) & payload(23 downto 14) & '0');
+            when IMM_Z_TYPE => imm_o <= std_logic_vector(resize(unsigned(payload(12 downto 8)), XLEN));
+            when others     => imm_o <= (XLEN-1 downto 0 => '-');
         end case;
     end process gen;
 
-    istg_block_ctrl: process(opcode, flush)
+    istg_block_ctrl: process(opcode, flush_i)
     begin
-        if flush = '1' then
+        if flush_i = '1' then
             istg_ctrl <= (others => '0');
         else
             case opcode is
@@ -97,63 +97,63 @@ begin
         end if;
     end process istg_block_ctrl;
 
-    exec_block_ctrl: process(opcode, flush)
+    exec_block_ctrl: process(opcode, flush_i)
     begin
-        if flush = '1' then
-            exec_ctrl <= (others => '0');
+        if flush_i = '1' then
+            exec_ctrl_o <= (others => '0');
         else
             case opcode is
-                when RR_OPCODE     => exec_ctrl <= b"00001101";
-                when IMM_OPCODE    => exec_ctrl <= b"00011111";
-                when JALR_OPCODE   => exec_ctrl <= b"10011100";
-                when BRANCH_OPCODE => exec_ctrl <= b"01111100";
-                when AUIPC_OPCODE  => exec_ctrl <= b"00111100";
-                when JAL_OPCODE    => exec_ctrl <= b"10111100";
-                when LOAD_OPCODE   => exec_ctrl <= b"00011100";
-                when STORE_OPCODE  => exec_ctrl <= b"00011100";
-                when LUI_OPCODE    => exec_ctrl <= b"00010100";
-                when others        => exec_ctrl <= (others => '0');
+                when RR_OPCODE     => exec_ctrl_o <= b"00001101";
+                when IMM_OPCODE    => exec_ctrl_o <= b"00011111";
+                when JALR_OPCODE   => exec_ctrl_o <= b"10011100";
+                when BRANCH_OPCODE => exec_ctrl_o <= b"01111100";
+                when AUIPC_OPCODE  => exec_ctrl_o <= b"00111100";
+                when JAL_OPCODE    => exec_ctrl_o <= b"10111100";
+                when LOAD_OPCODE   => exec_ctrl_o <= b"00011100";
+                when STORE_OPCODE  => exec_ctrl_o <= b"00011100";
+                when LUI_OPCODE    => exec_ctrl_o <= b"00010100";
+                when others        => exec_ctrl_o <= (others => '0');
             end case;
         end if;
     end process exec_block_ctrl;
 
-    dmls_block_ctrl: process(opcode, flush)
+    dmls_block_ctrl: process(opcode, flush_i)
     begin
-        if flush = '1' then
-            dmls_ctrl <= b"00";
+        if flush_i = '1' then
+            dmls_ctrl_o <= b"00";
         else
             case opcode is
-                when LOAD_OPCODE  => dmls_ctrl <= b"01";
-                when STORE_OPCODE => dmls_ctrl <= b"11";
-                when others       => dmls_ctrl <= b"00";
+                when LOAD_OPCODE  => dmls_ctrl_o <= b"01";
+                when STORE_OPCODE => dmls_ctrl_o <= b"11";
+                when others       => dmls_ctrl_o <= b"00";
             end case;
         end if;
     end process dmls_block_ctrl;
 
-    exception_ctrl: process(opcode, flush)
+    exception_ctrl: process(opcode, flush_i)
     begin
-        if flush = '1' then
-            instr_err <= '0';
+        if flush_i = '1' then
+            instr_err_o <= '0';
         else
             case opcode is
-                when RR_OPCODE     => instr_err <= '0';
-                when IMM_OPCODE    => instr_err <= '0';
-                when JALR_OPCODE   => instr_err <= '0';
-                when LOAD_OPCODE   => instr_err <= '0';
-                when STORE_OPCODE  => instr_err <= '0';
-                when BRANCH_OPCODE => instr_err <= '0';
-                when LUI_OPCODE    => instr_err <= '0';
-                when AUIPC_OPCODE  => instr_err <= '0';
-                when JAL_OPCODE    => instr_err <= '0';
-                when SYSTEM_OPCODE => instr_err <= '0';
-                when FENCE_OPCODE  => instr_err <= '0';
-                when others        => instr_err <= '1';
+                when RR_OPCODE     => instr_err_o <= '0';
+                when IMM_OPCODE    => instr_err_o <= '0';
+                when JALR_OPCODE   => instr_err_o <= '0';
+                when LOAD_OPCODE   => instr_err_o <= '0';
+                when STORE_OPCODE  => instr_err_o <= '0';
+                when BRANCH_OPCODE => instr_err_o <= '0';
+                when LUI_OPCODE    => instr_err_o <= '0';
+                when AUIPC_OPCODE  => instr_err_o <= '0';
+                when JAL_OPCODE    => instr_err_o <= '0';
+                when SYSTEM_OPCODE => instr_err_o <= '0';
+                when FENCE_OPCODE  => instr_err_o <= '0';
+                when others        => instr_err_o <= '1';
             end case;
         end if;
     end process exception_ctrl;
 
-    regwr_en  <= istg_ctrl(0) and not (imrd_malgn or dmld_malgn or dmld_fault);
-    regwr_sel <= istg_ctrl(2 downto 1);
-    csrwr_en  <= istg_ctrl(3);
+    regwr_en_o  <= istg_ctrl(0) and not (imrd_malgn_i or dmld_malgn_i or dmld_fault_i);
+    regwr_sel_o <= istg_ctrl(2 downto 1);
+    csrwr_en_o  <= istg_ctrl(3);
 
 end architecture main_ctrl_arch;

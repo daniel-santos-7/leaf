@@ -83,18 +83,18 @@ begin
     csrs_addr   <= instr_i(31 downto 20);
 
     id_stage_main_ctrl: main_ctrl port map (
-        imrd_malgn => imrd_malgn_i,
-        dmld_malgn => dmld_malgn_i,
-        dmld_fault => dmld_fault_i,
-        flush      => flush_i,
-        instr      => instr_i,
-        instr_err  => instr_err,
-        csrwr_en   => csrwr_en,
-        regwr_en   => regwr_en,
-        regwr_sel  => regwr_sel,
-        dmls_ctrl  => dmls_ctrl_o,
-        exec_ctrl  => exec_ctrl_o,
-        imm        => imm_value
+        imrd_malgn_i => imrd_malgn_i,
+        dmld_malgn_i => dmld_malgn_i,
+        dmld_fault_i => dmld_fault_i,
+        flush_i      => flush_i,
+        instr_i      => instr_i,
+        instr_err_o  => instr_err,
+        csrwr_en_o   => csrwr_en,
+        regwr_en_o   => regwr_en,
+        regwr_sel_o  => regwr_sel,
+        dmls_ctrl_o  => dmls_ctrl_o,
+        exec_ctrl_o  => exec_ctrl_o,
+        imm_o        => imm_value
     );
 
     id_stage_reg_file: reg_file generic map (
