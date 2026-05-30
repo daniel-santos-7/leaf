@@ -486,6 +486,20 @@ Correto e simples: 32×32 register file, leitura combinacional, escrita síncron
 
 ---
 
+## Package (`rtl/leaf_pkg.vhdl`)
+
+### INFO: Dead code removido
+
+2026-05-30: Constantes `ALU_CTRL_*` (10 linhas, 10-bit) removidas — não referenciadas em nenhum módulo. Eram resquício de design anterior; o ALU opcode real usa as constantes `ALU_ADD`, `ALU_SUB`, etc. (6-bit).
+
+### INFO: Component declarations verificadas
+
+Todas as 17 component declarations conferidas contra suas respectivas entidades. As declarações de `core`, `leaf`, e `wb_ctrl` ainda usam portas sem `_i`/`_o` e `31 downto 0` sem XLEN — serão atualizadas quando esses módulos forem revisados.
+
+Header já `2026`. Constantes verificadas: opcodes, CSR addresses, ALU ops (6-bit), branch modes, LSU types, I-types — todas corretas.
+
+---
+
 ## Melhorias Planejadas
 
 ### INFO: `mcountinhibit` (CSR `0x320`) — counter inhibit
@@ -529,4 +543,4 @@ O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) 
 - [x] ~~`rtl/csrs.vhdl` — CSRs e traps~~ (revisado 2026-05-30)
 - [x] ~~`rtl/csrs_logic.vhdl` — multiplexação CSR~~ (revisado 2026-05-30)
 - [x] ~~`rtl/reg_file.vhdl` — banco de registradores~~ (revisado 2026-05-30)
-- [ ] `rtl/leaf_pkg.vhdl` — constantes e declarações
+- [x] ~~`rtl/leaf_pkg.vhdl` — constantes e declarações~~ (revisado 2026-05-30)

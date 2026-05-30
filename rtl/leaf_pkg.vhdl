@@ -63,19 +63,6 @@ package leaf_pkg is
     constant ALU_SUB  : std_logic_vector(5 downto 0) := b"011111";
     constant ALU_SRA  : std_logic_vector(5 downto 0) := b"001110";
 
-    -- ALU control func --
-
-    constant ALU_CTRL_ADD  :  std_logic_vector(9 downto 0) := b"0000000000";
-    constant ALU_CTRL_SLL  :  std_logic_vector(9 downto 0) := b"0000000001";
-    constant ALU_CTRL_SLT  :  std_logic_vector(9 downto 0) := b"0000000010";
-    constant ALU_CTRL_SLTU :  std_logic_vector(9 downto 0) := b"0000000011";
-    constant ALU_CTRL_XOR  :  std_logic_vector(9 downto 0) := b"0000000100";
-    constant ALU_CTRL_SRL  :  std_logic_vector(9 downto 0) := b"0000000101";
-    constant ALU_CTRL_OR   :  std_logic_vector(9 downto 0) := b"0000000110";
-    constant ALU_CTRL_AND  :  std_logic_vector(9 downto 0) := b"0000000111";
-    constant ALU_CTRL_SUB  :  std_logic_vector(9 downto 0) := b"0100000000";
-    constant ALU_CTRL_SRA  :  std_logic_vector(9 downto 0) := b"0100000101";
-
     -- imm types --
 
     constant IMM_I_TYPE : std_logic_vector(2 downto 0) := b"000";
