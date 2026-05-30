@@ -60,7 +60,14 @@ architecture rtl of core is
     signal func3     : std_logic_vector(2  downto 0);
     signal func7     : std_logic_vector(6  downto 0);
     signal imm       : std_logic_vector(31 downto 0);
-    signal exec_ctrl : std_logic_vector(7  downto 0);
+    signal jmp          : std_logic;
+    signal br_en        : std_logic;
+    signal opd0_src_sel : std_logic;
+    signal opd1_src_sel : std_logic;
+    signal opd0_pass    : std_logic;
+    signal opd1_pass    : std_logic;
+    signal ftype        : std_logic;
+    signal op_en        : std_logic;
     signal dmls_ctrl : std_logic_vector(1  downto 0);
 
     signal trap_taken  : std_logic;
@@ -132,7 +139,14 @@ begin
         func3_o       => func3,
         func7_o       => func7,
         imm_o         => imm,
-        exec_ctrl_o   => exec_ctrl,
+        jmp_o         => jmp,
+        br_en_o       => br_en,
+        opd0_src_sel_o=> opd0_src_sel,
+        opd1_src_sel_o=> opd1_src_sel,
+        opd0_pass_o   => opd0_pass,
+        opd1_pass_o   => opd1_pass,
+        ftype_o       => ftype,
+        op_en_o       => op_en,
         dmls_ctrl_o   => dmls_ctrl,
         cop_dat_i     => cop_dat_i,
         cop_adr_o     => cop_adr_o,
@@ -157,7 +171,14 @@ begin
         pc          => pc,
         imm         => imm,
         csrrd_data  => csrrd_data,
-        exec_ctrl   => exec_ctrl,
+        jmp         => jmp,
+        br_en       => br_en,
+        opd0_src_sel=> opd0_src_sel,
+        opd1_src_sel=> opd1_src_sel,
+        opd0_pass   => opd0_pass,
+        opd1_pass   => opd1_pass,
+        ftype       => ftype,
+        op_en       => op_en,
         dmls_ctrl   => dmls_ctrl,
         dmrd_err    => dmrd_err,
         dmwr_err    => dmwr_err,

@@ -38,7 +38,14 @@ entity id_stage is
         func3_o       : out std_logic_vector(2  downto 0);
         func7_o       : out std_logic_vector(6  downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
-        exec_ctrl_o   : out std_logic_vector(7  downto 0);
+        jmp_o         : out std_logic;
+        br_en_o       : out std_logic;
+        opd0_src_sel_o: out std_logic;
+        opd1_src_sel_o: out std_logic;
+        opd0_pass_o   : out std_logic;
+        opd1_pass_o   : out std_logic;
+        ftype_o       : out std_logic;
+        op_en_o       : out std_logic;
         dmls_ctrl_o   : out std_logic_vector(1  downto 0);
         cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
         cop_adr_o     : out std_logic_vector(5 downto 0);
@@ -93,7 +100,14 @@ begin
         regwr_en_o   => regwr_en,
         regwr_sel_o  => regwr_sel,
         dmls_ctrl_o  => dmls_ctrl_o,
-        exec_ctrl_o  => exec_ctrl_o,
+        jmp_o        => jmp_o,
+        br_en_o      => br_en_o,
+        opd0_src_sel_o => opd0_src_sel_o,
+        opd1_src_sel_o => opd1_src_sel_o,
+        opd0_pass_o  => opd0_pass_o,
+        opd1_pass_o  => opd1_pass_o,
+        ftype_o      => ftype_o,
+        op_en_o      => op_en_o,
         imm_o        => imm_value
     );
 

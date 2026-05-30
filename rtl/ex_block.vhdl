@@ -2,7 +2,7 @@
 -- Leaf project
 -- developed by: Daniel Santos
 -- module: execution block
--- 2022
+-- 2026
 ----------------------------------------------------------------------
 
 library IEEE;
@@ -20,7 +20,14 @@ entity ex_block is
         pc          : in  std_logic_vector(31 downto 0);
         imm         : in  std_logic_vector(31 downto 0);
         csrrd_data  : in  std_logic_vector(31 downto 0);
-        exec_ctrl   : in  std_logic_vector(7  downto 0);
+        jmp         : in  std_logic;
+        br_en       : in  std_logic;
+        opd0_src_sel: in  std_logic;
+        opd1_src_sel: in  std_logic;
+        opd0_pass   : in  std_logic;
+        opd1_pass   : in  std_logic;
+        ftype       : in  std_logic;
+        op_en       : in  std_logic;
         dmls_ctrl   : in  std_logic_vector(1  downto 0);
         dmrd_err    : in  std_logic;
         dmwr_err    : in  std_logic;
@@ -45,16 +52,6 @@ end entity ex_block;
 
 architecture ex_block_arch of ex_block is
 
-    signal jmp   : std_logic;
-    signal br_en : std_logic;
-
-    signal opd0_src_sel : std_logic;
-    signal opd1_src_sel : std_logic;
-    signal opd0_pass    : std_logic;
-    signal opd1_pass    : std_logic;
-    signal ftype        : std_logic;
-    signal op_en        : std_logic;
-
     signal opd0     : std_logic_vector(31 downto 0);
     signal opd1     : std_logic_vector(31 downto 0);
     signal gtd_opd0 : std_logic_vector(31 downto 0);
@@ -64,16 +61,6 @@ architecture ex_block_arch of ex_block is
     signal branch   : std_logic;
 
 begin
-
-    jmp   <= exec_ctrl(7);
-    br_en <= exec_ctrl(6);
-
-    opd0_src_sel <= exec_ctrl(5);
-    opd1_src_sel <= exec_ctrl(4);
-    opd0_pass    <= exec_ctrl(3);
-    opd1_pass    <= exec_ctrl(2);
-    ftype        <= exec_ctrl(1);
-    op_en        <= exec_ctrl(0);
 
     opd0 <= pc  when opd0_src_sel = '1' else reg0;
     opd1 <= imm when opd1_src_sel = '1' else reg1;

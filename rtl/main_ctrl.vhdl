@@ -22,7 +22,14 @@ entity main_ctrl is
         regwr_en_o    : out std_logic;
         regwr_sel_o   : out std_logic_vector(1  downto 0);
         dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-        exec_ctrl_o   : out std_logic_vector(7  downto 0);
+        jmp_o         : out std_logic;
+        br_en_o       : out std_logic;
+        opd0_src_sel_o: out std_logic;
+        opd1_src_sel_o: out std_logic;
+        opd0_pass_o   : out std_logic;
+        opd1_pass_o   : out std_logic;
+        ftype_o       : out std_logic;
+        op_en_o       : out std_logic;
         imm_o         : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity main_ctrl;
@@ -34,6 +41,7 @@ architecture main_ctrl_arch of main_ctrl is
     signal payload  : std_logic_vector(24 downto 0);
 
     signal istg_ctrl : std_logic_vector(3  downto 0);
+    signal exec_ctrl : std_logic_vector(7  downto 0);
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -100,19 +108,19 @@ begin
     exec_block_ctrl: process(opcode, flush_i)
     begin
         if flush_i = '1' then
-            exec_ctrl_o <= (others => '0');
+            exec_ctrl <= (others => '0');
         else
             case opcode is
-                when RR_OPCODE     => exec_ctrl_o <= b"00001101";
-                when IMM_OPCODE    => exec_ctrl_o <= b"00011111";
-                when JALR_OPCODE   => exec_ctrl_o <= b"10011100";
-                when BRANCH_OPCODE => exec_ctrl_o <= b"01111100";
-                when AUIPC_OPCODE  => exec_ctrl_o <= b"00111100";
-                when JAL_OPCODE    => exec_ctrl_o <= b"10111100";
-                when LOAD_OPCODE   => exec_ctrl_o <= b"00011100";
-                when STORE_OPCODE  => exec_ctrl_o <= b"00011100";
-                when LUI_OPCODE    => exec_ctrl_o <= b"00010100";
-                when others        => exec_ctrl_o <= (others => '0');
+                when RR_OPCODE     => exec_ctrl <= b"00001101";
+                when IMM_OPCODE    => exec_ctrl <= b"00011111";
+                when JALR_OPCODE   => exec_ctrl <= b"10011100";
+                when BRANCH_OPCODE => exec_ctrl <= b"01111100";
+                when AUIPC_OPCODE  => exec_ctrl <= b"00111100";
+                when JAL_OPCODE    => exec_ctrl <= b"10111100";
+                when LOAD_OPCODE   => exec_ctrl <= b"00011100";
+                when STORE_OPCODE  => exec_ctrl <= b"00011100";
+                when LUI_OPCODE    => exec_ctrl <= b"00010100";
+                when others        => exec_ctrl <= (others => '0');
             end case;
         end if;
     end process exec_block_ctrl;
@@ -155,5 +163,7 @@ begin
     regwr_en_o  <= istg_ctrl(0) and not (imrd_malgn_i or dmld_malgn_i or dmld_fault_i);
     regwr_sel_o <= istg_ctrl(2 downto 1);
     csrwr_en_o  <= istg_ctrl(3);
+
+    (jmp_o, br_en_o, opd0_src_sel_o, opd1_src_sel_o, opd0_pass_o, opd1_pass_o, ftype_o, op_en_o) <= exec_ctrl;
 
 end architecture main_ctrl_arch;
