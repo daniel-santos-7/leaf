@@ -314,7 +314,56 @@ Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
 
 Read-modify-write is used for stores: the FSM goes `READ_INSTR → RMW_CYCLE → WRITE_DATA → EXECUTE`, ensuring the bus is acquired for the full memory operation.
 
-## CSRs
+## CSRs (`csrs.vhdl`)
+
+### Interface
+
+| Porta | Direção | Largura | Descrição |
+|-------|---------|---------|-----------|
+| `clk_i` | in | 1 | Clock |
+| `reset_i` | in | 1 | Reset síncrono |
+| `ex_irq_i` | in | 1 | External interrupt |
+| `sw_irq_i` | in | 1 | Software interrupt |
+| `tm_irq_i` | in | 1 | Timer interrupt |
+| `imrd_malgn_i` | in | 1 | Instruction fetch misaligned |
+| `imrd_fault_i` | in | 1 | Instruction fetch fault |
+| `instr_err_i` | in | 1 | Illegal instruction |
+| `dmld_malgn_i` | in | 1 | Data load misaligned |
+| `dmld_fault_i` | in | 1 | Data load fault |
+| `dmst_malgn_i` | in | 1 | Data store misaligned |
+| `dmst_fault_i` | in | 1 | Data store fault |
+| `wr_en_i` | in | 1 | CSR write enable |
+| `wr_mode_i` | in | 3 | CSR write mode (funct3) |
+| `rw_addr_i` | in | 12 | CSR address |
+| `wr_data_i` | in | XLEN | CSR write data |
+| `exec_res_i` | in | XLEN | ALU result (for mtval on misaligned) |
+| `pc_i` | in | XLEN | Current PC (for mepc/mtval on ebreak) |
+| `next_pc_i` | in | XLEN | Next PC (for mepc on WFI) |
+| `cycle_i` | in | 64 | Cycle counter |
+| `timer_i` | in | 64 | Timer value |
+| `instret_i` | in | 64 | Instruction retired counter |
+| `cop_dat_i` | in | XLEN | Coprocessor read data |
+| `cop_adr_o` | out | 6 | Coprocessor address |
+| `cop_dat_o` | out | XLEN | Coprocessor write data |
+| `cop_we_o` | out | 1 | Coprocessor write enable |
+| `pcwr_en_o` | out | 1 | Pipeline advance (0 during WFI until interrupt) |
+| `trap_taken_o` | out | 1 | Exception/interrupt/mret taken |
+| `trap_target_o` | out | XLEN | Trap handler or return address |
+| `rd_data_o` | out | XLEN | CSR read data |
+
+### Funcionamento
+
+The CSRs module implements the machine-mode CSR registers and all trap/exception logic:
+
+- **System calls**: `ecall`, `ebreak`, `mret`, `wfi` decoded from write enable + address
+- **Interrupt pending**: `mip_meip/msip/mtip` directly wired from external IRQ inputs (level-sensitive)
+- **Exception vector**: `exc_taken` combines all fault signals, ecall, ebreak, and interrupts
+- **Trap taken**: `trap_taken_o <= exc_taken or mret` — redirects pipeline for both traps and MRET
+- **mstatus**: MIE/MPIE updated on entry (save+disable) and MRET (restore)
+- **mepc**: Saves PC on trap; `next_pc` on WFI (return after wakeup); writable via CSR
+- **mcause**: Priority encoder for exception source; interrupt bit = `int_taken`
+- **mtval**: Address for misaligned access faults; PC for ebreak; zero otherwise
+- **Coprocessor window**: CSR addresses `0x7C0`–`0x7FF` forwarded to `cop_dat_o` with `cop_we_o` strobe
 
 ### Machine-Mode CSRs
 

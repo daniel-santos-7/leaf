@@ -211,18 +211,55 @@ Sinal interno `csrrd_data_i` → `csrrd_data_s`. O sufixo `_i` era enganoso pois
 
 ---
 
+## Pipeline Stage: CSRs (`rtl/csrs.vhdl`)
+
+### BUG: `mret` tratado como exceção — CORRIGIDO
+
+2026-05-30: `exc_taken` incluía `mret`, causando:
+- `mstatus` não restaurava `MIE/MPIE` (exception path tomava precedência sobre mret path)
+- `mepc` era sobrescrito com PC corrente ao invés de permanecer inalterado
+- `mcause` e `mtval` também eram sobrescritos
+- `trap_taken` era re-assertado (funcionalmente inócuo mas incorreto conceitualmente)
+
+**Corrigido**: `mret` removido de `exc_taken`; `trap_taken_o <= exc_taken or mret` adicionado separadamente. Agora:
+- `exc_taken` contém apenas fontes de exceção/interrupção reais
+- `mret` redireciona pipeline para `mepc` via `trap_taken_o` sem efeitos colaterais nos CSRs
+- `mstatus` restaura `MIE`/`MPIE` corretamente no mret path
+
+### BUG: Condição incorreta em `write_mcause` — CORRIGIDO
+
+`rtl/csrs.vhdl:215` (2026-05-30): A condição `elsif exc_taken = '1' then` dentro do bloco `if int_taken = '1'` era sempre verdadeira, mas por construção só era atingida quando `exi_taken = '1'` (nem swi nem tmi). Funcionalmente correto, mas semanticamente enganoso — trocado para `elsif exi_taken = '1' then`.
+
+### INFO: Port naming e XLEN padronizados
+
+2026-05-30: Todas as portas renomeadas com sufixos `_i`/`_o`:
+- Entradas: `clk_i`, `reset_i`, `ex_irq_i`, `sw_irq_i`, `tm_irq_i`, `imrd_malgn_i`, `imrd_fault_i`, `instr_err_i`, `dmld_malgn_i`, `dmld_fault_i`, `dmst_malgn_i`, `dmst_fault_i`, `wr_en_i`, `wr_mode_i`, `rw_addr_i`, `wr_data_i`, `exec_res_i`, `pc_i`, `next_pc_i`, `cycle_i`, `timer_i`, `instret_i`
+- Saídas: `pcwr_en_o`, `trap_taken_o`, `trap_target_o`, `rd_data_o`
+- `cop_dat_i/adr_o/dat_o/we_o` já estavam corretos
+- Portas de dados (`wr_data_i`, `exec_res_i`, `pc_i`, `next_pc_i`, `trap_target_o`, `rd_data_o`, etc.) mudadas de `31 downto 0` para `XLEN-1 downto 0`
+
+### INFO: Sinais internos com XLEN
+
+Sinais internos (`mtvec_base`, `mscratch`, `mepc`, `mtval`) atualizados para `XLEN-1 downto 0`/`XLEN-1 downto 2`.
+
+### INFO: Coprocessor interface single-cycle
+
+Interface COP não tem handshake (`cop_ack_i`/`cop_ready_i`). Documentado como limitação conhecida — ver seção WARN acima.
+
 ## Bugs Conhecidos (de `rtl-review.md`)
 
-### BUG: `mret` tratado como exceção, não como retorno de exceção
+### ~~BUG: `mret` tratado como exceção, não como retorno de exceção~~ (CORRIGIDO)
 
-`rtl/csrs.vhdl:95, 270`
+~~`rtl/csrs.vhdl:95, 270`~~
 
-`exc_taken` inclui `mret` — o CSR update logic entra no path de exceção antes do path de retorno nos processos de `mstatus`, `mepc`, `mcause`, `mtval`. Efeito prático:
+~~`exc_taken` inclui `mret` — o CSR update logic entra no path de exceção antes do path de retorno nos processos de `mstatus`, `mepc`, `mcause`, `mtval`. Efeito prático:
 - `mstatus` não restaura `MIE/MPIE`
 - `mepc`/`mcause`/`mtval` podem ser sobrescritos no handler exit
 - `trap_taken` é re-assertado em `mret`
 
-Isso quebra o fluxo normal de trap return.
+Isso quebra o fluxo normal de trap return.~~
+
+**Corrigido em 2026-05-30**: `mret` removido de `exc_taken`; `trap_taken_o <= exc_taken or mret`.
 
 ---
 
@@ -310,7 +347,7 @@ Detalhado em: `docs/microarchitecture.md` (seção Counter Inhibit)
 - [ ] `rtl/alu_ctrl.vhdl` — decodificador de operação da ULA
 - [ ] `rtl/br_detector.vhdl` — detecção de desvio
 - [ ] `rtl/dmls_block.vhdl` — load/store alignment
-- [ ] `rtl/csrs.vhdl` — CSRs e traps
+- [x] ~~`rtl/csrs.vhdl` — CSRs e traps~~ (revisado 2026-05-30)
 - [ ] `rtl/csrs_logic.vhdl` — multiplexação CSR
 - [x] ~~`rtl/reg_file.vhdl` — banco de registradores~~ (revisado 2026-05-30)
 - [ ] `rtl/leaf_pkg.vhdl` — constantes e declarações
