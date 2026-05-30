@@ -301,6 +301,28 @@ Interface COP não tem handshake (`cop_ack_i`/`cop_ready_i`). Documentado como l
 
 ---
 
+## ALU Control (`rtl/alu_ctrl.vhdl`)
+
+### INFO: Port naming padronizado com `_i`/`_o`
+
+2026-05-30: Todas as 5 portas renomeadas com sufixos `_i`/`_o`:
+
+| Atual | Novo |
+|-------|------|
+| `op_en` | `op_en_i` |
+| `ftype` | `ftype_i` |
+| `func3` | `func3_i` |
+| `func7` | `func7_i` |
+| `op` | `op_o` |
+
+Header `2022` → `2026`. Nenhum bug funcional encontrado — decodificação correta de:
+- `SUB` quando `func3=000`, `func7=0100000`, `ftype=0` (R-type apenas)
+- `SRA` quando `func3=101`, `func7=0100000` (qualquer formato)
+- `op_en=0` retorna `ALU_ADD` (bolha/nop, pipeline stall)
+- `others` clause presente com `ALU_ADD` (default seguro)
+
+---
+
 ## Bugs Conhecidos (de `rtl-review.md`)
 
 ### ~~BUG: `mret` tratado como exceção, não como retorno de exceção~~ (CORRIGIDO)
@@ -411,7 +433,7 @@ O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) 
 - [x] ~~`rtl/ex_block.vhdl` — ALU, branch, load/store~~ (revisado 2026-05-30)
 - [ ] `rtl/main_ctrl.vhdl` — decodificador de controle
 - [ ] `rtl/alu.vhdl` — datapath da ULA
-- [ ] `rtl/alu_ctrl.vhdl` — decodificador de operação da ULA
+- [x] ~~`rtl/alu_ctrl.vhdl` — decodificador de operação da ULA~~ (revisado 2026-05-30)
 - [ ] `rtl/br_detector.vhdl` — detecção de desvio
 - [ ] `rtl/dmls_block.vhdl` — load/store alignment
 - [x] ~~`rtl/csrs.vhdl` — CSRs e traps~~ (revisado 2026-05-30)

@@ -319,6 +319,24 @@ Contains all datapath execution logic:
 - **dmls_block** — load/store alignment and sign-extension
 - **csrs_logic** — CSR write data muxing (reg, immediate, or RS1-based modes)
 
+### ALU Control (`alu_ctrl.vhdl`)
+
+Combinational decoder that maps instruction fields to ALU operation codes:
+
+| Porta | Direção | Largura | Descrição |
+|-------|---------|---------|-----------|
+| `op_en_i` | in | 1 | ALU operation enable (0 = idle/ADD) |
+| `ftype_i` | in | 1 | Format type (0 = R-type, 1 = I-type) |
+| `func3_i` | in | 3 | funct3 field |
+| `func7_i` | in | 7 | funct7 field |
+| `op_o` | out | 6 | ALU operation code (ALU_ADD, ALU_SUB, etc.) |
+
+Decoding logic:
+- `op_en_i = 0` → `ALU_ADD` (pipeline bubble)
+- `func3 = 000`, `func7 = 0100000`, `ftype = 0` → `ALU_SUB`
+- `func3 = 101`, `func7 = 0100000` → `ALU_SRA`
+- Otherwise maps `func3` to the corresponding ALU operation (ADD, SLL, SLT, SLTU, XOR, SRL, OR, AND)
+
 ### Control Signals
 
 Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
