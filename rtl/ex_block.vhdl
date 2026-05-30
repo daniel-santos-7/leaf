@@ -85,11 +85,11 @@ begin
     );
 
     exec_csrs_logic: csrs_logic port map (
-        csrwr_mode => func3_i,
-        csrrd_data => csrrd_data_i,
-        regwr_data => reg0_i,
-        immwr_data => imm_i,
-        csrwr_data => csrwr_data_o
+        csrwr_mode_i => func3_i,
+        csrrd_data_i => csrrd_data_i,
+        regwr_data_i => reg0_i,
+        immwr_data_i => imm_i,
+        csrwr_data_o => csrwr_data_o
     );
 
     exec_br_detector: br_detector port map (

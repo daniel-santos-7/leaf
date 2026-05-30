@@ -172,11 +172,11 @@ package leaf_pkg is
 
     component csrs_logic is
         port (
-            csrwr_mode : in  std_logic_vector(2  downto 0);
-            csrrd_data : in  std_logic_vector(31 downto 0);
-            regwr_data : in  std_logic_vector(31 downto 0);
-            immwr_data : in  std_logic_vector(31 downto 0);
-            csrwr_data : out std_logic_vector(31 downto 0)
+            csrwr_mode_i : in  std_logic_vector(2           downto 0);
+            csrrd_data_i : in  std_logic_vector(XLEN-1      downto 0);
+            regwr_data_i : in  std_logic_vector(XLEN-1      downto 0);
+            immwr_data_i : in  std_logic_vector(XLEN-1      downto 0);
+            csrwr_data_o : out std_logic_vector(XLEN-1      downto 0)
         );
     end component csrs_logic;
 
