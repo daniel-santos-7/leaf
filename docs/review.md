@@ -230,6 +230,24 @@ Sinal interno `csrrd_data_i` → `csrrd_data_s`. O sufixo `_i` era enganoso pois
 
 `rtl/csrs.vhdl:215` (2026-05-30): A condição `elsif exc_taken = '1' then` dentro do bloco `if int_taken = '1'` era sempre verdadeira, mas por construção só era atingida quando `exi_taken = '1'` (nem swi nem tmi). Funcionalmente correto, mas semanticamente enganoso — trocado para `elsif exi_taken = '1' then`.
 
+### BUG: `mtval` subespecificado para access faults — CORRIGIDO
+
+2026-05-30: O `write_mtval` só carregava `exec_res_i` para misaligned e `pc_i` para ebreak; bus faults (`imrd_fault`, `dmld_fault`, `dmst_fault`) caíam no `else` e recebiam 0. A RISC-V spec diz que access faults devem conter o endereço efetivo.
+
+**Corrigido**: `write_mtval` agora tem priority encoder completo espelhando `write_mcause`:
+
+| Prioridade | Fonte | mtval |
+|------------|-------|-------|
+| 1 | `int_taken` | 0 |
+| 2 | `imrd_malgn` | `exec_res_i` (endereço alvo do branch) |
+| 3 | `imrd_fault` | `pc_i` (PC da instrução faultada) |
+| 4 | `instr_err` | 0 (spec-permitido) |
+| 5 | `ebreak` | `pc_i` |
+| 6 | `dmld_malgn/fault` ou `dmst_malgn/fault` | `exec_res_i` (endereço efetivo) |
+| 7 | `ecall` | 0 |
+
+A adição de `int_taken` antes das exceções garante consistência com `mcause`: se uma interrupção e uma exceção são simultâneas, `mcause` reporta a interrupção e `mtval` fica 0 — alinhado com a prioridade RISC-V.
+
 ### INFO: Port naming e XLEN padronizados
 
 2026-05-30: Todas as portas renomeadas com sufixos `_i`/`_o`:

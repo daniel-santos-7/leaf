@@ -418,7 +418,21 @@ CSR addresses `0x7C0` to `0x7FF` are reserved for coprocessor attachment. Reads 
 
 ## Exception and Trap Handling
 
-Exception sources and their `mcause` codes:
+Exception sources, their `mcause` codes, and `mtval` behavior:
+
+| Code | Source | mtval |
+|------|--------|-------|
+| 0 | Instruction address misaligned | Target address (`exec_res`) |
+| 1 | Instruction access fault | PC of faulted instruction |
+| 2 | Illegal instruction | 0 |
+| 3 | Breakpoint (ebreak) | PC of breakpoint instruction |
+| 4 | Load address misaligned | Effective address (`exec_res`) |
+| 5 | Load access fault | Effective address (`exec_res`) |
+| 6 | Store address misaligned | Effective address (`exec_res`) |
+| 7 | Store access fault | Effective address (`exec_res`) |
+| 11 | Environment call (ecall) | 0 |
+
+Interrupt codes (mscause bit 31 = 1):
 
 | Code | Source |
 |------|--------|
