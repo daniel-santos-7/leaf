@@ -11,69 +11,69 @@ use work.leaf_pkg.all;
 
 entity ex_block is
     port (
-        trap_taken  : in  std_logic;
-        trap_target : in  std_logic_vector(31 downto 0);
-        func3       : in  std_logic_vector(2  downto 0);
-        func7       : in  std_logic_vector(6  downto 0);
-        reg0        : in  std_logic_vector(31 downto 0);
-        reg1        : in  std_logic_vector(31 downto 0);
-        pc          : in  std_logic_vector(31 downto 0);
-        imm         : in  std_logic_vector(31 downto 0);
-        csrrd_data  : in  std_logic_vector(31 downto 0);
-        jmp         : in  std_logic;
-        br_en       : in  std_logic;
-        opd0_src_sel: in  std_logic;
-        opd1_src_sel: in  std_logic;
-        opd0_pass   : in  std_logic;
-        opd1_pass   : in  std_logic;
-        ftype       : in  std_logic;
-        op_en       : in  std_logic;
-        dmls_mode   : in  std_logic;
-        dmls_en     : in  std_logic;
-        dmrd_err    : in  std_logic;
-        dmwr_err    : in  std_logic;
-        dmrd_data   : in  std_logic_vector(31 downto 0);
-        imrd_malgn  : out std_logic;
-        dmld_malgn  : out std_logic;
-        dmld_fault  : out std_logic;
-        dmst_malgn  : out std_logic;
-        dmst_fault  : out std_logic;
-        dmrd_en     : out std_logic;
-        dmwr_en     : out std_logic;
-        dmwr_data   : out std_logic_vector(31 downto 0);
-        dmrw_addr   : out std_logic_vector(31 downto 0);
-        dm_byte_en  : out std_logic_vector(3  downto 0);
-        dmld_data   : out std_logic_vector(31 downto 0);
-        csrwr_data  : out std_logic_vector(31 downto 0);
-        taken       : out std_logic;
-        target      : out std_logic_vector(31 downto 0);
-        res         : out std_logic_vector(31 downto 0)
+        trap_taken_i  : in  std_logic;
+        trap_target_i : in  std_logic_vector(XLEN-1 downto 0);
+        func3_i       : in  std_logic_vector(2  downto 0);
+        func7_i       : in  std_logic_vector(6  downto 0);
+        reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
+        reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
+        pc_i          : in  std_logic_vector(XLEN-1 downto 0);
+        imm_i         : in  std_logic_vector(XLEN-1 downto 0);
+        csrrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+        jmp_i         : in  std_logic;
+        br_en_i       : in  std_logic;
+        opd0_src_sel_i: in  std_logic;
+        opd1_src_sel_i: in  std_logic;
+        opd0_pass_i   : in  std_logic;
+        opd1_pass_i   : in  std_logic;
+        ftype_i       : in  std_logic;
+        op_en_i       : in  std_logic;
+        dmls_mode_i   : in  std_logic;
+        dmls_en_i     : in  std_logic;
+        dmrd_err_i    : in  std_logic;
+        dmwr_err_i    : in  std_logic;
+        dmrd_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+        imrd_malgn_o  : out std_logic;
+        dmld_malgn_o  : out std_logic;
+        dmld_fault_o  : out std_logic;
+        dmst_malgn_o  : out std_logic;
+        dmst_fault_o  : out std_logic;
+        dmrd_en_o     : out std_logic;
+        dmwr_en_o     : out std_logic;
+        dmwr_data_o   : out std_logic_vector(XLEN-1 downto 0);
+        dmrw_addr_o   : out std_logic_vector(XLEN-1 downto 0);
+        dm_byte_en_o  : out std_logic_vector(3  downto 0);
+        dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
+        csrwr_data_o  : out std_logic_vector(XLEN-1 downto 0);
+        taken_o       : out std_logic;
+        target_o      : out std_logic_vector(XLEN-1 downto 0);
+        res_o         : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity ex_block;
 
 architecture ex_block_arch of ex_block is
 
-    signal opd0     : std_logic_vector(31 downto 0);
-    signal opd1     : std_logic_vector(31 downto 0);
-    signal gtd_opd0 : std_logic_vector(31 downto 0);
-    signal gtd_opd1 : std_logic_vector(31 downto 0);
+    signal opd0     : std_logic_vector(XLEN-1 downto 0);
+    signal opd1     : std_logic_vector(XLEN-1 downto 0);
+    signal gtd_opd0 : std_logic_vector(XLEN-1 downto 0);
+    signal gtd_opd1 : std_logic_vector(XLEN-1 downto 0);
     signal alu_op   : std_logic_vector(5  downto 0);
-    signal alu_res  : std_logic_vector(31 downto 0);
+    signal alu_res  : std_logic_vector(XLEN-1 downto 0);
     signal branch   : std_logic;
 
 begin
 
-    opd0 <= pc  when opd0_src_sel = '1' else reg0;
-    opd1 <= imm when opd1_src_sel = '1' else reg1;
+    opd0 <= pc_i  when opd0_src_sel_i = '1' else reg0_i;
+    opd1 <= imm_i when opd1_src_sel_i = '1' else reg1_i;
 
-    gtd_opd0 <= opd0 and (31 downto 0 => opd0_pass);
-    gtd_opd1 <= opd1 and (31 downto 0 => opd1_pass);
+    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass_i);
+    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass_i);
 
     exec_alu_ctrl: alu_ctrl port map (
-        op_en => op_en,
-        ftype => ftype,
-        func3 => func3,
-        func7 => func7,
+        op_en => op_en_i,
+        ftype => ftype_i,
+        func3 => func3_i,
+        func7 => func7_i,
         op    => alu_op
     );
 
@@ -85,46 +85,46 @@ begin
     );
 
     exec_csrs_logic: csrs_logic port map (
-        csrwr_mode => func3,
-        csrrd_data => csrrd_data,
-        regwr_data => reg0,
-        immwr_data => imm,
-        csrwr_data => csrwr_data
+        csrwr_mode => func3_i,
+        csrrd_data => csrrd_data_i,
+        regwr_data => reg0_i,
+        immwr_data => imm_i,
+        csrwr_data => csrwr_data_o
     );
 
     exec_br_detector: br_detector port map (
-        reg0   => reg0,
-        reg1   => reg1,
-        mode   => func3,
-        en     => br_en,
+        reg0   => reg0_i,
+        reg1   => reg1_i,
+        mode   => func3_i,
+        en     => br_en_i,
         branch => branch
     );
 
-    imrd_malgn <= alu_res(1) and (branch or jmp);
+    imrd_malgn_o <= alu_res(1) and (branch or jmp_i);
 
-    taken  <= branch or jmp or trap_taken;
-    target <= trap_target when trap_taken = '1' else alu_res(31 downto 1) & b"0";
-    res    <= alu_res;
+    taken_o  <= branch or jmp_i or trap_taken_i;
+    target_o <= trap_target_i when trap_taken_i = '1' else alu_res(XLEN-1 downto 1) & b"0";
+    res_o    <= alu_res;
 
     exec_dmls_block: dmls_block port map (
-        dmrd_err   => dmrd_err,
-        dmwr_err   => dmwr_err,
-        dmls_mode  => dmls_mode,
-        dmls_en    => dmls_en,
-        dmls_dtype => func3,
-        dmst_data  => reg1,
+        dmrd_err   => dmrd_err_i,
+        dmwr_err   => dmwr_err_i,
+        dmls_mode  => dmls_mode_i,
+        dmls_en    => dmls_en_i,
+        dmls_dtype => func3_i,
+        dmst_data  => reg1_i,
         dmls_addr  => alu_res,
-        dmrd_data  => dmrd_data,
-        dmld_malgn => dmld_malgn,
-        dmld_fault => dmld_fault,
-        dmst_malgn => dmst_malgn,
-        dmst_fault => dmst_fault,
-        dmrd_en    => dmrd_en,
-        dmwr_en    => dmwr_en,
-        dmwr_data  => dmwr_data,
-        dmrw_addr  => dmrw_addr,
-        dm_byte_en => dm_byte_en,
-        dmld_data  => dmld_data
+        dmrd_data  => dmrd_data_i,
+        dmld_malgn => dmld_malgn_o,
+        dmld_fault => dmld_fault_o,
+        dmst_malgn => dmst_malgn_o,
+        dmst_fault => dmst_fault_o,
+        dmrd_en    => dmrd_en_o,
+        dmwr_en    => dmwr_en_o,
+        dmwr_data  => dmwr_data_o,
+        dmrw_addr  => dmrw_addr_o,
+        dm_byte_en => dm_byte_en_o,
+        dmld_data  => dmld_data_o
     );
 
 end architecture ex_block_arch;
