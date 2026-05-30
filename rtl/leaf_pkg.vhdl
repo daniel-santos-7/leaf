@@ -182,39 +182,39 @@ package leaf_pkg is
 
     component csrs is
         generic (
-            MHART_ID : std_logic_vector(31 downto 0) := (others => '0')
+            MHART_ID : std_logic_vector(XLEN-1 downto 0) := (others => '0')
         );
         port (
-            clk         : in  std_logic;
-            reset       : in  std_logic;
-            ex_irq      : in  std_logic;
-            sw_irq      : in  std_logic;
-            tm_irq      : in  std_logic;
-            imrd_malgn  : in  std_logic;
-            imrd_fault  : in  std_logic;
-            instr_err   : in  std_logic;
-            dmld_malgn  : in  std_logic;
-            dmld_fault  : in  std_logic;
-            dmst_malgn  : in  std_logic;
-            dmst_fault  : in  std_logic;
-            wr_en       : in  std_logic;
-            wr_mode     : in  std_logic_vector(2  downto 0);
-            rw_addr     : in  std_logic_vector(11 downto 0);
-            wr_data     : in  std_logic_vector(31 downto 0);
-            exec_res    : in  std_logic_vector(31 downto 0);
-            pc          : in  std_logic_vector(31 downto 0);
-            next_pc     : in  std_logic_vector(31 downto 0);
-            cycle       : in  std_logic_vector(63 downto 0);
-            timer       : in  std_logic_vector(63 downto 0);
-            instret     : in  std_logic_vector(63 downto 0);
-            cop_dat_i   : in  std_logic_vector(31 downto 0) := (others => '0');
-            cop_adr_o   : out std_logic_vector(5 downto 0);
-            cop_dat_o   : out std_logic_vector(31 downto 0);
-            cop_we_o    : out std_logic;
-            pcwr_en     : out std_logic;
-            trap_taken  : out std_logic;
-            trap_target : out std_logic_vector(31 downto 0);
-            rd_data     : out std_logic_vector(31 downto 0)
+            clk_i        : in  std_logic;
+            reset_i      : in  std_logic;
+            ex_irq_i     : in  std_logic;
+            sw_irq_i     : in  std_logic;
+            tm_irq_i     : in  std_logic;
+            imrd_malgn_i : in  std_logic;
+            imrd_fault_i : in  std_logic;
+            instr_err_i  : in  std_logic;
+            dmld_malgn_i : in  std_logic;
+            dmld_fault_i : in  std_logic;
+            dmst_malgn_i : in  std_logic;
+            dmst_fault_i : in  std_logic;
+            wr_en_i      : in  std_logic;
+            wr_mode_i    : in  std_logic_vector(2  downto 0);
+            rw_addr_i    : in  std_logic_vector(11 downto 0);
+            wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
+            exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
+            pc_i         : in  std_logic_vector(XLEN-1 downto 0);
+            next_pc_i    : in  std_logic_vector(XLEN-1 downto 0);
+            cycle_i      : in  std_logic_vector(63 downto 0);
+            timer_i      : in  std_logic_vector(63 downto 0);
+            instret_i    : in  std_logic_vector(63 downto 0);
+            cop_dat_i    : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
+            cop_adr_o    : out std_logic_vector(5 downto 0);
+            cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
+            cop_we_o     : out std_logic;
+            pcwr_en_o    : out std_logic;
+            trap_taken_o : out std_logic;
+            trap_target_o: out std_logic_vector(XLEN-1 downto 0);
+            rd_data_o    : out std_logic_vector(XLEN-1 downto 0)
         );
     end component csrs;
 
