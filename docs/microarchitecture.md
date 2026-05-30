@@ -190,6 +190,47 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 
 ### ID/EX Stage (`id_stage.vhdl`)
 
+#### Interface
+
+| Porta | Direção | Largura | Descrição |
+|-------|---------|---------|-----------|
+| `clk_i` | in | 1 | Clock |
+| `reset_i` | in | 1 | Reset síncrono (active high) |
+| `ex_irq_i` | in | 1 | External interrupt |
+| `sw_irq_i` | in | 1 | Software interrupt |
+| `tm_irq_i` | in | 1 | Timer interrupt |
+| `imrd_malgn_i` | in | 1 | Instruction fetch misaligned |
+| `imrd_fault_i` | in | 1 | Instruction fetch bus fault |
+| `dmld_malgn_i` | in | 1 | Data load misaligned |
+| `dmld_fault_i` | in | 1 | Data load bus fault |
+| `dmst_malgn_i` | in | 1 | Data store misaligned |
+| `dmst_fault_i` | in | 1 | Data store bus fault |
+| `cycle_i` | in | 64 | Cycle counter value |
+| `timer_i` | in | 64 | Timer value |
+| `instret_i` | in | 64 | Instruction retired counter |
+| `exec_res_i` | in | XLEN | ALU execution result |
+| `dmld_data_i` | in | XLEN | Data load result (from dmls_block) |
+| `pc_i` | in | XLEN | Current PC (from if_stage) |
+| `next_pc_i` | in | XLEN | PC + 4 (from if_stage) |
+| `instr_i` | in | XLEN | Fetched instruction |
+| `flush_i` | in | 1 | Flush — discard current instruction |
+| `csrwr_data_i` | in | XLEN | CSR write data (from csrs_logic) |
+| `cop_dat_i` | in | XLEN | Coprocessor read data |
+| `func3_o` | out | 3 | funct3 field |
+| `func7_o` | out | 7 | funct7 field |
+| `imm_o` | out | XLEN | Decoded immediate |
+| `exec_ctrl_o` | out | 8 | Execution control word |
+| `dmls_ctrl_o` | out | 2 | Data memory load/store control |
+| `cop_adr_o` | out | 6 | Coprocessor address |
+| `cop_dat_o` | out | XLEN | Coprocessor write data |
+| `cop_we_o` | out | 1 | Coprocessor write enable |
+| `pcwr_en_o` | out | 1 | Pipeline advance enable (to if_stage) |
+| `trap_taken_o` | out | 1 | Trap taken |
+| `trap_target_o` | out | XLEN | Trap handler address |
+| `rd_data0_o` | out | XLEN | Register file read port 0 |
+| `rd_data1_o` | out | XLEN | Register file read port 1 |
+| `csrrd_data_o` | out | XLEN | CSR read data |
+
 Combines decode, register file read, and CSR access:
 
 - **main_ctrl** decodes the instruction: opcode, funct3, funct7 → control signals and immediate
