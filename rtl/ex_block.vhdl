@@ -93,11 +93,11 @@ begin
     );
 
     exec_br_detector: br_detector port map (
-        reg0   => reg0_i,
-        reg1   => reg1_i,
-        mode   => func3_i,
-        en     => br_en_i,
-        branch => branch
+        reg0_i   => reg0_i,
+        reg1_i   => reg1_i,
+        mode_i   => func3_i,
+        en_i     => br_en_i,
+        branch_o => branch
     );
 
     imrd_malgn_o <= alu_res(1) and (branch or jmp_i);

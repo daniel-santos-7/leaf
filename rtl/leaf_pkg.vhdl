@@ -292,11 +292,11 @@ package leaf_pkg is
 
     component br_detector is
         port (
-            reg0   : in  std_logic_vector(31 downto 0);
-            reg1   : in  std_logic_vector(31 downto 0);
-            mode   : in  std_logic_vector(2  downto 0);
-            en     : in  std_logic;
-            branch : out std_logic
+            reg0_i   : in  std_logic_vector(XLEN-1 downto 0);
+            reg1_i   : in  std_logic_vector(XLEN-1 downto 0);
+            mode_i   : in  std_logic_vector(2           downto 0);
+            en_i     : in  std_logic;
+            branch_o : out std_logic
         );
     end component br_detector;
 

@@ -2,7 +2,7 @@
 -- Leaf project
 -- developed by: Daniel Santos
 -- module: branch detector
--- 2022
+-- 2026
 ----------------------------------------------------------------------
 
 library IEEE;
@@ -12,11 +12,11 @@ use work.leaf_pkg.all;
 
 entity br_detector is
     port (
-        reg0   : in  std_logic_vector(31 downto 0);
-        reg1   : in  std_logic_vector(31 downto 0);
-        mode   : in  std_logic_vector(2  downto 0);
-        en     : in  std_logic;
-        branch : out std_logic
+        reg0_i   : in  std_logic_vector(XLEN-1 downto 0);
+        reg1_i   : in  std_logic_vector(XLEN-1 downto 0);
+        mode_i   : in  std_logic_vector(2           downto 0);
+        en_i     : in  std_logic;
+        branch_o : out std_logic
     );
 end entity br_detector;
 
@@ -29,15 +29,15 @@ architecture br_detector_arch of br_detector is
 
 begin
 
-    equal <= '1' when reg0 = reg1 else '0';
+    equal <= '1' when reg0_i = reg1_i else '0';
 
-    less <= '1' when signed(reg0) < signed(reg1) else '0';
+    less <= '1' when signed(reg0_i) < signed(reg1_i) else '0';
 
-    less_unsigned <= '1' when unsigned(reg0) < unsigned(reg1) else '0';
+    less_unsigned <= '1' when unsigned(reg0_i) < unsigned(reg1_i) else '0';
 
-    exec: process(mode, equal, less, less_unsigned)
+    exec: process(mode_i, equal, less, less_unsigned)
     begin
-        case mode is
+        case mode_i is
             when EQ_BD_MODE  => branch_i <= equal;
             when NE_BD_MODE  => branch_i <= not(equal);
             when LT_BD_MODE  => branch_i <= less;
@@ -48,6 +48,6 @@ begin
         end case;
     end process exec;
 
-    branch <= branch_i and en;
+    branch_o <= branch_i and en_i;
 
 end architecture br_detector_arch;
