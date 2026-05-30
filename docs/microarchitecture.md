@@ -269,6 +269,48 @@ Dual-implementation: `SIZE=16` selects `small_reg_file` (4-bit addressing), `SIZ
 
 ### Execution Block (`ex_block.vhdl`)
 
+#### Interface
+
+| Porta | Direção | Largura | Descrição |
+|-------|---------|---------|-----------|
+| `trap_taken_i` | in | 1 | Trap taken (from csrs) |
+| `trap_target_i` | in | XLEN | Trap handler PC |
+| `func3_i` | in | 3 | funct3 field |
+| `func7_i` | in | 7 | funct7 field |
+| `reg0_i` | in | XLEN | Register file read port 0 |
+| `reg1_i` | in | XLEN | Register file read port 1 |
+| `pc_i` | in | XLEN | Current PC |
+| `imm_i` | in | XLEN | Decoded immediate |
+| `csrrd_data_i` | in | XLEN | CSR read data |
+| `jmp_i` | in | 1 | Jump (JAL/JALR) |
+| `br_en_i` | in | 1 | Branch enable |
+| `opd0_src_sel_i` | in | 1 | Select PC vs reg0 as ALU operand 0 |
+| `opd1_src_sel_i` | in | 1 | Select imm vs reg1 as ALU operand 1 |
+| `opd0_pass_i` | in | 1 | Gate ALU operand 0 |
+| `opd1_pass_i` | in | 1 | Gate ALU operand 1 |
+| `ftype_i` | in | 1 | Instruction type for ALU control |
+| `op_en_i` | in | 1 | ALU operation enable |
+| `dmls_mode_i` | in | 1 | Data memory mode (0=load, 1=store) |
+| `dmls_en_i` | in | 1 | Data memory enable |
+| `dmrd_err_i` | in | 1 | Data read bus error |
+| `dmwr_err_i` | in | 1 | Data write bus error |
+| `dmrd_data_i` | in | XLEN | Data read data (from Wishbone) |
+| `imrd_malgn_o` | out | 1 | Instruction fetch misaligned |
+| `dmld_malgn_o` | out | 1 | Data load misaligned |
+| `dmld_fault_o` | out | 1 | Data load bus fault |
+| `dmst_malgn_o` | out | 1 | Data store misaligned |
+| `dmst_fault_o` | out | 1 | Data store bus fault |
+| `dmrd_en_o` | out | 1 | Data read request (to wb_ctrl) |
+| `dmwr_en_o` | out | 1 | Data write request (to wb_ctrl) |
+| `dmwr_data_o` | out | XLEN | Data write data |
+| `dmrw_addr_o` | out | XLEN | Data memory address |
+| `dm_byte_en_o` | out | 4 | Data byte enables |
+| `dmld_data_o` | out | XLEN | Data load result (aligned/sextended) |
+| `csrwr_data_o` | out | XLEN | CSR write data (from csrs_logic) |
+| `taken_o` | out | 1 | Branch/jump/trap taken |
+| `target_o` | out | XLEN | Branch/jump/trap target address |
+| `res_o` | out | XLEN | ALU result |
+
 Contains all datapath execution logic:
 
 - **alu_ctrl** — decodes ALU operation from funct3/funct7
@@ -283,14 +325,14 @@ Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
 
 | Porta | Descrição |
 |-------|-----------|
-| `jmp_o` | Jump (JAL/JALR) |
-| `br_en_o` | Branch enable |
-| `opd0_src_sel_o` | Select PC vs reg0 as ALU operand 0 |
-| `opd1_src_sel_o` | Select imm vs reg1 as ALU operand 1 |
-| `opd0_pass_o` | Gate ALU operand 0 |
-| `opd1_pass_o` | Gate ALU operand 1 |
-| `ftype_o` | Instruction type for ALU control |
-| `op_en_o` | ALU operation enable |
+| `jmp_i` | Jump (JAL/JALR) |
+| `br_en_i` | Branch enable |
+| `opd0_src_sel_i` | Select PC vs reg0 as ALU operand 0 |
+| `opd1_src_sel_i` | Select imm vs reg1 as ALU operand 1 |
+| `opd0_pass_i` | Gate ALU operand 0 |
+| `opd1_pass_i` | Gate ALU operand 1 |
+| `ftype_i` | Instruction type for ALU control |
+| `op_en_i` | ALU operation enable |
 
 ## Wishbone Bus Interface
 

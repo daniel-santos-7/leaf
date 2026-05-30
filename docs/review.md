@@ -264,6 +264,43 @@ Sinais internos (`mtvec_base`, `mscratch`, `mepc`, `mtval`) atualizados para `XL
 
 Interface COP não tem handshake (`cop_ack_i`/`cop_ready_i`). Documentado como limitação conhecida — ver seção WARN acima.
 
+---
+
+## Pipeline Stage: EX Block (`rtl/ex_block.vhdl`)
+
+### INFO: Port naming padronizado com `_i`/`_o`
+
+2026-05-30: Todas as 38 portas da entidade foram renomeadas com sufixos `_i`/`_o`:
+
+| Atual | Novo |
+|---|---|
+| `trap_taken` (in) | `trap_taken_i` |
+| `trap_target` (in) | `trap_target_i` |
+| `func3` (in) | `func3_i` |
+| `func7` (in) | `func7_i` |
+| `reg0`/`reg1` (in) | `reg0_i`/`reg1_i` |
+| `pc` (in) | `pc_i` |
+| `imm` (in) | `imm_i` |
+| `csrrd_data` (in) | `csrrd_data_i` |
+| `jmp`/`br_en`/`ftype`/`op_en` (in) | `jmp_i`/`br_en_i`/`ftype_i`/`op_en_i` |
+| `opd0_src_sel`/`opd1_src_sel` (in) | `opd0_src_sel_i`/`opd1_src_sel_i` |
+| `opd0_pass`/`opd1_pass` (in) | `opd0_pass_i`/`opd1_pass_i` |
+| `dmls_mode`/`dmls_en` (in) | `dmls_mode_i`/`dmls_en_i` |
+| `dmrd_err`/`dmwr_err`/`dmrd_data` (in) | `dmrd_err_i`/`dmwr_err_i`/`dmrd_data_i` |
+| `imrd_malgn`/`dmld_malgn`/`dmld_fault` (out) | `imrd_malgn_o`/`dmld_malgn_o`/`dmld_fault_o` |
+| `dmst_malgn`/`dmst_fault` (out) | `dmst_malgn_o`/`dmst_fault_o` |
+| `dmrd_en`/`dmwr_en` (out) | `dmrd_en_o`/`dmwr_en_o` |
+| `dmwr_data`/`dmrw_addr` (out) | `dmwr_data_o`/`dmrw_addr_o` |
+| `dm_byte_en`/`dmld_data` (out) | `dm_byte_en_o`/`dmld_data_o` |
+| `csrwr_data` (out) | `csrwr_data_o` |
+| `taken`/`target`/`res` (out) | `taken_o`/`target_o`/`res_o` |
+
+### INFO: Uso de `XLEN` nos ports e sinais internos
+
+2026-05-30: Todas as portas de dados e sinais internos (`opd0`, `opd1`, `gtd_opd0`, `gtd_opd1`, `alu_res`) alterados de `31 downto 0` para `XLEN-1 downto 0`. Replicação de `opd0_pass_i`/`opd1_pass_i` nos operandos gated ajustada para `(XLEN-1 downto 0 => ...)`.
+
+---
+
 ## Bugs Conhecidos (de `rtl-review.md`)
 
 ### ~~BUG: `mret` tratado como exceção, não como retorno de exceção~~ (CORRIGIDO)
@@ -371,7 +408,7 @@ O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) 
 
 - [x] ~~`rtl/core.vhdl` — integração do pipeline~~ (revisado)
 - [x] ~~`rtl/id_stage.vhdl` — decodificação, regfile, CSRs~~ (revisado 2026-05-30)
-- [ ] `rtl/ex_block.vhdl` — ALU, branch, load/store
+- [x] ~~`rtl/ex_block.vhdl` — ALU, branch, load/store~~ (revisado 2026-05-30)
 - [ ] `rtl/main_ctrl.vhdl` — decodificador de controle
 - [ ] `rtl/alu.vhdl` — datapath da ULA
 - [ ] `rtl/alu_ctrl.vhdl` — decodificador de operação da ULA
