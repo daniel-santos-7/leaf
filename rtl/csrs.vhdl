@@ -251,12 +251,20 @@ begin
             if reset_i = '1' then
                 mtval <= (others => '0');
             elsif exc_taken = '1' then
-                if imrd_malgn_i = '1' or dmld_malgn_i = '1' or dmst_malgn_i = '1' then
+                if int_taken = '1' then
+                    mtval <= (others => '0');
+                elsif imrd_malgn_i = '1' then
                     mtval <= exec_res_i;
+                elsif imrd_fault_i = '1' then
+                    mtval <= pc_i;
+                elsif instr_err_i = '1' then
+                    mtval <= (others => '0');
                 elsif ebreak = '1' then
                     mtval <= pc_i;
+                elsif dmld_malgn_i = '1' or dmld_fault_i = '1' or dmst_malgn_i = '1' or dmst_fault_i = '1' then
+                    mtval <= exec_res_i;
                 else
-                    mtval <= (others => '0');
+                    mtval <= (others => '0');   -- ecall
                 end if;
             elsif rw_addr_i = CSR_ADDR_MTVAL and wr_en_i = '1' then
                 mtval <= wr_data_i;
