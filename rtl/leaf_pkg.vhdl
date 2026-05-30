@@ -117,6 +117,7 @@ package leaf_pkg is
             imrd_en_o    : out std_logic;
             imrd_fault_o : out std_logic;
             flush_o      : out std_logic;
+            retire_o     : out std_logic;
             imrd_addr_o  : out std_logic_vector(XLEN-1 downto 0);
             pc_o         : out std_logic_vector(XLEN-1 downto 0);
             next_pc_o    : out std_logic_vector(XLEN-1 downto 0);

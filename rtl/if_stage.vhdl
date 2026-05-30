@@ -25,6 +25,7 @@ entity if_stage is
         imrd_en_o    : out std_logic;
         imrd_fault_o : out std_logic;
         flush_o      : out std_logic;
+        retire_o     : out std_logic;
         imrd_addr_o  : out std_logic_vector(XLEN-1 downto 0);
         pc_o         : out std_logic_vector(XLEN-1 downto 0);
         next_pc_o    : out std_logic_vector(XLEN-1 downto 0);
@@ -36,10 +37,17 @@ architecture rtl of if_stage is
 
     signal pc_reg   : std_logic_vector(XLEN-1 downto 0);
     signal next_res : std_logic_vector(XLEN-1 downto 0);
+    signal flush_val : std_logic;
+    signal flush_reg : std_logic;
 
 begin
 
-    next_res <= std_logic_vector(unsigned(pc_reg) + 4);
+    next_res   <= std_logic_vector(unsigned(pc_reg) + 4);
+    flush_val  <= taken_i or imrd_err_i or not pcwr_en_i;
+    imrd_en_o  <= pcwr_en_i;
+    imrd_addr_o <= pc_reg;
+    flush_o    <= flush_reg;
+    retire_o   <= pcwr_en_i and not flush_reg;
 
     pc_reg_proc: process(clk_i)
     begin
@@ -54,21 +62,18 @@ begin
         end if;
     end process pc_reg_proc;
 
-    imrd_en_o   <= pcwr_en_i;
-    imrd_addr_o <= pc_reg;
-
     out_pipe_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 imrd_fault_o <= '0';
-                flush_o      <= '1';
+                flush_reg    <= '1';
                 pc_o         <= (others => '0');
                 next_pc_o    <= (others => '0');
                 instr_o      <= (others => '0');
             else
                 imrd_fault_o <= imrd_err_i;
-                flush_o      <= taken_i or imrd_err_i or not pcwr_en_i;
+                flush_reg    <= flush_val;
                 pc_o         <= pc_reg;
                 next_pc_o    <= next_res;
                 instr_o      <= imrd_data_i;

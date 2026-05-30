@@ -79,12 +79,7 @@ architecture rtl of core is
     signal dmst_malgn : std_logic;
     signal dmst_fault : std_logic;
 
-    signal retire : std_logic;
-
 begin
-
-    retire_o <= retire;
-    retire    <= pcwr_en and not flush;
 
     -- instruction fetch stage --
 
@@ -104,7 +99,8 @@ begin
         imrd_addr_o  => imrd_addr,
         pc_o         => pc,
         next_pc_o    => next_pc,
-        instr_o      => instr
+        instr_o      => instr,
+        retire_o     => retire_o
     );
 
     -- instruction decode and execute stage --
