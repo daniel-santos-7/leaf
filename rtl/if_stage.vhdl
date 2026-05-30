@@ -35,17 +35,17 @@ end entity if_stage;
 
 architecture rtl of if_stage is
 
-    signal pc_reg   : std_logic_vector(XLEN-1 downto 0);
-    signal next_res : std_logic_vector(XLEN-1 downto 0);
+    signal pc_reg   : std_logic_vector(XLEN-1 downto 2);
+    signal next_res : std_logic_vector(XLEN-1 downto 2);
     signal flush_val : std_logic;
     signal flush_reg : std_logic;
 
 begin
 
-    next_res   <= std_logic_vector(unsigned(pc_reg) + 4);
+    next_res   <= std_logic_vector(unsigned(pc_reg) + 1);
     flush_val  <= taken_i or imrd_err_i or not pcwr_en_i;
     imrd_en_o  <= pcwr_en_i;
-    imrd_addr_o <= pc_reg;
+    imrd_addr_o <= pc_reg & b"00";
     flush_o    <= flush_reg;
     retire_o   <= pcwr_en_i and not flush_reg;
 
@@ -53,9 +53,9 @@ begin
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
-                pc_reg <= RESET_ADDR;
+                pc_reg <= RESET_ADDR(XLEN-1 downto 2);
             elsif taken_i = '1' then
-                pc_reg <= target_i;
+                pc_reg <= target_i(XLEN-1 downto 2);
             elsif pcwr_en_i = '1' then
                 pc_reg <= next_res;
             end if;
@@ -74,8 +74,8 @@ begin
             else
                 imrd_fault_o <= imrd_err_i;
                 flush_reg    <= flush_val;
-                pc_o         <= pc_reg;
-                next_pc_o    <= next_res;
+                pc_o         <= pc_reg & b"00";
+                next_pc_o    <= next_res & b"00";
                 instr_o      <= imrd_data_i;
             end if;
         end if;
