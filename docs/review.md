@@ -362,6 +362,24 @@ Nenhum bug funcional — mapeamento CSR correto (CSRRW/CSRRS/CSRRC/CSRRWI/CSRRSI
 
 ---
 
+## Branch Detector (`rtl/br_detector.vhdl`)
+
+### INFO: Port naming, XLEN, e header padronizados
+
+2026-05-30: Todas as 5 portas renomeadas com sufixos `_i`/`_o` e `31 downto 0` → `XLEN-1 downto 0`:
+
+| Atual | Novo |
+|-------|------|
+| `reg0` (in) | `reg0_i` |
+| `reg1` (in) | `reg1_i` |
+| `mode` (in) | `mode_i` |
+| `en` (in) | `en_i` |
+| `branch` (out) | `branch_o` |
+
+Header `2022` → `2026`. Nenhum bug funcional encontrado — lógica de comparação correta para BEQ/BNE/BLT/BGE/BLTU/BGEU, `others` clause presente, gating `branch_o <= branch_i and en_i`.
+
+---
+
 ## Bugs Conhecidos (de `rtl-review.md`)
 
 ### ~~BUG: `mret` tratado como exceção, não como retorno de exceção~~ (CORRIGIDO)
@@ -473,7 +491,7 @@ O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) 
 - [ ] `rtl/main_ctrl.vhdl` — decodificador de controle
 - [x] ~~`rtl/alu.vhdl` — datapath da ULA~~ (revisado 2026-05-30)
 - [x] ~~`rtl/alu_ctrl.vhdl` — decodificador de operação da ULA~~ (revisado 2026-05-30)
-- [ ] `rtl/br_detector.vhdl` — detecção de desvio
+- [x] ~~`rtl/br_detector.vhdl` — detecção de desvio~~ (revisado 2026-05-30)
 - [ ] `rtl/dmls_block.vhdl` — load/store alignment
 - [x] ~~`rtl/csrs.vhdl` — CSRs e traps~~ (revisado 2026-05-30)
 - [x] ~~`rtl/csrs_logic.vhdl` — multiplexação CSR~~ (revisado 2026-05-30)

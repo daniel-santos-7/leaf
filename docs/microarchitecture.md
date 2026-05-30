@@ -370,6 +370,20 @@ Combinational mux that computes the CSR write data based on the instruction's `f
 
 Modes: `001`=CSRRW, `010`=CSRRS, `011`=CSRRC, `101`=CSRRWI, `110`=CSRRSI, `111`=CSRRCI. `others` (incl. `000`) = 0 (ECALL/EBREAK/MRET/WFI).
 
+### Branch Detector (`br_detector.vhdl`)
+
+Combinational comparator that evaluates branch conditions using `numeric_std` signed/unsigned comparisons:
+
+| Porta | Direção | Largura | Descrição |
+|-------|---------|---------|-----------|
+| `reg0_i` | in | XLEN | Register value 0 (RS1) |
+| `reg1_i` | in | XLEN | Register value 1 (RS2) |
+| `mode_i` | in | 3 | Branch mode (funct3: EQ/NE/LT/GE/LTU/GEU) |
+| `en_i` | in | 1 | Branch enable (from `br_en_i`) |
+| `branch_o` | out | 1 | Branch condition met |
+
+Branch conditions evaluated via `signed`/`unsigned` comparisons and an equality check. Output is gated: `branch_o <= branch_i and en_i`.
+
 ### Control Signals
 
 Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
