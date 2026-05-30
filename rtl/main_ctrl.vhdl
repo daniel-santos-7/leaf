@@ -21,7 +21,8 @@ entity main_ctrl is
         csrwr_en_o    : out std_logic;
         regwr_en_o    : out std_logic;
         regwr_sel_o   : out std_logic_vector(1  downto 0);
-        dmls_ctrl_o   : out std_logic_vector(1  downto 0);
+        dmls_mode_o   : out std_logic;
+        dmls_en_o     : out std_logic;
         jmp_o         : out std_logic;
         br_en_o       : out std_logic;
         opd0_src_sel_o: out std_logic;
@@ -128,12 +129,13 @@ begin
     dmls_block_ctrl: process(opcode, flush_i)
     begin
         if flush_i = '1' then
-            dmls_ctrl_o <= b"00";
+            dmls_mode_o <= '0';
+            dmls_en_o   <= '0';
         else
             case opcode is
-                when LOAD_OPCODE  => dmls_ctrl_o <= b"01";
-                when STORE_OPCODE => dmls_ctrl_o <= b"11";
-                when others       => dmls_ctrl_o <= b"00";
+                when LOAD_OPCODE  => dmls_mode_o <= '0'; dmls_en_o <= '1';
+                when STORE_OPCODE => dmls_mode_o <= '1'; dmls_en_o <= '1';
+                when others       => dmls_mode_o <= '0'; dmls_en_o <= '0';
             end case;
         end if;
     end process dmls_block_ctrl;

@@ -28,7 +28,8 @@ entity ex_block is
         opd1_pass   : in  std_logic;
         ftype       : in  std_logic;
         op_en       : in  std_logic;
-        dmls_ctrl   : in  std_logic_vector(1  downto 0);
+        dmls_mode   : in  std_logic;
+        dmls_en     : in  std_logic;
         dmrd_err    : in  std_logic;
         dmwr_err    : in  std_logic;
         dmrd_data   : in  std_logic_vector(31 downto 0);
@@ -108,7 +109,8 @@ begin
     exec_dmls_block: dmls_block port map (
         dmrd_err   => dmrd_err,
         dmwr_err   => dmwr_err,
-        dmls_ctrl  => dmls_ctrl,
+        dmls_mode  => dmls_mode,
+        dmls_en    => dmls_en,
         dmls_dtype => func3,
         dmst_data  => reg1,
         dmls_addr  => alu_res,

@@ -136,7 +136,8 @@ package leaf_pkg is
             csrwr_en_o    : out std_logic;
             regwr_en_o    : out std_logic;
             regwr_sel_o   : out std_logic_vector(1  downto 0);
-            dmls_ctrl_o   : out std_logic_vector(1  downto 0);
+            dmls_mode_o   : out std_logic;
+            dmls_en_o     : out std_logic;
             jmp_o         : out std_logic;
             br_en_o       : out std_logic;
             opd0_src_sel_o: out std_logic;
@@ -254,7 +255,8 @@ package leaf_pkg is
             opd1_pass_o   : out std_logic;
             ftype_o       : out std_logic;
             op_en_o       : out std_logic;
-            dmls_ctrl_o   : out std_logic_vector(1  downto 0);
+            dmls_mode_o   : out std_logic;
+            dmls_en_o     : out std_logic;
             cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
             cop_adr_o     : out std_logic_vector(5 downto 0);
             cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
@@ -317,7 +319,8 @@ package leaf_pkg is
             opd1_pass   : in  std_logic;
             ftype       : in  std_logic;
             op_en       : in  std_logic;
-            dmls_ctrl   : in  std_logic_vector(1  downto 0);
+            dmls_mode   : in  std_logic;
+            dmls_en     : in  std_logic;
             dmrd_err    : in  std_logic;
             dmwr_err    : in  std_logic;
             dmrd_data   : in  std_logic_vector(31 downto 0);
@@ -343,7 +346,8 @@ package leaf_pkg is
         port (
             dmrd_err   : in  std_logic;
             dmwr_err   : in  std_logic;
-            dmls_ctrl  : in  std_logic_vector(1  downto 0);
+            dmls_mode  : in  std_logic;
+            dmls_en    : in  std_logic;
             dmls_dtype : in  std_logic_vector(2  downto 0);
             dmst_data  : in  std_logic_vector(31 downto 0);
             dmls_addr  : in  std_logic_vector(31 downto 0);

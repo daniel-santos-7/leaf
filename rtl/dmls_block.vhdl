@@ -14,7 +14,8 @@ entity dmls_block is
     port (
         dmrd_err   : in  std_logic;
         dmwr_err   : in  std_logic;
-        dmls_ctrl  : in  std_logic_vector(1  downto 0);
+        dmls_mode  : in  std_logic;
+        dmls_en    : in  std_logic;
         dmls_dtype : in  std_logic_vector(2  downto 0);
         dmst_data  : in  std_logic_vector(31 downto 0);
         dmls_addr  : in  std_logic_vector(31 downto 0);
@@ -34,8 +35,6 @@ end entity dmls_block;
 
 architecture dmls_block_arch of dmls_block is
 
-    signal mode    : std_logic;
-    signal en      : std_logic;
     signal dmem_rd : std_logic;
     signal dmem_wr : std_logic;
 
@@ -43,10 +42,8 @@ architecture dmls_block_arch of dmls_block is
 
 begin
 
-    mode    <= dmls_ctrl(1);
-    en      <= dmls_ctrl(0);
-    dmem_rd <= not mode and en;
-    dmem_wr <= mode and en;
+    dmem_rd <= not dmls_mode and dmls_en;
+    dmem_wr <= dmls_mode and dmls_en;
 
     addr_base <= dmls_addr(1 downto 0);
 
@@ -217,7 +214,7 @@ begin
         end if;
     end process write_dmem;
 
-    dmrw_addr <= dmls_addr(31 downto 2) & b"00" when en = '1' else (others => '0');
+    dmrw_addr <= dmls_addr(31 downto 2) & b"00" when dmls_en = '1' else (others => '0');
 
     dmld_fault <= dmrd_err and dmem_rd;
     dmst_fault <= dmwr_err and dmem_wr;

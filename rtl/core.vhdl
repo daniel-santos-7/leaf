@@ -68,7 +68,8 @@ architecture rtl of core is
     signal opd1_pass    : std_logic;
     signal ftype        : std_logic;
     signal op_en        : std_logic;
-    signal dmls_ctrl : std_logic_vector(1  downto 0);
+    signal dmls_mode : std_logic;
+    signal dmls_en   : std_logic;
 
     signal trap_taken  : std_logic;
     signal trap_target : std_logic_vector(31 downto 0);
@@ -147,7 +148,8 @@ begin
         opd1_pass_o   => opd1_pass,
         ftype_o       => ftype,
         op_en_o       => op_en,
-        dmls_ctrl_o   => dmls_ctrl,
+        dmls_mode_o   => dmls_mode,
+        dmls_en_o     => dmls_en,
         cop_dat_i     => cop_dat_i,
         cop_adr_o     => cop_adr_o,
         cop_dat_o     => cop_dat_o,
@@ -179,7 +181,8 @@ begin
         opd1_pass   => opd1_pass,
         ftype       => ftype,
         op_en       => op_en,
-        dmls_ctrl   => dmls_ctrl,
+        dmls_mode   => dmls_mode,
+        dmls_en     => dmls_en,
         dmrd_err    => dmrd_err,
         dmwr_err    => dmwr_err,
         dmrd_data   => dmrd_data,
