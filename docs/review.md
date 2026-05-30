@@ -530,17 +530,76 @@ O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) 
 
 ---
 
+## Main Control (`rtl/main_ctrl.vhdl`)
+
+### INFO: Já conforme as convenções
+
+2026-05-30: `main_ctrl` já utilizava header 2026, portas com `_i`/`_o`, e `XLEN` para dados. Nenhuma alteração necessária. Verificação funcional completa — decodificação de opcodes e geração de imediatos correta.
+
+---
+
+## Wishbone Master (`rtl/wb_ctrl.vhdl`)
+
+### INFO: Port naming, XLEN, e header padronizados
+
+2026-05-30: Header `2022` → `2026`. Adicionado `use work.leaf_pkg.all` (XLEN). Todas as 21 portas revisadas:
+
+| Atual | Novo |
+|-------|------|
+| `imrd_en/dmrd_en/dmwr_en` (in) | `_i` |
+| `dmwr_be/imrd_addr/dmrw_addr/dmwr_data` (in) | `_i` |
+| `clk_en/reset/imrd_err/dmrd_err/dmwr_err` (out) | `_o` |
+| `imrd_data/dmrd_data` (out) | `_o` |
+| `31 downto 0` | `XLEN-1 downto 0` |
+
+Portas `clk_i`/`rst_i`/`ack_i`/`err_i`/`dat_i`/`cyc_o`/`stb_o`/`we_o`/`sel_o`/`adr_o`/`dat_o` já estavam corretas. Nenhum bug funcional encontrado.
+
+---
+
+## CPU Core (`rtl/core.vhdl`)
+
+### INFO: Port naming, XLEN, e generics padronizados
+
+2026-05-30: Todas as 22 portas renomeadas com sufixos `_i`/`_o`:
+
+| Atual | Novo |
+|-------|------|
+| `clk/reset` | `_i` |
+| `ex_irq/sw_irq/tm_irq` | `_i` |
+| `imrd_err/dmrd_err/dmwr_err` | `_i` |
+| `imrd_data/dmrd_data` | `_i` |
+| `cycle/timer/instret` | `_i` |
+| `imrd_en/dmrd_en/dmwr_en` (out) | `_o` |
+| `dmwr_be/imrd_addr/dmrw_addr/dmwr_data` (out) | `_o` |
+
+Generics `31 downto 0` → `XLEN-1 downto 0`. Sinais internos (`target`, `pc`, `next_pc`, `instr`, `imm`, `trap_target`, `reg0_data`, `reg1_data`, `exec_res`, `dmld_data`, `csrrd_data`, `csrwr_data`) migrados para `XLEN-1 downto 0`. Nenhum bug funcional encontrado.
+
+---
+
+## Top-Level (`rtl/leaf.vhdl`)
+
+### INFO: Port naming e XLEN padronizados
+
+2026-05-30: Portas `ex_irq`/`sw_irq`/`tm_irq` → `ex_irq_i`/`sw_irq_i`/`tm_irq_i`. Generics e sinais internos `31 downto 0` → `XLEN-1 downto 0`. Portas Wishbone (`clk_i`, `rst_i`, `ack_i`, `err_i`, `dat_i`, `cyc_o`, `stb_o`, etc.) já estavam corretas. Nenhum bug funcional.
+
+---
+
 ## Próximas Revisões
 
-- [x] ~~`rtl/core.vhdl` — integração do pipeline~~ (revisado)
-- [x] ~~`rtl/id_stage.vhdl` — decodificação, regfile, CSRs~~ (revisado 2026-05-30)
-- [x] ~~`rtl/ex_block.vhdl` — ALU, branch, load/store~~ (revisado 2026-05-30)
-- [ ] `rtl/main_ctrl.vhdl` — decodificador de controle
-- [x] ~~`rtl/alu.vhdl` — datapath da ULA~~ (revisado 2026-05-30)
-- [x] ~~`rtl/alu_ctrl.vhdl` — decodificador de operação da ULA~~ (revisado 2026-05-30)
-- [x] ~~`rtl/br_detector.vhdl` — detecção de desvio~~ (revisado 2026-05-30)
-- [x] ~~`rtl/dmls_block.vhdl` — load/store alignment~~ (revisado 2026-05-30)
-- [x] ~~`rtl/csrs.vhdl` — CSRs e traps~~ (revisado 2026-05-30)
-- [x] ~~`rtl/csrs_logic.vhdl` — multiplexação CSR~~ (revisado 2026-05-30)
-- [x] ~~`rtl/reg_file.vhdl` — banco de registradores~~ (revisado 2026-05-30)
-- [x] ~~`rtl/leaf_pkg.vhdl` — constantes e declarações~~ (revisado 2026-05-30)
+Todas as revisões concluídas.
+
+- [x] ~~`rtl/if_stage.vhdl` — fetch stage~~
+- [x] ~~`rtl/main_ctrl.vhdl` — decodificador de controle~~
+- [x] ~~`rtl/reg_file.vhdl` — banco de registradores~~
+- [x] ~~`rtl/csrs_logic.vhdl` — multiplexação CSR~~
+- [x] ~~`rtl/csrs.vhdl` — CSRs e traps~~
+- [x] ~~`rtl/id_stage.vhdl` — decodificação, regfile, CSRs~~
+- [x] ~~`rtl/alu_ctrl.vhdl` — decodificador de operação da ULA~~
+- [x] ~~`rtl/alu.vhdl` — datapath da ULA~~
+- [x] ~~`rtl/br_detector.vhdl` — detecção de desvio~~
+- [x] ~~`rtl/ex_block.vhdl` — ALU, branch, load/store~~
+- [x] ~~`rtl/dmls_block.vhdl` — load/store alignment~~
+- [x] ~~`rtl/core.vhdl` — integração do pipeline~~
+- [x] ~~`rtl/wb_ctrl.vhdl` — Wishbone B4 master~~
+- [x] ~~`rtl/leaf.vhdl` — top-level~~
+- [x] ~~`rtl/leaf_pkg.vhdl` — constantes e declarações~~

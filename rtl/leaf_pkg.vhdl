@@ -354,94 +354,94 @@ package leaf_pkg is
 
     component core is
         generic (
-            RESET_ADDR    : std_logic_vector(31 downto 0) := (others => '0');
-            CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0');
+            RESET_ADDR    : std_logic_vector(XLEN-1 downto 0) := (others => '0');
+            CSRS_MHART_ID : std_logic_vector(XLEN-1 downto 0) := (others => '0');
             REG_FILE_SIZE : natural := 32
         );
         port (
-            clk       : in  std_logic;
-            reset     : in  std_logic;
-            ex_irq    : in  std_logic;
-            sw_irq    : in  std_logic;
-            tm_irq    : in  std_logic;
-            imrd_err  : in  std_logic;
-            dmrd_err  : in  std_logic;
-            dmwr_err  : in  std_logic;
-            imrd_data : in  std_logic_vector(31 downto 0);
-            dmrd_data : in  std_logic_vector(31 downto 0);
-            cycle     : in  std_logic_vector(63 downto 0);
-            timer     : in  std_logic_vector(63 downto 0);
-            instret   : in  std_logic_vector(63 downto 0);
-            cop_dat_i : in  std_logic_vector(31 downto 0) := (others => '0');
-            cop_adr_o : out std_logic_vector(5 downto 0);
-            cop_dat_o : out std_logic_vector(31 downto 0);
-            cop_we_o  : out std_logic;
-            retire_o  : out std_logic;
-            imrd_en   : out std_logic;
-            dmrd_en   : out std_logic;
-            dmwr_en   : out std_logic;
-            dmwr_be   : out std_logic_vector(3  downto 0);
-            imrd_addr : out std_logic_vector(31 downto 0);
-            dmrw_addr : out std_logic_vector(31 downto 0);
-            dmwr_data : out std_logic_vector(31 downto 0)
+            clk_i       : in  std_logic;
+            reset_i     : in  std_logic;
+            ex_irq_i    : in  std_logic;
+            sw_irq_i    : in  std_logic;
+            tm_irq_i    : in  std_logic;
+            imrd_err_i  : in  std_logic;
+            dmrd_err_i  : in  std_logic;
+            dmwr_err_i  : in  std_logic;
+            imrd_data_i : in  std_logic_vector(XLEN-1 downto 0);
+            dmrd_data_i : in  std_logic_vector(XLEN-1 downto 0);
+            cycle_i     : in  std_logic_vector(63 downto 0);
+            timer_i     : in  std_logic_vector(63 downto 0);
+            instret_i   : in  std_logic_vector(63 downto 0);
+            cop_dat_i   : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
+            cop_adr_o   : out std_logic_vector(5 downto 0);
+            cop_dat_o   : out std_logic_vector(XLEN-1 downto 0);
+            cop_we_o    : out std_logic;
+            retire_o    : out std_logic;
+            imrd_en_o   : out std_logic;
+            dmrd_en_o   : out std_logic;
+            dmwr_en_o   : out std_logic;
+            dmwr_be_o   : out std_logic_vector(3         downto 0);
+            imrd_addr_o : out std_logic_vector(XLEN-1 downto 0);
+            dmrw_addr_o : out std_logic_vector(XLEN-1 downto 0);
+            dmwr_data_o : out std_logic_vector(XLEN-1 downto 0)
         );
     end component core;
 
     component leaf is
         generic (
-            RESET_ADDR    : std_logic_vector(31 downto 0) := (others => '0');
-            CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0');
+            RESET_ADDR    : std_logic_vector(XLEN-1 downto 0) := (others => '0');
+            CSRS_MHART_ID : std_logic_vector(XLEN-1 downto 0) := (others => '0');
             REG_FILE_SIZE : natural := 32
         );
         port (
-            clk_i  : in  std_logic;
-            rst_i  : in  std_logic;
-            ex_irq : in  std_logic;
-            sw_irq    : in  std_logic;
-            tm_irq    : in  std_logic;
+            clk_i     : in  std_logic;
+            rst_i     : in  std_logic;
+            ex_irq_i  : in  std_logic;
+            sw_irq_i  : in  std_logic;
+            tm_irq_i  : in  std_logic;
             ack_i     : in  std_logic;
             err_i     : in  std_logic;
-            dat_i     : in  std_logic_vector(31 downto 0);
-            cop_dat_i : in  std_logic_vector(31 downto 0) := (others => '0');
+            dat_i     : in  std_logic_vector(XLEN-1 downto 0);
+            cop_dat_i : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
             cop_adr_o : out std_logic_vector(5 downto 0);
-            cop_dat_o : out std_logic_vector(31 downto 0);
+            cop_dat_o : out std_logic_vector(XLEN-1 downto 0);
             cop_we_o  : out std_logic;
             cyc_o     : out std_logic;
             stb_o     : out std_logic;
             we_o      : out std_logic;
-            sel_o     : out std_logic_vector(3  downto 0);
-            adr_o     : out std_logic_vector(31 downto 0);
-            dat_o     : out std_logic_vector(31 downto 0)
+            sel_o     : out std_logic_vector(3         downto 0);
+            adr_o     : out std_logic_vector(XLEN-1 downto 0);
+            dat_o     : out std_logic_vector(XLEN-1 downto 0)
         );
     end component leaf;
 
     component wb_ctrl is
         port (
-            clk_i     : in  std_logic;
-            rst_i     : in  std_logic;
-            imrd_en   : in  std_logic;
-            dmrd_en   : in  std_logic;
-            dmwr_en   : in  std_logic;
-            ack_i     : in  std_logic;
-            err_i     : in  std_logic;
-            dat_i     : in  std_logic_vector(31 downto 0);
-            dmwr_be   : in  std_logic_vector(3  downto 0);
-            imrd_addr : in  std_logic_vector(31 downto 0);
-            dmrw_addr : in  std_logic_vector(31 downto 0);
-            dmwr_data : in  std_logic_vector(31 downto 0);
-            cyc_o     : out std_logic;
-            stb_o     : out std_logic;
-            we_o      : out std_logic;
-            clk_en    : out std_logic;
-            reset     : out std_logic;
-            imrd_err  : out std_logic;
-            dmrd_err  : out std_logic;
-            dmwr_err  : out std_logic;
-            sel_o     : out std_logic_vector(3  downto 0);
-            adr_o     : out std_logic_vector(31 downto 0);
-            dat_o     : out std_logic_vector(31 downto 0);
-            imrd_data : out std_logic_vector(31 downto 0);
-            dmrd_data : out std_logic_vector(31 downto 0)
+            clk_i       : in  std_logic;
+            rst_i       : in  std_logic;
+            imrd_en_i   : in  std_logic;
+            dmrd_en_i   : in  std_logic;
+            dmwr_en_i   : in  std_logic;
+            ack_i       : in  std_logic;
+            err_i       : in  std_logic;
+            dat_i       : in  std_logic_vector(XLEN-1 downto 0);
+            dmwr_be_i   : in  std_logic_vector(3         downto 0);
+            imrd_addr_i : in  std_logic_vector(XLEN-1 downto 0);
+            dmrw_addr_i : in  std_logic_vector(XLEN-1 downto 0);
+            dmwr_data_i : in  std_logic_vector(XLEN-1 downto 0);
+            cyc_o       : out std_logic;
+            stb_o       : out std_logic;
+            we_o        : out std_logic;
+            clk_en_o    : out std_logic;
+            reset_o     : out std_logic;
+            imrd_err_o  : out std_logic;
+            dmrd_err_o  : out std_logic;
+            dmwr_err_o  : out std_logic;
+            sel_o       : out std_logic_vector(3         downto 0);
+            adr_o       : out std_logic_vector(XLEN-1 downto 0);
+            dat_o       : out std_logic_vector(XLEN-1 downto 0);
+            imrd_data_o : out std_logic_vector(XLEN-1 downto 0);
+            dmrd_data_o : out std_logic_vector(XLEN-1 downto 0)
         );
     end component wb_ctrl;
 

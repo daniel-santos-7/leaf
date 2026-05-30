@@ -11,29 +11,29 @@ use work.leaf_pkg.all;
 
 entity leaf is
     generic (
-        RESET_ADDR    : std_logic_vector(31 downto 0) := (others => '0');
-        CSRS_MHART_ID : std_logic_vector(31 downto 0) := (others => '0');
+        RESET_ADDR    : std_logic_vector(XLEN-1 downto 0) := (others => '0');
+        CSRS_MHART_ID : std_logic_vector(XLEN-1 downto 0) := (others => '0');
         REG_FILE_SIZE : natural := 32
     );
     port (
-        clk_i  : in  std_logic;
-        rst_i  : in  std_logic;
-        ex_irq : in  std_logic;
-        sw_irq    : in  std_logic;
-        tm_irq    : in  std_logic;
-        ack_i     : in  std_logic;
-        err_i     : in  std_logic;
-        dat_i     : in  std_logic_vector(31 downto 0);
-        cop_dat_i       : in  std_logic_vector(31 downto 0) := (others => '0');
-        cop_adr_o       : out std_logic_vector(5 downto 0);
-        cop_dat_o       : out std_logic_vector(31 downto 0);
-        cop_we_o        : out std_logic;
-        cyc_o  : out std_logic;
-        stb_o  : out std_logic;
-        we_o   : out std_logic;
-        sel_o  : out std_logic_vector(3  downto 0);
-        adr_o  : out std_logic_vector(31 downto 0);
-        dat_o  : out std_logic_vector(31 downto 0)
+        clk_i       : in  std_logic;
+        rst_i       : in  std_logic;
+        ex_irq_i    : in  std_logic;
+        sw_irq_i    : in  std_logic;
+        tm_irq_i    : in  std_logic;
+        ack_i       : in  std_logic;
+        err_i       : in  std_logic;
+        dat_i       : in  std_logic_vector(XLEN-1 downto 0);
+        cop_dat_i   : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
+        cop_adr_o   : out std_logic_vector(5 downto 0);
+        cop_dat_o   : out std_logic_vector(XLEN-1 downto 0);
+        cop_we_o    : out std_logic;
+        cyc_o       : out std_logic;
+        stb_o       : out std_logic;
+        we_o        : out std_logic;
+        sel_o       : out std_logic_vector(3         downto 0);
+        adr_o       : out std_logic_vector(XLEN-1 downto 0);
+        dat_o       : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity leaf;
 
@@ -48,17 +48,17 @@ architecture rtl of leaf is
     -- instruction memory signals --
 
     signal imrd_en   : std_logic;
-    signal imrd_addr : std_logic_vector(31 downto 0);
-    signal imrd_data : std_logic_vector(31 downto 0);
+    signal imrd_addr : std_logic_vector(XLEN-1 downto 0);
+    signal imrd_data : std_logic_vector(XLEN-1 downto 0);
 
     -- data memory signals --
 
     signal dmrd_en   : std_logic;
     signal dmwr_en   : std_logic;
     signal dmwr_be   : std_logic_vector(3  downto 0);
-    signal dmrw_addr : std_logic_vector(31 downto 0);
-    signal dmrd_data : std_logic_vector(31 downto 0);
-    signal dmwr_data : std_logic_vector(31 downto 0);
+    signal dmrw_addr : std_logic_vector(XLEN-1 downto 0);
+    signal dmrd_data : std_logic_vector(XLEN-1 downto 0);
+    signal dmwr_data : std_logic_vector(XLEN-1 downto 0);
 
     -- errors --
 
@@ -81,31 +81,31 @@ begin
     -- leaf wishbone master interface --
 
     leaf_master: wb_ctrl port map (
-        clk_i     => clk_i,
-        rst_i     => rst_i,
-        imrd_en   => imrd_en,
-        dmrd_en   => dmrd_en,
-        dmwr_en   => dmwr_en,
-        ack_i     => ack_i,
-        err_i     => err_i,
-        dat_i     => dat_i,
-        dmwr_be   => dmwr_be,
-        imrd_addr => imrd_addr,
-        dmrw_addr => dmrw_addr,
-        dmwr_data => dmwr_data,
-        cyc_o     => cyc_o,
-        stb_o     => stb_o,
-        we_o      => we_o,
-        clk_en    => clk_en,
-        reset     => reset,
-        imrd_err  => imrd_err,
-        dmrd_err  => dmrd_err,
-        dmwr_err  => dmwr_err,
-        sel_o     => sel_o,
-        adr_o     => adr_o,
-        dat_o     => dat_o,
-        imrd_data => imrd_data,
-        dmrd_data => dmrd_data
+        clk_i       => clk_i,
+        rst_i       => rst_i,
+        imrd_en_i   => imrd_en,
+        dmrd_en_i   => dmrd_en,
+        dmwr_en_i   => dmwr_en,
+        ack_i       => ack_i,
+        err_i       => err_i,
+        dat_i       => dat_i,
+        dmwr_be_i   => dmwr_be,
+        imrd_addr_i => imrd_addr,
+        dmrw_addr_i => dmrw_addr,
+        dmwr_data_i => dmwr_data,
+        cyc_o       => cyc_o,
+        stb_o       => stb_o,
+        we_o        => we_o,
+        clk_en_o    => clk_en,
+        reset_o     => reset,
+        imrd_err_o  => imrd_err,
+        dmrd_err_o  => dmrd_err,
+        dmwr_err_o  => dmwr_err,
+        sel_o       => sel_o,
+        adr_o       => adr_o,
+        dat_o       => dat_o,
+        imrd_data_o => imrd_data,
+        dmrd_data_o => dmrd_data
     );
 
     -- counters --
@@ -135,30 +135,31 @@ begin
         CSRS_MHART_ID => CSRS_MHART_ID,
         REG_FILE_SIZE => REG_FILE_SIZE
     ) port map (
-        clk       => clk,
-        reset     => reset,
-        ex_irq    => ex_irq,
-        sw_irq    => sw_irq,
-        tm_irq    => tm_irq,
-        imrd_err  => imrd_err,
-        dmrd_err  => dmrd_err,
-        dmwr_err  => dmwr_err,
-        imrd_data => imrd_data,
-        dmrd_data => dmrd_data,
-        cycle     => cycle,
-        timer     => timer,
-        instret   => instret,
-        cop_dat_i     => cop_dat_i,
-        cop_adr_o     => cop_adr_o,
-        cop_dat_o     => cop_dat_o,
-        cop_we_o      => cop_we_o,
-        retire_o  => retire,
-        imrd_en   => imrd_en,
-        dmrd_en   => dmrd_en,
-        dmwr_en   => dmwr_en,
-        dmwr_be   => dmwr_be,
-        imrd_addr => imrd_addr,
-        dmrw_addr => dmrw_addr,
-        dmwr_data => dmwr_data
+        clk_i       => clk,
+        reset_i     => reset,
+        ex_irq_i    => ex_irq_i,
+        sw_irq_i    => sw_irq_i,
+        tm_irq_i    => tm_irq_i,
+        imrd_err_i  => imrd_err,
+        dmrd_err_i  => dmrd_err,
+        dmwr_err_i  => dmwr_err,
+        imrd_data_i => imrd_data,
+        dmrd_data_i => dmrd_data,
+        cycle_i     => cycle,
+        timer_i     => timer,
+        instret_i   => instret,
+        cop_dat_i   => cop_dat_i,
+        cop_adr_o   => cop_adr_o,
+        cop_dat_o   => cop_dat_o,
+        cop_we_o    => cop_we_o,
+        retire_o    => retire,
+        imrd_en_o   => imrd_en,
+        dmrd_en_o   => dmrd_en,
+        dmwr_en_o   => dmwr_en,
+        dmwr_be_o   => dmwr_be,
+        imrd_addr_o => imrd_addr,
+        dmrw_addr_o => dmrw_addr,
+        dmwr_data_o => dmwr_data
     );
+
 end architecture rtl;
