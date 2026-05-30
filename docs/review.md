@@ -128,12 +128,22 @@ sel_o <= dmwr_be when curr_state = WRITE_DATA else (others => '1');
 ### INFO: Busca especulativa desperdiçada em branches taken
 
 Quando `taken_i = '1'`:
-1. `pc_reg` recebe `target_i`
-2. `imrd_addr_o` muda para o endereço alvo
+1. `pc_reg` recebe `target_i(XLEN-1 downto 2)`
+2. `imrd_addr_o` (concatenação `pc_reg & "00"`) muda para o endereço alvo
 3. A transação Wishbone anterior (sequencial) já está em andamento — completa com dados descartados
 4. `wb_ctrl` retorna a IDLE, vê `imrd_en_o = 1` com novo endereço, inicia busca correta
 
 Funcionalmente correto, mas desperdiça 1 transação de barramento por branch taken. Inerente ao pipeline de 2 estágios sem previsão de desvio.
+
+### ENH: `pc_reg` reduzido para 30 bits
+
+2026-05-29: `pc_reg` e `next_res` foram reduzidos de `std_logic_vector(XLEN-1 downto 0)` para `std_logic_vector(XLEN-1 downto 2)` (30 bits em RV32). Os 2 LSBs (`"00"`) são concatenados nas saídas:
+- `imrd_addr_o <= pc_reg & b"00"`
+- `pc_o <= pc_reg & b"00"`
+- `next_pc_o <= next_res & b"00"`
+- `next_res <= unsigned(pc_reg) + 1` (somador de 30 bits)
+
+Economia: 2 flops + 2 full-adders. A interface da entidade não foi alterada.
 
 ---
 
