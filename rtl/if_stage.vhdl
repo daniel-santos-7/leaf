@@ -2,7 +2,7 @@
 -- Leaf project
 -- developed by: Daniel Santos
 -- module: instruction fetch stage
--- 2022
+-- 2026
 ----------------------------------------------------------------------
 
 library IEEE;
@@ -15,20 +15,20 @@ entity if_stage is
         RESET_ADDR : std_logic_vector(XLEN-1 downto 0) := (others => '0')
     );
     port (
-        clk        : in  std_logic;
-        reset      : in  std_logic;
-        pcwr_en    : in  std_logic;
-        imrd_err   : in  std_logic;
-        taken      : in  std_logic;
-        target     : in  std_logic_vector(XLEN-1 downto 0);
-        imrd_data  : in  std_logic_vector(XLEN-1 downto 0);
-        imrd_en    : out std_logic;
-        imrd_fault : out std_logic;
-        flush      : out std_logic;
-        imrd_addr  : out std_logic_vector(XLEN-1 downto 0);
-        pc         : out std_logic_vector(XLEN-1 downto 0);
-        next_pc    : out std_logic_vector(XLEN-1 downto 0);
-        instr      : out std_logic_vector(XLEN-1 downto 0)
+        clk_i        : in  std_logic;
+        reset_i      : in  std_logic;
+        pcwr_en_i    : in  std_logic;
+        imrd_err_i   : in  std_logic;
+        taken_i      : in  std_logic;
+        target_i     : in  std_logic_vector(XLEN-1 downto 0);
+        imrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+        imrd_en_o    : out std_logic;
+        imrd_fault_o : out std_logic;
+        flush_o      : out std_logic;
+        imrd_addr_o  : out std_logic_vector(XLEN-1 downto 0);
+        pc_o         : out std_logic_vector(XLEN-1 downto 0);
+        next_pc_o    : out std_logic_vector(XLEN-1 downto 0);
+        instr_o      : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity if_stage;
 
@@ -41,37 +41,37 @@ begin
 
     next_res <= std_logic_vector(unsigned(pc_reg) + 4);
 
-    pc_reg_proc: process(clk)
+    pc_reg_proc: process(clk_i)
     begin
-        if rising_edge(clk) then
-            if reset = '1' then
+        if rising_edge(clk_i) then
+            if reset_i = '1' then
                 pc_reg <= RESET_ADDR;
-            elsif taken = '1' then
-                pc_reg <= target;
-            elsif pcwr_en = '1' then
+            elsif taken_i = '1' then
+                pc_reg <= target_i;
+            elsif pcwr_en_i = '1' then
                 pc_reg <= next_res;
             end if;
         end if;
     end process pc_reg_proc;
 
-    imrd_en   <= pcwr_en;
-    imrd_addr <= pc_reg;
+    imrd_en_o   <= pcwr_en_i;
+    imrd_addr_o <= pc_reg;
 
-    out_pipe_proc: process(clk)
+    out_pipe_proc: process(clk_i)
     begin
-        if rising_edge(clk) then
-            if reset = '1' then
-                imrd_fault <= '0';
-                flush      <= '1';
-                pc         <= (others => '0');
-                next_pc    <= (others => '0');
-                instr      <= (others => '0');
+        if rising_edge(clk_i) then
+            if reset_i = '1' then
+                imrd_fault_o <= '0';
+                flush_o      <= '1';
+                pc_o         <= (others => '0');
+                next_pc_o    <= (others => '0');
+                instr_o      <= (others => '0');
             else
-                imrd_fault <= imrd_err;
-                flush      <= taken or imrd_err or not pcwr_en;
-                pc         <= pc_reg;
-                next_pc    <= next_res;
-                instr      <= imrd_data;
+                imrd_fault_o <= imrd_err_i;
+                flush_o      <= taken_i or imrd_err_i or not pcwr_en_i;
+                pc_o         <= pc_reg;
+                next_pc_o    <= next_res;
+                instr_o      <= imrd_data_i;
             end if;
         end if;
     end process out_pipe_proc;

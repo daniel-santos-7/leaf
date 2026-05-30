@@ -104,23 +104,23 @@ package leaf_pkg is
 
     component if_stage is
         generic (
-            RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
+            RESET_ADDR : std_logic_vector(XLEN-1 downto 0) := (others => '0')
         );
         port (
-            clk        : in  std_logic;
-            reset      : in  std_logic;
-            pcwr_en    : in  std_logic;
-            imrd_err   : in  std_logic;
-            taken      : in  std_logic;
-            target     : in  std_logic_vector(31 downto 0);
-            imrd_data  : in  std_logic_vector(31 downto 0);
-            imrd_en    : out std_logic;
-            imrd_fault : out std_logic;
-            flush      : out std_logic;
-            imrd_addr  : out std_logic_vector(31 downto 0);
-            pc         : out std_logic_vector(31 downto 0);
-            next_pc    : out std_logic_vector(31 downto 0);
-            instr      : out std_logic_vector(31 downto 0)
+            clk_i        : in  std_logic;
+            reset_i      : in  std_logic;
+            pcwr_en_i    : in  std_logic;
+            imrd_err_i   : in  std_logic;
+            taken_i      : in  std_logic;
+            target_i     : in  std_logic_vector(XLEN-1 downto 0);
+            imrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+            imrd_en_o    : out std_logic;
+            imrd_fault_o : out std_logic;
+            flush_o      : out std_logic;
+            imrd_addr_o  : out std_logic_vector(XLEN-1 downto 0);
+            pc_o         : out std_logic_vector(XLEN-1 downto 0);
+            next_pc_o    : out std_logic_vector(XLEN-1 downto 0);
+            instr_o      : out std_logic_vector(XLEN-1 downto 0)
         );
     end component if_stage;
 

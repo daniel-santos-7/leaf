@@ -91,20 +91,20 @@ begin
     core_if_stage: if_stage generic map (
         RESET_ADDR => RESET_ADDR
     ) port map (
-        clk        => clk,
-        reset      => reset,
-        pcwr_en    => pcwr_en,
-        imrd_err   => imrd_err,
-        taken      => taken,
-        target     => target,
-        imrd_data  => imrd_data,
-        imrd_en    => imrd_en,
-        imrd_fault => imrd_fault,
-        flush      => flush,
-        imrd_addr  => imrd_addr,
-        pc         => pc,
-        next_pc    => next_pc,
-        instr      => instr
+        clk_i        => clk,
+        reset_i      => reset,
+        pcwr_en_i    => pcwr_en,
+        imrd_err_i   => imrd_err,
+        taken_i      => taken,
+        target_i     => target,
+        imrd_data_i  => imrd_data,
+        imrd_en_o    => imrd_en,
+        imrd_fault_o => imrd_fault,
+        flush_o      => flush,
+        imrd_addr_o  => imrd_addr,
+        pc_o         => pc,
+        next_pc_o    => next_pc,
+        instr_o      => instr
     );
 
     -- instruction decode and execute stage --
