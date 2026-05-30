@@ -178,6 +178,38 @@ O `flush` é registrado no pipeline register (`out_pipe_proc` em `if_stage.vhdl:
 
 ---
 
+## Pipeline Stage: ID (`rtl/id_stage.vhdl`)
+
+### BUG: `dmld_fault` miswired no CSR block (CORRIGIDO)
+
+Ver seção Bugs Conhecidos abaixo.
+
+### INFO: Port naming padronizado
+
+2026-05-30: Todas as 19 portas da entidade foram renomeadas com sufixos `_i`/`_o`:
+- `clk` → `clk_i`, `reset` → `reset_i`
+- `ex_irq`/`sw_irq`/`tm_irq` → `ex_irq_i` etc.
+- `imrd_malgn`/`imrd_fault`/`dmld_*`/`dmst_*` → todas com `_i`
+- `cycle`/`timer`/`instret` → `cycle_i` etc.
+- `exec_res`/`dmld_data`/`pc`/`next_pc`/`instr` → `exec_res_i` etc.
+- `flush`/`csrwr_data` → `flush_i`/`csrwr_data_i`
+- `func3`/`func7`/`imm`/`exec_ctrl`/`dmls_ctrl` → `func3_o` etc.
+- `pcwr_en`/`trap_taken`/`trap_target` → `pcwr_en_o` etc.
+- `rd_data0`/`rd_data1` → `rd_data0_o`/`rd_data1_o`
+- `csrrd_data` → `csrrd_data_o`
+
+As portas `cop_*` já estavam corretas.
+
+### INFO: Uso de `XLEN` nos ports
+
+2026-05-30: Portas e sinais internos que usavam `31 downto 0` hardcoded foram alterados para `XLEN-1 downto 0`. `cycle`/`timer`/`instret` (64-bit, spec RISC-V) permanecem `63 downto 0`.
+
+### INFO: Sinal `csrrd_data_i` renomeado
+
+Sinal interno `csrrd_data_i` → `csrrd_data_s`. O sufixo `_i` era enganoso pois não se trata de uma porta de entrada — é um sinal interno que conecta a saída `rd_data` do csrs à entrada `wr_data3` do reg_file e à porta `csrrd_data_o` da entidade.
+
+---
+
 ## Bugs Conhecidos (de `rtl-review.md`)
 
 ### BUG: `mret` tratado como exceção, não como retorno de exceção
@@ -193,11 +225,13 @@ Isso quebra o fluxo normal de trap return.
 
 ---
 
-### BUG: Load-fault miswired no CSR block
+### ~~BUG: Load-fault miswired no CSR block~~ (CORRIGIDO)
 
-`rtl/id_stage.vhdl:126`
+~~`rtl/id_stage.vhdl:126`~~
 
-A instância do csrs conecta `dmld_fault => dmst_fault`. Um load access fault real não é reportado corretamente à lógica de trap, enquanto um store fault pode ser classificado erroneamente como load fault devido à prioridade de excessão em `rtl/csrs.vhdl:218-225`.
+~~A instância do csrs conecta `dmld_fault => dmst_fault`. Um load access fault real não é reportado corretamente à lógica de trap, enquanto um store fault pode ser classificado erroneamente como load fault devido à prioridade de excessão em `rtl/csrs.vhdl:218-225`.~~
+
+**Corrigido em 2026-05-30**: `dmld_fault => dmld_fault_i` (conexão correta).
 
 ---
 
@@ -250,7 +284,7 @@ Detalhado em: `docs/microarchitecture.md` (seção Counter Inhibit)
 ## Próximas Revisões
 
 - [x] ~~`rtl/core.vhdl` — integração do pipeline~~ (revisado)
-- [ ] `rtl/id_stage.vhdl` — decodificação, regfile, CSRs
+- [x] ~~`rtl/id_stage.vhdl` — decodificação, regfile, CSRs~~ (revisado 2026-05-30)
 - [ ] `rtl/ex_block.vhdl` — ALU, branch, load/store
 - [ ] `rtl/main_ctrl.vhdl` — decodificador de controle
 - [ ] `rtl/alu.vhdl` — datapath da ULA
