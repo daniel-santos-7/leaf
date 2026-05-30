@@ -20,7 +20,7 @@ Leaf is a compact 32-bit RISC-V processor core (RV32I) written in VHDL with a tw
 | Section | Description |
 |---------|-------------|
 | [User Guide](user-guide.md) | Build, simulate, test, and synthesize |
-| [Microarchitecture](index.md) | Architecture, pipeline, modules, Wishbone bus |
+| [Microarchitecture](microarchitecture.md) | Architecture, pipeline, modules, Wishbone bus |
 | [Developer Guide](developer.md) | Coding style, contributing, project structure |
 | [Review](review.md) | RTL review findings and known bugs |
 

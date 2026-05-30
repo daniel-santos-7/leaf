@@ -164,6 +164,7 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 | `imrd_en_o` | out | 1 | Instruction fetch request (to wb_ctrl) |
 | `imrd_fault_o` | out | 1 | Instruction bus fault (to pipeline register) |
 | `flush_o` | out | 1 | Discard current pipeline instruction |
+| `retire_o` | out | 1 | Instruction retire pulse (= `pcwr_en_i and not flush_reg`) |
 | `imrd_addr_o` | out | XLEN | Fetch address (to wb_ctrl) |
 | `pc_o` | out | XLEN | Current PC (to ID/EX) |
 | `next_pc_o` | out | XLEN | PC + 4 (to ID/EX) |
@@ -173,9 +174,12 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 
 - `pc_reg` mantém o PC atual, atualizado a cada `clk_i` via `pc_reg_proc`
 - `next_res` é PC+4 (combinatorial)
-- Pipeline register (`out_pipe_proc`) captura `pc_o`, `next_pc_o`, `instr_o`, `flush_o`, `imrd_fault_o` na borda de subida do clock
+- `flush_val` é o valor combinatorial de flush (`taken_i or imrd_err_i or not pcwr_en_i`)
+- `flush_reg` captura `flush_val` no pipeline register — representa a validade da instrução corrente
+- Pipeline register (`out_pipe_proc`) captura `pc_o`, `next_pc_o`, `instr_o`, `flush_reg`, `imrd_fault_o` na borda de subida do clock
 - `imrd_en_o = pcwr_en_i` — fetch ativo sempre que pipeline avança
 - `imrd_addr_o = pc_reg` — endereço de fetch sempre reflete o PC atual
+- `retire_o = pcwr_en_i and not flush_reg` — pulso de retire, indica instrução válida completada
 
 #### Prioridade de atualização do PC
 
@@ -337,13 +341,17 @@ The `time` counter has no reset — it counts continuously from power-on as a fr
 
 ### Retire Signal
 
-The `retire_i` pulse is generated in `core.vhdl` as:
+The `retire` pulse is generated in `if_stage.vhdl` as:
 
 ```vhdl
-retire <= pcwr_en and not flush;
+retire_o <= pcwr_en_i and not flush_reg;
 ```
 
-This counts one instruction per valid pipeline advance, correctly handling:
+`flush_reg` é a versão registrada do flush (capturada no pipeline register). Como `flush_reg` reflete o flush do ciclo anterior (quando a instrução foi buscada), uma branch taken corrente tem `flush_reg = 0` e é contada. A instrução especulativamente buscada após a branch recebe `flush_reg = 1` e não é contada.
+
+O sinal atravessa `core.vhdl` como wire-through direto (`retire_o => retire_o`).
+
+Isso conta uma instrução por avanço válido do pipeline:
 - **Normal instructions**: counted on each pipeline cycle
 - **Taken branches**: branch is counted, next instruction (flushed) is not
 - **Traps**: trap-causing instruction (ecall/ebreak) is counted

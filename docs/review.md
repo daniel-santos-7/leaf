@@ -164,7 +164,7 @@ A maioria das portas da entidade não segue a convenção `_i`/`_o` do projeto. 
 retire <= pcwr_en and not flush;
 ```
 
-O `flush` é registrado no pipeline register (`out_pipe_proc` em `if_stage.vhdl:71`). Quando uma branch taken está em EX, o `flush` associado a ela foi capturado no **ciclo anterior** (antes de `taken` subir), então `flush = 0` e o branch é contado. A instrução seguinte (especulativamente buscada) recebe `flush = 1` e é descartada. **Comportamento correto** — a documentação em `index.md` condiz com o RTL.
+O `flush` é registrado no pipeline register (`out_pipe_proc` em `if_stage.vhdl:71`). Quando uma branch taken está em EX, o `flush` associado a ela foi capturado no **ciclo anterior** (antes de `taken` subir), então `flush = 0` e o branch é contado. A instrução seguinte (especulativamente buscada) recebe `flush = 1` e é descartada. **Comportamento correto** — a documentação em `microarchitecture.md` condiz com o RTL.
 
 ---
 
@@ -233,7 +233,7 @@ Adicionar o registrador `mcountinhibit` WARL para permitir que o software pause 
 5. `leaf.vhdl`: conectar `core.mcountinhibit_o` → `counters.inhibit_i`
 6. `leaf_pkg.vhdl`: add constante `CSR_ADDR_MCOUNTINHIBIT`, atualizar component declarations
 
-Detalhado em: `docs/index.md` (seção Counter Inhibit)
+Detalhado em: `docs/microarchitecture.md` (seção Counter Inhibit)
 
 ---
 
