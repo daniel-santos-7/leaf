@@ -301,7 +301,28 @@ Interface COP não tem handshake (`cop_ack_i`/`cop_ready_i`). Documentado como l
 
 ---
 
-## ALU Control (`rtl/alu_ctrl.vhdl`)
+## ALU Datapath (`rtl/alu.vhdl`)
+
+### INFO: Port naming, XLEN, e header padronizados
+
+2026-05-30: Todas as 4 portas renomeadas com sufixos `_i`/`_o` e `31 downto 0` → `XLEN-1 downto 0`:
+
+| Atual | Novo |
+|-------|------|
+| `opd0` (in) | `opd0_i` |
+| `opd1` (in) | `opd1_i` |
+| `op` (in) | `op_i` |
+| `res` (out) | `res_o` |
+
+Sinais internos (`arith_opd0`, `arith_opd1`, `arith_res`, `comp_bypass`, `comp_res`, `logic_opd0`, `logic_opd1`, `logic_bypass`, `logic_res`, `shifter_opd`, `shifter_bypass`, `shifter_res`) também migrados para `XLEN-1 downto 0`. Variáveis do processo `arith_unit` (`opd0_i`, `opd1_i`) atualizadas.
+
+Acesso a `opd0(31)` → `opd0_i(XLEN-1)` nas atribuições de `comp_opd0`, `comp_opd1`, `comp_opd2`.
+
+Header `2022` → `2026`. Nenhum bug funcional encontrado — cadeia de bypass e decodificação corretas.
+
+---
+
+## ALU Control (`rtl/alu_ctrl.vhdl)`
 
 ### INFO: Port naming padronizado com `_i`/`_o`
 
@@ -432,7 +453,7 @@ O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) 
 - [x] ~~`rtl/id_stage.vhdl` — decodificação, regfile, CSRs~~ (revisado 2026-05-30)
 - [x] ~~`rtl/ex_block.vhdl` — ALU, branch, load/store~~ (revisado 2026-05-30)
 - [ ] `rtl/main_ctrl.vhdl` — decodificador de controle
-- [ ] `rtl/alu.vhdl` — datapath da ULA
+- [x] ~~`rtl/alu.vhdl` — datapath da ULA~~ (revisado 2026-05-30)
 - [x] ~~`rtl/alu_ctrl.vhdl` — decodificador de operação da ULA~~ (revisado 2026-05-30)
 - [ ] `rtl/br_detector.vhdl` — detecção de desvio
 - [ ] `rtl/dmls_block.vhdl` — load/store alignment

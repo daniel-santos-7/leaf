@@ -337,6 +337,25 @@ Decoding logic:
 - `func3 = 101`, `func7 = 0100000` → `ALU_SRA`
 - Otherwise maps `func3` to the corresponding ALU operation (ADD, SLL, SLT, SLTU, XOR, SRL, OR, AND)
 
+### ALU (`alu.vhdl`)
+
+Combinational datapath organized as a bypass chain: `arith → comp → logic → shifter → res_o`.
+
+| Porta | Direção | Largura | Descrição |
+|-------|---------|---------|-----------|
+| `opd0_i` | in | XLEN | Operand 0 |
+| `opd1_i` | in | XLEN | Operand 1 |
+| `op_i` | in | 6 | ALU operation code from `alu_ctrl` |
+| `res_o` | out | XLEN | Result |
+
+Sub-blocks:
+- **arith_unit**: ADD/SUB via `unsigned` addition with conditional 2's complement of `opd1_i`
+- **comparator**: SLT/SLTU using MSB comparison with `arith_res(31)` for same-sign case
+- **logic_unit**: XOR/OR/AND with bypass
+- **shifter**: SLL/SRL/SRA via `numeric_std` shift functions (5-bit shift amount from `opd1_i(4:0)`)
+
+Bypass chain: when a sub-block's operation is not selected, it passes through the previous result.
+
 ### Control Signals
 
 Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
