@@ -219,7 +219,14 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 | `func3_o` | out | 3 | funct3 field |
 | `func7_o` | out | 7 | funct7 field |
 | `imm_o` | out | XLEN | Decoded immediate |
-| `exec_ctrl_o` | out | 8 | Execution control word |
+| `jmp_o` | out | 1 | Jump (JAL/JALR) |
+| `br_en_o` | out | 1 | Branch enable |
+| `opd0_src_sel_o` | out | 1 | Select PC vs reg0 as ALU operand 0 |
+| `opd1_src_sel_o` | out | 1 | Select imm vs reg1 as ALU operand 1 |
+| `opd0_pass_o` | out | 1 | Gate ALU operand 0 |
+| `opd1_pass_o` | out | 1 | Gate ALU operand 1 |
+| `ftype_o` | out | 1 | Instruction type for ALU control |
+| `op_en_o` | out | 1 | ALU operation enable |
 | `dmls_ctrl_o` | out | 2 | Data memory load/store control |
 | `cop_adr_o` | out | 6 | Coprocessor address |
 | `cop_dat_o` | out | XLEN | Coprocessor write data |
@@ -248,20 +255,20 @@ Contains all datapath execution logic:
 - **dmls_block** — load/store alignment and sign-extension
 - **csrs_logic** — CSR write data muxing (reg, immediate, or RS1-based modes)
 
-### Control Signals (`exec_ctrl`)
+### Control Signals
 
-8-bit control word from main_ctrl:
+Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
 
-| Bit | Signal | Description |
-|-----|--------|-------------|
-| 7 | `jmp` | Jump (JAL/JALR) |
-| 6 | `br_en` | Branch enable |
-| 5 | `opd0_src_sel` | Select PC vs reg0 as ALU operand 0 |
-| 4 | `opd1_src_sel` | Select imm vs reg1 as ALU operand 1 |
-| 3 | `opd0_pass` | Gate ALU operand 0 |
-| 2 | `opd1_pass` | Gate ALU operand 1 |
-| 1 | `ftype` | Instruction type for ALU control |
-| 0 | `op_en` | ALU operation enable |
+| Porta | Descrição |
+|-------|-----------|
+| `jmp_o` | Jump (JAL/JALR) |
+| `br_en_o` | Branch enable |
+| `opd0_src_sel_o` | Select PC vs reg0 as ALU operand 0 |
+| `opd1_src_sel_o` | Select imm vs reg1 as ALU operand 1 |
+| `opd0_pass_o` | Gate ALU operand 0 |
+| `opd1_pass_o` | Gate ALU operand 1 |
+| `ftype_o` | Instruction type for ALU control |
+| `op_en_o` | ALU operation enable |
 
 ## Wishbone Bus Interface
 
