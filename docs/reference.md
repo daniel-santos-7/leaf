@@ -221,6 +221,9 @@ Read-modify-write is used for stores: the FSM goes `READ_INSTR → RMW_CYCLE →
 | `0x301` | `misa` | ISA and extensions (RV32I) |
 | `0x304` | `mie` | Interrupt enable (MEIE, MTIE, MSIE) |
 | `0x305` | `mtvec` | Trap vector base address |
+| `0x320` | `mcountinhibit` | Machine counter inhibit (WARL) — *não implementado* |
+| `0x321` | `mhpmevent3` | Hardware performance event select (future) |
+| `0x323`–`0x32F` | `mhpmevent4–31` | Hardware performance event select (future) |
 | `0x340` | `mscratch` | Machine scratchpad |
 | `0x341` | `mepc` | Exception program counter |
 | `0x342` | `mcause` | Trap cause |
@@ -237,6 +240,25 @@ Read-modify-write is used for stores: the FSM goes `READ_INSTR → RMW_CYCLE →
 | `0xC80` | `cycleh` | Cycle counter (high) |
 | `0xC81` | `timeh` | Timer (high) |
 | `0xC82` | `instreth` | Instruction retired (high) |
+
+### Counter Inhibit (`mcountinhibit`)
+
+`mcountinhibit` (CSR `0x320`) é um registrador WARL que permite ao software pausar seletivamente os contadores de performance:
+
+| Bit | Campo | Controle |
+|-----|-------|----------|
+| 0 | CY | `mcycle` — 1 = inibe incremento |
+| 2 | IR | `minstret` — 1 = inibe incremento |
+| demais | — | Hardwired a 0 (reservados) |
+
+Quando um bit é `1`, o respectivo contador para de incrementar. O bit 1 (TM para `time`) é hardwired a 0 — `time` é um timer wall-clock independente e não deve ser inibido.
+
+**Nota**: `mcountinhibit` ainda **não está implementado** no Leaf. A implementação futura requer:
+
+1. Adicionar registrador `mcountinhibit_reg` em `csrs.vhdl` (bits 0 e 2 writable WARL, demais hardwired a 0)
+2. Adicionar portas `mcountinhibit_o` em `csrs` → `id_stage` → `core`
+3. Adicionar porta `inhibit_i` em `counters` — gating nos incrementos (`inhibit_i(0)` trava `cycle`, `inhibit_i(2)` trava `instret`)
+4. Conectar `core.mcountinhibit_o` → `counters.inhibit_i` em `leaf.vhdl`
 
 ### Custom Coprocessor Window
 
@@ -274,18 +296,30 @@ Trap flow:
 
 ## Counters (`rtl/counters.vhdl`)
 
-The counters module tracks three 64-bit values readable via CSRs:
+The counters module tracks three 64-bit values, all on the `clk_i` domain:
 
-| Counter | CSR (low) | CSR (high) | Current Behavior |
-|---------|-----------|-------------|------------------|
-| `mcycle` | `0xC00` | `0xC80` | Increments every `clk_i` cycle (ungated) |
-| `time` | `0xC01` | `0xC81` | **Hardwired to zero** |
-| `minstret` | `0xC02` | `0xC82` | **Hardwired to zero** |
+| Counter | CSR (low) | CSR (high) | Reset | Behavior |
+|---------|-----------|-------------|-------|----------|
+| `mcycle` | `0xC00` | `0xC80` | Yes | Increments every `clk_i` cycle (free-running) |
+| `time` | `0xC01` | `0xC81` | No | Increments every `clk_i` cycle (free-running, separate register) |
+| `minstret` | `0xC02` | `0xC82` | Yes | Increments on instruction retire (`retire_i`) |
 
-**Known limitations:**
-- `time` and `minstret` are not implemented — both always read zero
-- `minstret` has no input port to receive a retirement signal from the core
-- `mcycle` increments on the free-running `clk_i`, not on the gated `clk` — it counts wall-clock cycles, not core-active cycles
+The `time` counter has no reset — it counts continuously from power-on as a free-running real-time clock, independent of the core's operating state.
+
+### Retire Signal
+
+The `retire_i` pulse is generated in `core.vhdl` as:
+
+```vhdl
+retire <= pcwr_en and not flush;
+```
+
+This counts one instruction per valid pipeline advance, correctly handling:
+- **Normal instructions**: counted on each pipeline cycle
+- **Taken branches**: branch is counted, next instruction (flushed) is not
+- **Traps**: trap-causing instruction (ecall/ebreak) is counted
+- **Stalls**: no count when pipeline is stalled (pcwr_en = '0')
+- **Bus errors**: faulted instruction is not counted (flush = '1')
 
 ## Register File
 
@@ -323,7 +357,7 @@ The register file (`reg_file.vhdl`) has 32 × 32-bit registers with:
 
 | File | Entity | Role |
 |------|--------|------|
-| `rtl/leaf.vhdl` | `leaf` | Top-level: Wishbone interface, clock gating, counters, COP interface passthrough |
+| `rtl/leaf.vhdl` | `leaf` | Top-level: Wishbone interface, clock gating, counters, COP interface passthrough, time_clk |
 | `rtl/core.vhdl` | `core` | Core integration: IF + ID/EX pipeline |
 | `rtl/if_stage.vhdl` | `if_stage` | Instruction fetch, PC register, flush |
 | `rtl/id_stage.vhdl` | `id_stage` | Decode, register file, CSRs |

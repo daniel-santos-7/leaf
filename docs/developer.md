@@ -77,7 +77,7 @@ See [rtl-review.md](../rtl-review.md) for legacy findings and [review.md](review
 
 | ID | Severity | Component | Description |
 |----|----------|-----------|-------------|
-| R1 | BUG | `counters` | `instret` and `timer` hardwired to zero |
+| R1 | BUG | `counters` | ~~`instret` and `timer` hardwired to zero~~ **(fixed)** |
 | R2 | WARN | `leaf` | Reset distribution asymmetry (core vs counters) |
 | R3 | WARN | `leaf` | COP interface lacks handshake signals |
 | R4 | INFO | `clk_ctrl` | Gated clock via transparent latch |
