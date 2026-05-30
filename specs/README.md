@@ -105,7 +105,7 @@ All CSRs are 32-bit (XLEN = 32). Counter CSRs are 64-bit, read as two 32-bit hal
 | Address | Register | R/W | Description |
 |---------|----------|-----|-------------|
 | `0x300` | `mstatus` | R/W | Machine status (MIE, MPIE, MPP) |
-| `0x301` | `misa` | RO | ISA and extensions — reports RV32I (`0x30000100`) |
+| `0x301` | `misa` | RO | ISA and extensions — reports RV32I (`0x40000100`) |
 | `0x304` | `mie` | R/W | Interrupt enable (MEIE, MTIE, MSIE) |
 | `0x305` | `mtvec` | R/W | Trap vector base address (direct mode only) |
 | `0x340` | `mscratch` | R/W | Machine scratchpad register |
@@ -122,6 +122,8 @@ All CSRs are 32-bit (XLEN = 32). Counter CSRs are 64-bit, read as two 32-bit hal
 | `0x7C0`–`0x7FF` | Coprocessor window | R/W | Forwarded to external coprocessor (64 entries) |
 | `0xF14` | `mhartid` | RO | Hart ID (configurable via generic, default 0) |
 
+Note: `time` and `timeh` are identical to `cycle`/`cycleh` — Leaf has no dedicated wall-clock timer input; `timer` counts every cycle from reset, same as `cycle`.
+
 ### CSR Field Layout
 
 #### `mstatus` (0x300)
@@ -131,7 +133,7 @@ All CSRs are 32-bit (XLEN = 32). Counter CSRs are 64-bit, read as two 32-bit hal
 | 3 | MIE | 0 | Machine interrupt enable |
 | 7 | MPIE | 1 | Machine previous interrupt enable |
 | 12:11 | MPP | 11 | Machine previous privilege mode (hardwired to M-mode) |
-| 31:4, 2:0, 6:4 | WPRI | 0 | Reserved, reads preserve written value |
+| 31:13, 10:8, 6:4, 2:0 | WPRI | 0 | Reserved (ignored on write, reads as 0) |
 
 #### `misa` (0x301)
 
@@ -140,7 +142,7 @@ All CSRs are 32-bit (XLEN = 32). Counter CSRs are 64-bit, read as two 32-bit hal
 | 31:30 | MXL | `01` | Machine XLEN (01 = 32-bit) |
 | 25:0 | Extensions | `0x00100` | ISA extensions bitmap — bit 8 ('I') set for RV32I |
 
-Read-only, returns `0x30000100`.
+Read-only, returns `0x40000100`.
 
 #### `mtvec` (0x305)
 
@@ -149,7 +151,7 @@ Read-only, returns `0x30000100`.
 | 31:2 | BASE | 0 | Trap vector base address (word-aligned) |
 | 1:0 | MODE | `00` | Vector mode (00 = Direct, hardwired) |
 
-Only Direct mode is supported — all traps jump to `BASE`. The two low bits are hardwired to `00` on writes.
+Only Direct mode is supported — all traps jump to `BASE`. The low 2 bits are hardwired to `00` (reads always return 0; writes are ignored).
 
 #### `mepc` (0x341)
 
@@ -214,9 +216,9 @@ All interrupts are gated by `mstatus.MIE`. When multiple interrupts are pending,
 
 | Priority | Interrupt | mcause code |
 |----------|-----------|-------------|
-| 1 (highest) | MEI (external) | 11 |
+| 1 (highest) | MSI (software) | 3 |
 | 2 | MTI (timer) | 7 |
-| 3 (lowest) | MSI (software) | 3 |
+| 3 (lowest) | MEI (external) | 11 |
 
 ### Exception Codes
 
