@@ -64,7 +64,6 @@ architecture rtl of id_stage is
 
     signal regwr_en    : std_logic;
     signal regwr_addr  : std_logic_vector(4  downto 0);
-    signal regwr_data  : std_logic_vector(XLEN-1 downto 0);
     signal regrd_addr0 : std_logic_vector(4  downto 0);
     signal regrd_addr1 : std_logic_vector(4  downto 0);
     signal regwr_sel   : std_logic_vector(1  downto 0);
