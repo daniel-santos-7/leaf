@@ -412,6 +412,17 @@ Quando um bit é `1`, o respectivo contador para de incrementar. O bit 1 (TM par
 3. Adicionar porta `inhibit_i` em `counters` — gating nos incrementos (`inhibit_i(0)` trava `cycle`, `inhibit_i(2)` trava `instret`)
 4. Conectar `core.mcountinhibit_o` → `counters.inhibit_i` em `leaf.vhdl`
 
+### Timer Interrupt (`tm_irq`)
+
+`tm_irq` é uma entrada externa do core — o Leaf não a gera internamente. O contador `time` (CSR `0xC01`/`0xC81`) incrementa a cada ciclo de `clk_i` e é legível por software, mas não há registrador `mtimecmp` para comparar o timer e gerar a IRQ automaticamente.
+
+Para usar timer interrupts, é necessário hardware externo que:
+- Programe um valor de comparação via memory-mapped register ou CSR de coprocessador
+- Compare contra `time` ou seu próprio contador
+- Assevere `tm_irq` quando a condição for satisfeita
+
+A implementação de `mtimecmp` conforme a RISC-V Privileged Spec (seção 3.1.11) é uma melhoria futura.
+
 ### Custom Coprocessor Window
 
 CSR addresses `0x7C0` to `0x7FF` are reserved for coprocessor attachment. Reads are forwarded to `cop_dat_i`, writes to `cop_dat_o` with `cop_we_o` strobe.

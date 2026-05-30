@@ -355,6 +355,18 @@ Detalhado em: `docs/microarchitecture.md` (seção Counter Inhibit)
 
 ---
 
+### INFO: `mtimecmp` — timer interrupt interno
+
+O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) existe e é legível por software, mas sem um registrador `mtimecmp` o timer interrupt depende de hardware externo.
+
+**Implementação futura**:
+1. Adicionar `mtimecmp` no CSR space (endereço `0x321`, ao lado de `mtime` em `0xC01`)
+2. Comparador em hardware: `tm_irq <= '1' when timer >= mtimecmp`
+3. Opção 1: implementar no `csrs.vhdl` com registrador e comparador internos
+4. Opção 2: módulo externo conectado via Wishbone, com `tm_irq` como saída
+
+---
+
 ## Próximas Revisões
 
 - [x] ~~`rtl/core.vhdl` — integração do pipeline~~ (revisado)
