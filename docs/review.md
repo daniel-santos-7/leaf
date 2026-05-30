@@ -266,6 +266,22 @@ O immediate generator injeta valores don't-care (`'-'`) durante flush e opcodes 
 
 ---
 
+## Pipeline Stage: Register File (`rtl/reg_file.vhdl`)
+
+### INFO: Header year e port naming padronizados
+
+2026-05-30: Header `2022` → `2026`. Todas as 12 portas renomeadas com sufixos `_i`/`_o`:
+- `clk`/`we`/`wr_sel`/`wr_addr`/`wr_data0-3`/`rd_addr0-1` → `clk_i` etc.
+- `rd_data0`/`rd_data1` → `rd_data0_o`/`rd_data1_o`
+
+Don't-cares (`(others => '-')`) mantidos no `wr_data_mux` — inofensivo em síntese.
+
+### INFO: Estrutura geral
+
+Correto e simples: 32×32 register file, leitura combinacional, escrita síncrona. x0 hardwired a zero (reescrito a cada ciclo). Dual-implementation com `SIZE=16` para modo embedded (`small_reg_file` com 4-bit addressing).
+
+---
+
 ## Melhorias Planejadas
 
 ### INFO: `mcountinhibit` (CSR `0x320`) — counter inhibit
@@ -296,5 +312,5 @@ Detalhado em: `docs/microarchitecture.md` (seção Counter Inhibit)
 - [ ] `rtl/dmls_block.vhdl` — load/store alignment
 - [ ] `rtl/csrs.vhdl` — CSRs e traps
 - [ ] `rtl/csrs_logic.vhdl` — multiplexação CSR
-- [ ] `rtl/reg_file.vhdl` — banco de registradores
+- [x] ~~`rtl/reg_file.vhdl` — banco de registradores~~ (revisado 2026-05-30)
 - [ ] `rtl/leaf_pkg.vhdl` — constantes e declarações

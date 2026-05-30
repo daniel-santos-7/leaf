@@ -246,6 +246,27 @@ Combines decode, register file read, and CSR access:
 - **csrs** handles CSR read/write and trap/exception logic
 - Passes decoded signals to `ex_block`
 
+#### Register File (`reg_file.vhdl`)
+
+32 × XLEN register file with combinatorial read, synchronous write. Register x0 is hardwired to zero.
+
+| Porta | Direção | Largura | Descrição |
+|-------|---------|---------|-----------|
+| `clk_i` | in | 1 | Clock |
+| `we_i` | in | 1 | Write enable |
+| `wr_sel_i` | in | 2 | Write data mux select (0=ALU, 1=dmem, 2=next_pc, 3=CSR) |
+| `wr_addr_i` | in | 5 | Write destination register address |
+| `wr_data0_i` | in | XLEN | Write data from ALU result |
+| `wr_data1_i` | in | XLEN | Write data from data load |
+| `wr_data2_i` | in | XLEN | Write data from next PC |
+| `wr_data3_i` | in | XLEN | Write data from CSR read |
+| `rd_addr0_i` | in | 5 | Read port 0 address |
+| `rd_addr1_i` | in | 5 | Read port 1 address |
+| `rd_data0_o` | out | XLEN | Read port 0 data |
+| `rd_data1_o` | out | XLEN | Read port 1 data |
+
+Dual-implementation: `SIZE=16` selects `small_reg_file` (4-bit addressing), `SIZE=32` selects `large_reg_file` (5-bit). Default is 32.
+
 ### Execution Block (`ex_block.vhdl`)
 
 Contains all datapath execution logic:
