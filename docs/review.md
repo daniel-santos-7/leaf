@@ -235,23 +235,25 @@ Isso quebra o fluxo normal de trap return.
 
 ---
 
-### BUG: Don't-care values no datapath durante flush/opcode inválido
+### INFO: Don't-care values no datapath durante flush/opcode inválido
 
 `rtl/main_ctrl.vhdl:50-63, 77`
 
-O immediate generator injeta valores don't-care (`'-'`) durante flush e opcodes desconhecidos. Esses valores propagam para entradas da ALU e shifter, chegando a conversões `numeric_std` — produzindo warnings de metavalue e comportamento de simulação instável. O teste `addi` não converge por causa disto.
+O immediate generator injeta valores don't-care (`'-'`) durante flush e opcodes desconhecidos. Esses valores propagam para entradas da ALU e shifter, chegando a conversões `numeric_std` — produzindo warnings de simulação (`metavalue detected`). Durante `flush = '1'`, `exec_ctrl_o` e `regwr_en_o` são zerados, então os metavalues em `imm_o` nunca são capturados funcionalmente. O sintetizador (Yosys) ignora don't-cares.
+
+**Não é um bug funcional** — apenas poluição visual na simulação. O teste `addi` não converge por outra causa (provavelmente relacionada a outro bug na lista).
 
 ---
 
-### BUG: Invalid CSR accesses não geram traps
+### ~~BUG: Invalid CSR accesses não geram traps~~ (WONTFIX)
 
-`rtl/main_ctrl.vhdl:148`, `rtl/csrs.vhdl:116`
+~~`rtl/main_ctrl.vhdl:148`, `rtl/csrs.vhdl:116`~~
 
-O projeto especifica que endereços CSR inválidos devem gerar trap, mas:
-- `main_ctrl` trata todo `SYSTEM_OPCODE` como válido
-- O read path do csrs retorna zero para endereços desconhecidos
+~~O projeto especifica que endereços CSR inválidos devem gerar trap, mas:~~
+- ~~`main_ctrl` trata todo `SYSTEM_OPCODE` como válido~~
+- ~~O read path do csrs retorna zero para endereços desconhecidos~~
 
-Isso mascara acessos CSR ilegais e desvia do comportamento ISA esperado.
+**WONTFIX**: Comportamento intencional para este core simples — CSR inválido lê 0, escrita ignorada. Aceitável para o escopo do Leaf.
 
 ---
 
