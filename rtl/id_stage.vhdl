@@ -116,18 +116,18 @@ begin
     id_stage_reg_file: reg_file generic map (
         SIZE => REG_FILE_SIZE
     ) port map (
-        clk      => clk_i,
-        we       => regwr_en,
-        wr_sel   => regwr_sel,
-        wr_addr  => regwr_addr,
-        wr_data0 => exec_res_i,
-        wr_data1 => dmld_data_i,
-        wr_data2 => next_pc_i,
-        wr_data3 => csrrd_data_s,
-        rd_addr0 => regrd_addr0,
-        rd_addr1 => regrd_addr1,
-        rd_data0 => regrd_data0,
-        rd_data1 => regrd_data1
+        clk_i      => clk_i,
+        we_i       => regwr_en,
+        wr_sel_i   => regwr_sel,
+        wr_addr_i  => regwr_addr,
+        wr_data0_i => exec_res_i,
+        wr_data1_i => dmld_data_i,
+        wr_data2_i => next_pc_i,
+        wr_data3_i => csrrd_data_s,
+        rd_addr0_i => regrd_addr0,
+        rd_addr1_i => regrd_addr1,
+        rd_data0_o => regrd_data0,
+        rd_data1_o => regrd_data1
     );
 
     id_stage_csrs: csrs generic map (

@@ -155,18 +155,18 @@ package leaf_pkg is
             SIZE : natural := 32
         );
         port (
-            clk      : in  std_logic;
-            we       : in  std_logic;
-            wr_sel   : in  std_logic_vector(1 downto 0);
-            wr_addr  : in  std_logic_vector(4  downto 0);
-            wr_data0 : in  std_logic_vector(XLEN-1 downto 0);
-            wr_data1 : in  std_logic_vector(XLEN-1 downto 0);
-            wr_data2 : in  std_logic_vector(XLEN-1 downto 0);
-            wr_data3 : in  std_logic_vector(XLEN-1 downto 0);
-            rd_addr0 : in  std_logic_vector(4  downto 0);
-            rd_addr1 : in  std_logic_vector(4  downto 0);
-            rd_data0 : out std_logic_vector(XLEN-1 downto 0);
-            rd_data1 : out std_logic_vector(XLEN-1 downto 0)
+            clk_i      : in  std_logic;
+            we_i       : in  std_logic;
+            wr_sel_i   : in  std_logic_vector(1 downto 0);
+            wr_addr_i  : in  std_logic_vector(4  downto 0);
+            wr_data0_i : in  std_logic_vector(XLEN-1 downto 0);
+            wr_data1_i : in  std_logic_vector(XLEN-1 downto 0);
+            wr_data2_i : in  std_logic_vector(XLEN-1 downto 0);
+            wr_data3_i : in  std_logic_vector(XLEN-1 downto 0);
+            rd_addr0_i : in  std_logic_vector(4  downto 0);
+            rd_addr1_i : in  std_logic_vector(4  downto 0);
+            rd_data0_o : out std_logic_vector(XLEN-1 downto 0);
+            rd_data1_o : out std_logic_vector(XLEN-1 downto 0)
         );
     end component reg_file;
 

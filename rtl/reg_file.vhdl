@@ -2,7 +2,7 @@
 -- Leaf project
 -- developed by: Daniel Santos
 -- module: register file
--- 2022
+-- 2026
 ----------------------------------------------------------------------
 
 library IEEE;
@@ -15,18 +15,18 @@ entity reg_file is
         SIZE : natural := 32
     );
     port (
-        clk      : in  std_logic;
-        we       : in  std_logic;
-        wr_sel   : in  std_logic_vector(1 downto 0);
-        wr_addr  : in  std_logic_vector(4  downto 0);
-        wr_data0 : in  std_logic_vector(XLEN-1 downto 0);
-        wr_data1 : in  std_logic_vector(XLEN-1 downto 0);
-        wr_data2 : in  std_logic_vector(XLEN-1 downto 0);
-        wr_data3 : in  std_logic_vector(XLEN-1 downto 0);
-        rd_addr0 : in  std_logic_vector(4  downto 0);
-        rd_addr1 : in  std_logic_vector(4  downto 0);
-        rd_data0 : out std_logic_vector(XLEN-1 downto 0);
-        rd_data1 : out std_logic_vector(XLEN-1 downto 0)
+        clk_i      : in  std_logic;
+        we_i       : in  std_logic;
+        wr_sel_i   : in  std_logic_vector(1 downto 0);
+        wr_addr_i  : in  std_logic_vector(4  downto 0);
+        wr_data0_i : in  std_logic_vector(XLEN-1 downto 0);
+        wr_data1_i : in  std_logic_vector(XLEN-1 downto 0);
+        wr_data2_i : in  std_logic_vector(XLEN-1 downto 0);
+        wr_data3_i : in  std_logic_vector(XLEN-1 downto 0);
+        rd_addr0_i : in  std_logic_vector(4  downto 0);
+        rd_addr1_i : in  std_logic_vector(4  downto 0);
+        rd_data0_o : out std_logic_vector(XLEN-1 downto 0);
+        rd_data1_o : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity reg_file;
 
@@ -51,49 +51,49 @@ architecture reg_file_arch of reg_file is
 
 begin
 
-    wr_data_mux: process(wr_sel, wr_data0, wr_data1, wr_data2, wr_data3)
+    wr_data_mux: process(wr_sel_i, wr_data0_i, wr_data1_i, wr_data2_i, wr_data3_i)
     begin
-        case wr_sel is
-            when b"00" => wr_data <= wr_data0;
-            when b"01" => wr_data <= wr_data1;
-            when b"10" => wr_data <= wr_data2;
-            when b"11" => wr_data <= wr_data3;
+        case wr_sel_i is
+            when b"00" => wr_data <= wr_data0_i;
+            when b"01" => wr_data <= wr_data1_i;
+            when b"10" => wr_data <= wr_data2_i;
+            when b"11" => wr_data <= wr_data3_i;
             when others => wr_data <= (others => '-');
         end case;
     end process wr_data_mux;
 
     large_reg_file: if (EMBEDDED = false) generate
-        write_reg: process(clk)
+        write_reg: process(clk_i)
         begin
-            if rising_edge(clk) then
+            if rising_edge(clk_i) then
                 regs(0) <= X0_DATA;
-                if we = '1' then
-                    if wr_addr /= X0_ADDR then
-                        regs(to_uint(wr_addr)) <= wr_data;
+                if we_i = '1' then
+                    if wr_addr_i /= X0_ADDR then
+                        regs(to_uint(wr_addr_i)) <= wr_data;
                     end if;
                 end if;
             end if;
         end process write_reg;
 
-        rd_data0 <= regs(to_uint(rd_addr0));
-        rd_data1 <= regs(to_uint(rd_addr1));
+        rd_data0_o <= regs(to_uint(rd_addr0_i));
+        rd_data1_o <= regs(to_uint(rd_addr1_i));
     end generate large_reg_file;
 
     small_reg_file: if (EMBEDDED = true) generate
-        write_reg: process(clk)
+        write_reg: process(clk_i)
         begin
-            if rising_edge(clk) then
+            if rising_edge(clk_i) then
                 regs(0) <= X0_DATA;
-                if we = '1' then
-                    if wr_addr /= X0_ADDR then
-                        regs(to_uint(wr_addr(3 downto 0))) <= wr_data;
+                if we_i = '1' then
+                    if wr_addr_i /= X0_ADDR then
+                        regs(to_uint(wr_addr_i(3 downto 0))) <= wr_data;
                     end if;
                 end if;
             end if;
         end process write_reg;
 
-        rd_data0 <= regs(to_uint(rd_addr0(3 downto 0)));
-        rd_data1 <= regs(to_uint(rd_addr1(3 downto 0)));
+        rd_data0_o <= regs(to_uint(rd_addr0_i(3 downto 0)));
+        rd_data1_o <= regs(to_uint(rd_addr1_i(3 downto 0)));
     end generate small_reg_file;
 
 end architecture reg_file_arch;
