@@ -2,7 +2,7 @@
 -- Leaf project
 -- developed by: Daniel Santos
 -- module: cpu core
--- 2022
+-- 2026
 ----------------------------------------------------------------------
 
 library IEEE;
@@ -33,6 +33,7 @@ entity core is
         cop_adr_o : out std_logic_vector(5 downto 0);
         cop_dat_o : out std_logic_vector(31 downto 0);
         cop_we_o  : out std_logic;
+        retire_o  : out std_logic;
         imrd_en   : out std_logic;
         dmrd_en   : out std_logic;
         dmwr_en   : out std_logic;
@@ -78,7 +79,12 @@ architecture rtl of core is
     signal dmst_malgn : std_logic;
     signal dmst_fault : std_logic;
 
+    signal retire : std_logic;
+
 begin
+
+    retire_o <= retire;
+    retire    <= pcwr_en and not flush;
 
     -- instruction fetch stage --
 

@@ -2,7 +2,7 @@
 -- Leaf project
 -- developed by: Daniel Santos
 -- package: leaf package
--- 2022
+-- 2026
 ----------------------------------------------------------------------
 
 library IEEE;
@@ -363,6 +363,7 @@ package leaf_pkg is
             cop_adr_o : out std_logic_vector(5 downto 0);
             cop_dat_o : out std_logic_vector(31 downto 0);
             cop_we_o  : out std_logic;
+            retire_o  : out std_logic;
             imrd_en   : out std_logic;
             dmrd_en   : out std_logic;
             dmwr_en   : out std_logic;
@@ -383,21 +384,21 @@ package leaf_pkg is
             clk_i  : in  std_logic;
             rst_i  : in  std_logic;
             ex_irq : in  std_logic;
-            sw_irq : in  std_logic;
-            tm_irq : in  std_logic;
-            ack_i  : in  std_logic;
-            err_i  : in  std_logic;
+            sw_irq    : in  std_logic;
+            tm_irq    : in  std_logic;
+            ack_i     : in  std_logic;
+            err_i     : in  std_logic;
             dat_i     : in  std_logic_vector(31 downto 0);
             cop_dat_i : in  std_logic_vector(31 downto 0) := (others => '0');
             cop_adr_o : out std_logic_vector(5 downto 0);
             cop_dat_o : out std_logic_vector(31 downto 0);
             cop_we_o  : out std_logic;
             cyc_o     : out std_logic;
-            stb_o  : out std_logic;
-            we_o   : out std_logic;
-            sel_o  : out std_logic_vector(3  downto 0);
-            adr_o  : out std_logic_vector(31 downto 0);
-            dat_o  : out std_logic_vector(31 downto 0)
+            stb_o     : out std_logic;
+            we_o      : out std_logic;
+            sel_o     : out std_logic_vector(3  downto 0);
+            adr_o     : out std_logic_vector(31 downto 0);
+            dat_o     : out std_logic_vector(31 downto 0)
         );
     end component leaf;
 
@@ -433,11 +434,12 @@ package leaf_pkg is
 
     component counters is
         port (
-            clk     : in  std_logic;
-            reset   : in  std_logic;
-            cycle   : out std_logic_vector(63 downto 0);
-            timer   : out std_logic_vector(63 downto 0);
-            instret : out std_logic_vector(63 downto 0)
+            clk_i    : in  std_logic;
+            reset_i  : in  std_logic;
+            retire_i : in  std_logic;
+            cycle_o  : out std_logic_vector(63 downto 0);
+            timer_o  : out std_logic_vector(63 downto 0);
+            instret_o: out std_logic_vector(63 downto 0)
         );
     end component counters;
 
