@@ -380,6 +380,39 @@ Header `2022` → `2026`. Nenhum bug funcional encontrado — lógica de compara
 
 ---
 
+## Data Memory Load/Store Block (`rtl/dmls_block.vhdl`)
+
+### INFO: Port naming, XLEN, e header padronizados
+
+2026-05-30: Todas as 18 portas renomeadas com sufixos `_i`/`_o` e `31 downto 0` → `XLEN-1 downto 0`:
+
+| Atual | Novo |
+|-------|------|
+| `dmrd_err` (in) | `dmrd_err_i` |
+| `dmwr_err` (in) | `dmwr_err_i` |
+| `dmls_mode` (in) | `dmls_mode_i` |
+| `dmls_en` (in) | `dmls_en_i` |
+| `dmls_dtype` (in) | `dmls_dtype_i` |
+| `dmst_data` (in) | `dmst_data_i` |
+| `dmls_addr` (in) | `dmls_addr_i` |
+| `dmrd_data` (in) | `dmrd_data_i` |
+| `dmld_malgn` (out) | `dmld_malgn_o` |
+| `dmld_fault` (out) | `dmld_fault_o` |
+| `dmst_malgn` (out) | `dmst_malgn_o` |
+| `dmst_fault` (out) | `dmst_fault_o` |
+| `dmrd_en` (out) | `dmrd_en_o` |
+| `dmwr_en` (out) | `dmwr_en_o` |
+| `dmwr_data` (out) | `dmwr_data_o` |
+| `dmrw_addr` (out) | `dmrw_addr_o` |
+| `dm_byte_en` (out) | `dm_byte_en_o` |
+| `dmld_data` (out) | `dmld_data_o` |
+
+Aliasing `dmls_addr(31 downto 2)` → `dmls_addr_i(XLEN-1 downto 2)` na atribuição de `dmrw_addr_o`. `resize(..., 32)` → `resize(..., XLEN)` nas saídas.
+
+Header `2022` → `2026`. Nenhum bug funcional encontrado — byte lane selection, byte rotation, misaligned detection, e fault propagation corretos.
+
+---
+
 ## Bugs Conhecidos (de `rtl-review.md`)
 
 ### ~~BUG: `mret` tratado como exceção, não como retorno de exceção~~ (CORRIGIDO)
@@ -492,7 +525,7 @@ O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) 
 - [x] ~~`rtl/alu.vhdl` — datapath da ULA~~ (revisado 2026-05-30)
 - [x] ~~`rtl/alu_ctrl.vhdl` — decodificador de operação da ULA~~ (revisado 2026-05-30)
 - [x] ~~`rtl/br_detector.vhdl` — detecção de desvio~~ (revisado 2026-05-30)
-- [ ] `rtl/dmls_block.vhdl` — load/store alignment
+- [x] ~~`rtl/dmls_block.vhdl` — load/store alignment~~ (revisado 2026-05-30)
 - [x] ~~`rtl/csrs.vhdl` — CSRs e traps~~ (revisado 2026-05-30)
 - [x] ~~`rtl/csrs_logic.vhdl` — multiplexação CSR~~ (revisado 2026-05-30)
 - [x] ~~`rtl/reg_file.vhdl` — banco de registradores~~ (revisado 2026-05-30)

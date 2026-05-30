@@ -107,24 +107,24 @@ begin
     res_o    <= alu_res;
 
     exec_dmls_block: dmls_block port map (
-        dmrd_err   => dmrd_err_i,
-        dmwr_err   => dmwr_err_i,
-        dmls_mode  => dmls_mode_i,
-        dmls_en    => dmls_en_i,
-        dmls_dtype => func3_i,
-        dmst_data  => reg1_i,
-        dmls_addr  => alu_res,
-        dmrd_data  => dmrd_data_i,
-        dmld_malgn => dmld_malgn_o,
-        dmld_fault => dmld_fault_o,
-        dmst_malgn => dmst_malgn_o,
-        dmst_fault => dmst_fault_o,
-        dmrd_en    => dmrd_en_o,
-        dmwr_en    => dmwr_en_o,
-        dmwr_data  => dmwr_data_o,
-        dmrw_addr  => dmrw_addr_o,
-        dm_byte_en => dm_byte_en_o,
-        dmld_data  => dmld_data_o
+        dmrd_err_i   => dmrd_err_i,
+        dmwr_err_i   => dmwr_err_i,
+        dmls_mode_i  => dmls_mode_i,
+        dmls_en_i    => dmls_en_i,
+        dmls_dtype_i => func3_i,
+        dmst_data_i  => reg1_i,
+        dmls_addr_i  => alu_res,
+        dmrd_data_i  => dmrd_data_i,
+        dmld_malgn_o => dmld_malgn_o,
+        dmld_fault_o => dmld_fault_o,
+        dmst_malgn_o => dmst_malgn_o,
+        dmst_fault_o => dmst_fault_o,
+        dmrd_en_o    => dmrd_en_o,
+        dmwr_en_o    => dmwr_en_o,
+        dmwr_data_o  => dmwr_data_o,
+        dmrw_addr_o  => dmrw_addr_o,
+        dm_byte_en_o => dm_byte_en_o,
+        dmld_data_o  => dmld_data_o
     );
 
 end architecture ex_block_arch;

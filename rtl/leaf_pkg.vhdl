@@ -344,24 +344,24 @@ package leaf_pkg is
 
     component dmls_block is
         port (
-            dmrd_err   : in  std_logic;
-            dmwr_err   : in  std_logic;
-            dmls_mode  : in  std_logic;
-            dmls_en    : in  std_logic;
-            dmls_dtype : in  std_logic_vector(2  downto 0);
-            dmst_data  : in  std_logic_vector(31 downto 0);
-            dmls_addr  : in  std_logic_vector(31 downto 0);
-            dmrd_data  : in  std_logic_vector(31 downto 0);
-            dmld_malgn : out std_logic;
-            dmld_fault : out std_logic;
-            dmst_malgn : out std_logic;
-            dmst_fault : out std_logic;
-            dmrd_en    : out std_logic;
-            dmwr_en    : out std_logic;
-            dmwr_data  : out std_logic_vector(31 downto 0);
-            dmrw_addr  : out std_logic_vector(31 downto 0);
-            dm_byte_en : out std_logic_vector(3  downto 0);
-            dmld_data  : out std_logic_vector(31 downto 0)
+            dmrd_err_i   : in  std_logic;
+            dmwr_err_i   : in  std_logic;
+            dmls_mode_i  : in  std_logic;
+            dmls_en_i    : in  std_logic;
+            dmls_dtype_i : in  std_logic_vector(2           downto 0);
+            dmst_data_i  : in  std_logic_vector(XLEN-1      downto 0);
+            dmls_addr_i  : in  std_logic_vector(XLEN-1      downto 0);
+            dmrd_data_i  : in  std_logic_vector(XLEN-1      downto 0);
+            dmld_malgn_o : out std_logic;
+            dmld_fault_o : out std_logic;
+            dmst_malgn_o : out std_logic;
+            dmst_fault_o : out std_logic;
+            dmrd_en_o    : out std_logic;
+            dmwr_en_o    : out std_logic;
+            dmwr_data_o  : out std_logic_vector(XLEN-1      downto 0);
+            dmrw_addr_o  : out std_logic_vector(XLEN-1      downto 0);
+            dm_byte_en_o : out std_logic_vector(3           downto 0);
+            dmld_data_o  : out std_logic_vector(XLEN-1      downto 0)
         );
     end component dmls_block;
 
