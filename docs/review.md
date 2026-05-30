@@ -344,6 +344,24 @@ Header `2022` → `2026`. Nenhum bug funcional encontrado — decodificação co
 
 ---
 
+## CSR Write Logic (`rtl/csrs_logic.vhdl`)
+
+### INFO: Port naming, XLEN, e header adicionados
+
+2026-05-30: Arquivo sem header Leaf — adicionado. `use work.leaf_pkg.all` adicionado (necessário para `XLEN`). Todas as 5 portas renomeadas e migradas para `XLEN`:
+
+| Atual | Novo |
+|-------|------|
+| `csrwr_mode` (in) | `csrwr_mode_i` |
+| `csrrd_data` (in) | `csrrd_data_i` |
+| `regwr_data` (in) | `regwr_data_i` |
+| `immwr_data` (in) | `immwr_data_i` |
+| `csrwr_data` (out) | `csrwr_data_o` |
+
+Nenhum bug funcional — mapeamento CSR correto (CSRRW/CSRRS/CSRRC/CSRRWI/CSRRSI/CSRRCI), `others` clause presente.
+
+---
+
 ## Bugs Conhecidos (de `rtl-review.md`)
 
 ### ~~BUG: `mret` tratado como exceção, não como retorno de exceção~~ (CORRIGIDO)
@@ -458,6 +476,6 @@ O core não gera `tm_irq` internamente. O contador `time` (CSR `0xC01`/`0xC81`) 
 - [ ] `rtl/br_detector.vhdl` — detecção de desvio
 - [ ] `rtl/dmls_block.vhdl` — load/store alignment
 - [x] ~~`rtl/csrs.vhdl` — CSRs e traps~~ (revisado 2026-05-30)
-- [ ] `rtl/csrs_logic.vhdl` — multiplexação CSR
+- [x] ~~`rtl/csrs_logic.vhdl` — multiplexação CSR~~ (revisado 2026-05-30)
 - [x] ~~`rtl/reg_file.vhdl` — banco de registradores~~ (revisado 2026-05-30)
 - [ ] `rtl/leaf_pkg.vhdl` — constantes e declarações

@@ -356,6 +356,20 @@ Sub-blocks:
 
 Bypass chain: when a sub-block's operation is not selected, it passes through the previous result.
 
+### CSR Write Logic (`csrs_logic.vhdl`)
+
+Combinational mux that computes the CSR write data based on the instruction's `funct3` field:
+
+| Porta | Direção | Largura | Descrição |
+|-------|---------|---------|-----------|
+| `csrwr_mode_i` | in | 3 | CSR write mode (funct3) |
+| `csrrd_data_i` | in | XLEN | Current CSR read data |
+| `regwr_data_i` | in | XLEN | Register file read data (RS1) |
+| `immwr_data_i` | in | XLEN | Zero-extended immediate (uimm) |
+| `csrwr_data_o` | out | XLEN | CSR write data |
+
+Modes: `001`=CSRRW, `010`=CSRRS, `011`=CSRRC, `101`=CSRRWI, `110`=CSRRSI, `111`=CSRRCI. `others` (incl. `000`) = 0 (ECALL/EBREAK/MRET/WFI).
+
 ### Control Signals
 
 Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
