@@ -75,3 +75,7 @@ Edit the `abc -D 20` command in `syn/leaf_analysis.ys` to change the timing cons
 ## Known Issues
 
 See [issues.md](issues.md) for documented RTL issues and planned improvements.
+
+## License
+
+Distributed under the [MIT License](LICENSE).
