@@ -1,5 +1,29 @@
 # Microarchitecture Reference
 
+## RTL File Map
+
+| File | Entity | Role |
+|------|--------|------|
+| `rtl/leaf.vhdl` | `leaf` | Top-level: Wishbone interface, clock gating, counters, COP interface passthrough |
+| `rtl/wb_ctrl.vhdl` | `wb_ctrl` | Wishbone B4 master FSM |
+| `rtl/clk_ctrl.vhdl` | `clk_ctrl` | Clock gating |
+| `rtl/counters.vhdl` | `counters` | mcycle, time, instret counters |
+| `rtl/core.vhdl` | `core` | Core integration: IF + ID/EX pipeline |
+| `rtl/if_stage.vhdl` | `if_stage` | Instruction fetch, PC register, flush |
+| `rtl/id_stage.vhdl` | `id_stage` | Decode, register file, CSRs |
+| `rtl/main_ctrl.vhdl` | `main_ctrl` | Main control decoder and immediate generator |
+| `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file |
+| `rtl/csrs.vhdl` | `csrs` | Machine CSRs and trap control |
+| `rtl/ex_block.vhdl` | `ex_block` | ALU, branch, CSR logic, load/store |
+| `rtl/alu_ctrl.vhdl` | `alu_ctrl` | ALU operation decoder |
+| `rtl/alu.vhdl` | `alu` | ALU datapath |
+| `rtl/br_detector.vhdl` | `br_detector` | Branch condition evaluation |
+| `rtl/dmls_block.vhdl` | `dmls_block` | Data memory load/store alignment |
+| `rtl/csrs_logic.vhdl` | `csrs_logic` | CSR write data muxing |
+| `rtl/leaf_pkg.vhdl` | `leaf_pkg` | ISA constants, opcodes, ALU ops, component declarations |
+
+---
+
 ## Architecture Overview
 
 Leaf implements a two-stage pipeline with Wishbone B4 bus interface:
@@ -112,6 +136,36 @@ File: `rtl/leaf.vhdl`
 | `sel_o` | out | 4 | Wishbone byte selects |
 | `adr_o` | out | XLEN | Wishbone address |
 | `dat_o` | out | XLEN | Wishbone write data |
+
+#### Block Diagram
+
+```
+     ┌─────────────────────────────────────────────────────────────────┐
+     │  leaf                                                            │
+     │                                                                  │
+     │  clk_i ──▶ clk_ctrl ──clk──▶                                    │
+     │  rst_i ──▶ clk_ctrl         │                                   │
+     │                        ┌────┴────┐                              │
+     │  ack_i ──┐             │         │                              │
+     │  err_i ──┤  ┌───────┐ │  core   │                              │
+     │  dat_i ◀─┼──┤wb_ctrl├─┘  IF     │                              │
+     │          │  │ B4    │◀─── ID+CSR│                              │
+     │  cyc_o ──┤  │ FSM   │───▶ EX    │                              │
+     │  stb_o ──┤  └───────┘   │       │                              │
+     │  we_o ───┤               │       │                              │
+     │  adr_o ──┤            ┌──┴───────┘                              │
+     │  dat_o ──┘            │  retire                                 │
+     │                ┌──────▼─────┐                                   │
+     │                │ counters   │                                   │
+     │                │ cycle ─────┼──▶ core                           │
+     │                │ timer ─────┼──▶ core                           │
+     │                │ instret ───┼──▶ core                           │
+     │                └────────────┘                                   │
+     │                                                                  │
+     │  cop_dat_i ──▶ core    cop_adr_o ◀── core                      │
+     │  cop_dat_o ◀── core    cop_we_o  ◀── core                      │
+     └─────────────────────────────────────────────────────────────────┘
+```
 
 #### Internal Data Flow
 
@@ -302,6 +356,21 @@ File: `rtl/core.vhdl`
 
 Integrates IF stage, ID stage, and execution block into a two-stage pipeline.
 
+```
+                   core.vhdl (pipeline flow →)
+
+    imem          ┌──────────┐  pc, next_pc    ┌──────────┐  control    ┌──────────┐
+    ─────────────▶│ if_stage │  instr, flush   │ id_stage │  signals    │ ex_block │
+    imrd_data_i   │          │────────────────▶│          │────────────▶│          │
+                  │  pc_reg  │  imrd_fault     │ main_ctrl│  func3/7    │ alu_ctrl │──▶ alu_res
+                  │  flush   │────────────────▶│ reg_file │  imm/jmp    │ alu      │──▶ dmld_data
+                  │  retire  │◀────────────────│ csrs     │◀────────────│ dmls     │──▶ csrwr_data
+                  └──────────┘  pcwr_en        └──────────┘  res/dmld   │ br_det   │──▶ taken
+                       ▲                           ▲                    └──────────┘──▶ target
+                       │                           │
+                       └─── taken, target ──────────┘
+```
+
 ##### Generics
 
 | Generic | Default | Description |
@@ -348,6 +417,36 @@ File: `rtl/if_stage.vhdl`
 
 Manages the program counter, instruction fetch request, and pipeline flush logic.
 
+```
+                         if_stage.vhdl (flow →)
+
+              taken ───┐
+              target ──┼─────┐
+              pcwr_en ─┤     │   ┌──────────────────┐
+              imrd_err ┤     ├───▶   pc_reg_proc    │──── pc_reg ──▶ imrd_addr_o
+              reset_i ─┤     │   │  MUX(0:RESET,    │       │
+                       │     │   │      1:target,   │       │
+                       │     │   │      2:next_res, │       ├──────▶ next_res (PC+4)
+                       │     │   │      3:hold)     │       │
+                       │     │   └──────────────────┘       │
+                       │     │                              ├──────▶ imrd_en_o
+                       │     │   ┌──────────────────┐       │
+                       └─────┼───▶   flush_val      │       │
+                             │   │  taken or err    │───────┼──────▶ flush_reg ──▶ flush_o
+                             │   │  or not pcwr_en  │       │
+                             │   └──────────────────┘       │
+                             │                              │
+    imrd_data_i ─────────────┼──────────────────────────────┘
+                             │   ┌──────────────────┐
+                             └───▶  out_pipe_proc   │──── pc_o
+                                 │  (pipeline reg)  │──── next_pc_o
+                                 │                  │──── instr_o
+                                 │                  │──── imrd_fault_o
+                                 └──────────────────┘
+
+    retire_o <= pcwr_en_i and not flush_reg
+```
+
 ###### Ports
 
 | Port | Direction | Width | Description |
@@ -393,6 +492,42 @@ Manages the program counter, instruction fetch request, and pipeline flush logic
 File: `rtl/id_stage.vhdl`
 
 Combines instruction decode, register file read, and CSR access. Passes decoded control signals to `ex_block`.
+
+```
+                         id_stage.vhdl (flow →)
+
+    instr_i ──▶  field extraction
+                 ├── func3(14:12) ──▶ func3_o
+                 ├── func7(31:25) ──▶ func7_o
+                 ├── rs1(19:15) ──▶ reg_file.rd_addr0
+                 ├── rs2(24:20) ──▶ reg_file.rd_addr1
+                 ├── rd(11:7)   ──▶ reg_file.wr_addr
+                 └── csr(31:20) ──▶ csrs.rw_addr
+
+    instr_i ──▶  main_ctrl ──▶ imm_o, jmp_o, br_en_o,
+                 opcode decode   opd_src_sel, pass,
+                 imm gen         ftype, op_en,
+                                 dmls_mode, dmls_en
+
+    ┌─────────── reg_file (32 × XLEN) ────────────┐
+    │  rd_addr0 ◀── rs1       rd_data0 ──▶ rd_data0_o
+    │  rd_addr1 ◀── rs2       rd_data1 ──▶ rd_data1_o
+    │  wr_addr  ◀── rd                            │
+    │  wr_data0 ◀── exec_res (from ex_block)      │
+    │  wr_data1 ◀── dmld_data (from ex_block)     │
+    │  wr_data2 ◀── next_pc (from if_stage)       │
+    │  wr_data3 ◀── csrrd_data (from csrs)        │
+    └──────────────────────────────────────────────┘
+
+    csrs (CSR registers + trap logic)
+    ├── wr_data ◀── csrwr_data_i (from ex_block)
+    ├── rw_addr ◀── instr(31:20)
+    ├── rd_data ──▶ csrrd_data_o
+    ├── trap_taken_o, trap_target_o ──▶ ex_block
+    ├── pcwr_en_o ────────────────────▶ if_stage (pipeline advance)
+    ├── cop_adr_o, cop_dat_o, cop_we_o ──▶ external COP
+    └── faults/irqs ──▶ exception decode ──▶ mepc, mcause, mtval
+```
 
 ###### Ports
 
@@ -652,6 +787,55 @@ File: `rtl/ex_block.vhdl`
 
 Contains all datapath execution logic: ALU, branch detection, load/store alignment, and CSR write data muxing.
 
+```
+                         ex_block.vhdl (flow →)
+
+    Operand selection:
+    reg0_i ──┐                        gtd_opd0
+    pc_i ────┼──▶ MUX ──▶ AND ───┐    (gated)
+    opd0_src_sel┘       opd0_pass ▲        │
+                                      │    │
+    reg1_i ──┐                        │    │
+    imm_i ───┼──▶ MUX ──▶ AND ───┐    │    │
+    opd1_src_sel┘       opd1_pass ▲    │    │
+                                      │    │
+    ALU:                              │    │
+    ┌──────────┐    ┌──────────┐      │    │
+    │ alu_ctrl │───▶│   alu    │◀─────┘    │
+    │ op_en_i  │    │arith→comp│◀──────────┘
+    │ ftype_i  │    │→logic→shf│──── alu_res
+    │ func3/7  │    └──────────┘       │
+    └──────────┘                       │
+                                       │
+    Branch:                            │
+    ┌─────────────────────┐            │
+    │ br_detector         │            │
+    │ compare(reg0, reg1) │──── branch─┼──▶ taken_o
+    │ mode = func3        │            │   (branch or jmp or trap)
+    └─────────────────────┘            │
+                                       │
+    Load/Store:                        │
+    ┌────────────────────────────┐     │
+    │ dmls_block                 │     │
+    │ alu_res ──▶ addr align     │◀────┘
+    │ func3 ────▶ dtype decode   │──── dmld_data_o
+    │ reg1 ─────▶ store data rot │──── dmwr_data_o
+    │ dmrd_data  ▶ load align    │──── dm_byte_en_o
+    │ dmrd/wr_err▶ fault detect  │──── dmrd/wr_en_o
+    │            ▶ misalign det  │──── dmld/st_malgn/fault_o
+    └────────────────────────────┘
+
+    CSR write data:
+    ┌──────────────────────┐
+    │ csrs_logic           │
+    │ mode = func3         │──── csrwr_data_o
+    │ csrrd_data_i         │
+    │ reg0_i / imm_i       │
+    └──────────────────────┘
+
+    Target: target_o <= trap_target when trap_taken else alu_res & 0
+```
+
 ###### Ports
 
 | Port | Direction | Width | Description |
@@ -796,38 +980,4 @@ Combinational mux that computes the CSR write data based on the instruction's `f
 
 Modes: `001`=CSRRW, `010`=CSRRS, `011`=CSRRC, `101`=CSRRWI, `110`=CSRRSI, `111`=CSRRCI. `others` (incl. `000`) = 0 (ECALL/EBREAK/MRET/WFI).
 
----
 
-## RTL File Map
-
-| File | Entity | Role |
-|------|--------|------|
-| `rtl/leaf.vhdl` | `leaf` | Top-level: Wishbone interface, clock gating, counters, COP interface passthrough |
-| `rtl/wb_ctrl.vhdl` | `wb_ctrl` | Wishbone B4 master FSM |
-| `rtl/clk_ctrl.vhdl` | `clk_ctrl` | Clock gating |
-| `rtl/counters.vhdl` | `counters` | mcycle, time, minstret counters |
-| `rtl/core.vhdl` | `core` | Core integration: IF + ID/EX pipeline |
-| `rtl/if_stage.vhdl` | `if_stage` | Instruction fetch, PC register, flush |
-| `rtl/id_stage.vhdl` | `id_stage` | Decode, register file, CSRs |
-| `rtl/main_ctrl.vhdl` | `main_ctrl` | Main control decoder and immediate generator |
-| `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file |
-| `rtl/csrs.vhdl` | `csrs` | Machine CSRs and trap control |
-| `rtl/ex_block.vhdl` | `ex_block` | ALU, branch, CSR logic, load/store |
-| `rtl/alu_ctrl.vhdl` | `alu_ctrl` | ALU operation decoder |
-| `rtl/alu.vhdl` | `alu` | ALU datapath |
-| `rtl/br_detector.vhdl` | `br_detector` | Branch condition evaluation |
-| `rtl/dmls_block.vhdl` | `dmls_block` | Data memory load/store alignment |
-| `rtl/csrs_logic.vhdl` | `csrs_logic` | CSR write data muxing |
-| `rtl/leaf_pkg.vhdl` | `leaf_pkg` | ISA constants, opcodes, ALU ops, component declarations |
-
----
-
-## Key Constants
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `MEM_BASE` | `0x80000000` | Memory base address |
-| `MEM_SIZE` | `0x400000` | Memory size (4 MiB) |
-| `HALT_CMD_ADDR` | `0x803FFFFC` | HALT command address (last word) |
-| `CLK_PERIOD` | 20 ns | Clock period (50 MHz) |
-| `XLEN` | 32 | Register width |
