@@ -8,13 +8,13 @@ Leaf implements a two-stage pipeline with Wishbone B4 bus interface:
                    ┌──────────────────────────────────────┐
                    │              leaf (top)               │
                    │  ┌──────────┐  ┌──────────────────┐   │
-clk_i ─────────────┼─▶│clk_ctrl  │──▶│    core          │   │
-rst_i ─────────────┼─▶│          │  │  ┌─────────────┐  │   │
+ clk_i ────────────┼─▶│clk_ctrl  │──▶│    core          │   │
+ rst_i ────────────┼─▶│          │  │  ┌─────────────┐  │   │
                    │  └──────────┘  │  │  IF Stage    │  │   │
                    │  ┌──────────┐  │  │ (if_stage)   │  │   │
-ack_i ─────────────┼─▶│ wb_ctrl  │◀─┼──│ • PC fetch   │  │   │
-err_i ─────────────┼─▶│ (FSM)    │──┼──│ • imem rd    │  │   │
-dat_i ◀────────────┼──│          │  │  │ • flush      │  │   │
+ ack_i ────────────┼─▶│ wb_ctrl  │◀─┼──│ • PC fetch   │  │   │
+ err_i ────────────┼─▶│ (FSM)    │──┼──│ • imem rd    │  │   │
+ dat_i ◀───────────┼──│          │  │  │ • flush      │  │   │
                    │  └──────────┘  │  └──────┬──────┘  │   │
                    │                │         │pipeline  │   │
                    │  ┌──────────┐  │  ┌──────▼──────┐  │   │
@@ -35,64 +35,68 @@ dat_i ◀────────────┼──│          │  │  │
 
 IF stage writes to pipeline registers on each clock; ID/EX operates combinatorially from those registers and writes results back in the same cycle. Both stages advance together — there is no independent stall per stage.
 
-### Clock Domains
-
-Two clock domains exist:
-
-| Domain | Signal | Source | Consumers |
-|--------|--------|--------|-----------|
-| Free-running | `clk_i` | External input | `wb_ctrl`, `counters`, `clk_ctrl` |
-| Gated | `clk` | `clk_ctrl(clk_i, clk_en)` | `core` (pipeline) |
-
-The `clk_ctrl` module generates a glitch-free gated clock using a transparent latch (enable sampled on falling edge) + AND gate. The `clk_en` is asserted when the Wishbone FSM is in `START`, `EXECUTE`, or `ERROR` states — meaning the core clock is **stopped** during bus transactions and **running** when the pipeline has work to do.
+### Module Hierarchy
 
 ```
-clk_i   ─┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──
-clk_en  ─┐    └──────┐    └──────┐    └──────┐    └──
-en_latch ─┐    └──────┐    └──────┐    └──────┐    └──
-clk      ─┐──┐  └──┐──┐  └──┐──┐  └──┐──┐  └──┐──┐
-         FETCH EXEC FETCH EXEC FETCH EXEC FETCH EXEC
+leaf (top)
+├── wb_ctrl       Wishbone B4 master FSM
+├── clk_ctrl      Glitch-free clock gating
+├── counters      cycle, time, instret counters
+└── core          Core (IF + ID/EX pipeline)
+    ├── if_stage    Instruction fetch (IF)
+    ├── id_stage    Decode + register file + CSRs (ID)
+    │   ├── main_ctrl   Instruction decoder and immediate generator
+    │   ├── reg_file    32 × XLEN register file
+    │   └── csrs        Machine-mode CSRs and trap logic
+    │       └── csrs_logic  CSR write data mux
+    └── ex_block    ALU + branch + load/store (EX)
+        ├── alu_ctrl     ALU operation decoder
+        ├── alu          ALU datapath (bypass chain)
+        ├── br_detector  Branch condition evaluation
+        ├── dmls_block   Data memory load/store alignment
+        └── csrs_logic   CSR write data mux (shared)
 ```
 
-### Reset Architecture
+---
 
-Three different reset behaviors:
+## Module Interfaces
 
-| Component | Reset Signal | Source | Deassertion |
-|-----------|-------------|--------|-------------|
-| `wb_ctrl` | `rst_i` | External | Immediate after `rst_i` |
-| `clk_ctrl` | `rst_i` | External | Immediate (clock forced on during reset) |
-| `counters` | `rst_i` | External | Immediate after `rst_i` |
-| `core` | `reset` | `wb_ctrl` | 1 cycle after `rst_i` (when FSM exits START) |
+### 1. Top-Level: `leaf`
 
-The core's `reset` is derived from the Wishbone FSM START state, introducing a 1-cycle skew relative to `rst_i`.
+File: `rtl/leaf.vhdl`
 
-## Top-Level Interface
+#### Generics
 
-### Ports (`rtl/leaf.vhdl`)
+| Generic | Default | Description |
+|---------|---------|-------------|
+| `RESET_ADDR` | `0x00000000` | Reset vector address |
+| `CSRS_MHART_ID` | `0x00000000` | Machine hart ID (mhartid CSR) |
+| `REG_FILE_SIZE` | 32 | Register file size (16 or 32) |
 
-| Port | Direction | Description |
-|------|-----------|-------------|
-| `clk_i` | in | Master clock (50 MHz, 20 ns) |
-| `rst_i` | in | Asynchronous reset (active high) |
-| `ex_irq` | in | External interrupt (level-sensitive) |
-| `sw_irq` | in | Software interrupt (level-sensitive) |
-| `tm_irq` | in | Timer interrupt (level-sensitive) |
-| `ack_i` | in | Wishbone acknowledge |
-| `err_i` | in | Wishbone error |
-| `dat_i` | in | Wishbone read data bus |
-| `cop_dat_i` | in | Coprocessor read data (default 0) |
-| `cop_adr_o` | out | Coprocessor address (6 bits, CSR address offset) |
-| `cop_dat_o` | out | Coprocessor write data |
-| `cop_we_o` | out | Coprocessor write strobe |
-| `cyc_o` | out | Wishbone cycle |
-| `stb_o` | out | Wishbone strobe |
-| `we_o` | out | Wishbone write enable |
-| `sel_o` | out | Wishbone byte selects |
-| `adr_o` | out | Wishbone address |
-| `dat_o` | out | Wishbone write data |
+#### Ports
 
-### Data Flow
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `clk_i` | in | 1 | Master clock (50 MHz, 20 ns) |
+| `rst_i` | in | 1 | Asynchronous reset (active high) |
+| `ex_irq_i` | in | 1 | External interrupt (level-sensitive) |
+| `sw_irq_i` | in | 1 | Software interrupt (level-sensitive) |
+| `tm_irq_i` | in | 1 | Timer interrupt (level-sensitive) |
+| `ack_i` | in | 1 | Wishbone acknowledge |
+| `err_i` | in | 1 | Wishbone error |
+| `dat_i` | in | XLEN | Wishbone read data bus |
+| `cop_dat_i` | in | XLEN | Coprocessor read data (default 0) |
+| `cop_adr_o` | out | 6 | Coprocessor address (CSR address offset) |
+| `cop_dat_o` | out | XLEN | Coprocessor write data |
+| `cop_we_o` | out | 1 | Coprocessor write strobe |
+| `cyc_o` | out | 1 | Wishbone cycle |
+| `stb_o` | out | 1 | Wishbone strobe |
+| `we_o` | out | 1 | Wishbone write enable |
+| `sel_o` | out | 4 | Wishbone byte selects |
+| `adr_o` | out | XLEN | Wishbone address |
+| `dat_o` | out | XLEN | Wishbone write data |
+
+#### Internal Data Flow
 
 ```
                 leaf.vhdl
@@ -135,7 +139,7 @@ The core's `reset` is derived from the Wishbone FSM START state, introducing a 1
 
 The COP interface bypasses `wb_ctrl` — it is a private channel between core and external coprocessor. No bus arbitration or error handling is performed on this path.
 
-### Error Flow
+#### Error Flow
 
 1. `wb_ctrl` receives `err_i` from Wishbone slave
 2. FSM transitions to `ERROR` state
@@ -146,16 +150,66 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 5. `id_stage` detects fault in decode → `csrs` triggers exception
 6. FSM returns to `IDLE` on next clock
 
-## Pipeline Stages
+---
 
-### IF Stage (`if_stage.vhdl`)
+### 2. Core Subsystem: `core`
 
-#### Interface
+File: `rtl/core.vhdl`
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
+Integrates IF stage, ID stage, and execution block into a two-stage pipeline.
+
+#### Generics
+
+| Generic | Default | Description |
+|---------|---------|-------------|
+| `RESET_ADDR` | `0x00000000` | Reset vector address |
+| `CSRS_MHART_ID` | `0x00000000` | Machine hart ID |
+| `REG_FILE_SIZE` | 32 | Register file size (16 or 32) |
+
+#### Ports
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `clk_i` | in | 1 | Gated clock (from clk_ctrl) |
+| `reset_i` | in | 1 | Core reset (from wb_ctrl, 1 cycle after rst_i) |
+| `ex_irq_i` | in | 1 | External interrupt |
+| `sw_irq_i` | in | 1 | Software interrupt |
+| `tm_irq_i` | in | 1 | Timer interrupt |
+| `imrd_err_i` | in | 1 | Instruction memory bus error |
+| `dmrd_err_i` | in | 1 | Data read bus error |
+| `dmwr_err_i` | in | 1 | Data write bus error |
+| `imrd_data_i` | in | XLEN | Instruction data from Wishbone |
+| `dmrd_data_i` | in | XLEN | Data read data from Wishbone |
+| `cycle_i` | in | 64 | Cycle counter value |
+| `timer_i` | in | 64 | Timer value |
+| `instret_i` | in | 64 | Instruction retired counter value |
+| `cop_dat_i` | in | XLEN | Coprocessor read data |
+| `cop_adr_o` | out | 6 | Coprocessor address |
+| `cop_dat_o` | out | XLEN | Coprocessor write data |
+| `cop_we_o` | out | 1 | Coprocessor write enable |
+| `retire_o` | out | 1 | Instruction retire pulse |
+| `imrd_en_o` | out | 1 | Instruction fetch enable |
+| `dmrd_en_o` | out | 1 | Data read enable |
+| `dmwr_en_o` | out | 1 | Data write enable |
+| `dmwr_be_o` | out | 4 | Data write byte enables |
+| `imrd_addr_o` | out | XLEN | Instruction fetch address |
+| `dmrw_addr_o` | out | XLEN | Data memory address |
+| `dmwr_data_o` | out | XLEN | Data write data |
+
+---
+
+#### 2.1 IF Stage: `if_stage`
+
+File: `rtl/if_stage.vhdl`
+
+Manages the program counter, instruction fetch request, and pipeline flush logic.
+
+##### Ports
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
 | `clk_i` | in | 1 | Clock |
-| `reset_i` | in | 1 | Reset síncrono (active high) |
+| `reset_i` | in | 1 | Synchronous reset (active high) |
 | `pcwr_en_i` | in | 1 | Pipeline advance enable |
 | `imrd_err_i` | in | 1 | Instruction memory bus error |
 | `taken_i` | in | 1 | Branch/jump taken (from ex_block) |
@@ -170,32 +224,38 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 | `next_pc_o` | out | XLEN | PC + 4 (to ID/EX) |
 | `instr_o` | out | XLEN | Fetched instruction (to ID/EX) |
 
-#### Funcionamento
+##### Operation
 
-- `pc_reg` mantém o PC atual, atualizado a cada `clk_i` via `pc_reg_proc`
-- `next_res` é PC+4 (combinatorial)
-- `flush_val` é o valor combinatorial de flush (`taken_i or imrd_err_i or not pcwr_en_i`)
-- `flush_reg` captura `flush_val` no pipeline register — representa a validade da instrução corrente
-- Pipeline register (`out_pipe_proc`) captura `pc_o`, `next_pc_o`, `instr_o`, `flush_reg`, `imrd_fault_o` na borda de subida do clock
-- `imrd_en_o = pcwr_en_i` — fetch ativo sempre que pipeline avança
-- `imrd_addr_o = pc_reg` — endereço de fetch sempre reflete o PC atual
-- `retire_o = pcwr_en_i and not flush_reg` — pulso de retire, indica instrução válida completada
+- `pc_reg` holds the current PC, updated every `clk_i` via `pc_reg_proc`
+- `next_res` is PC+4 (combinatorial)
+- `flush_val` is the combinatorial flush value (`taken_i or imrd_err_i or not pcwr_en_i`)
+- `flush_reg` captures `flush_val` in the pipeline register — represents the validity of the current instruction
+- Pipeline register (`out_pipe_proc`) captures `pc_o`, `next_pc_o`, `instr_o`, `flush_reg`, `imrd_fault_o` on the rising clock edge
+- `imrd_en_o = pcwr_en_i` — fetch active whenever pipeline advances
+- `imrd_addr_o = pc_reg` — fetch address always reflects the current PC
+- `retire_o = pcwr_en_i and not flush_reg` — retire pulse, indicates valid instruction completed
 
-#### Prioridade de atualização do PC
+##### PC Update Priority
 
 1. **Reset**: `pc_reg <= RESET_ADDR`
 2. **Branch taken** (`taken_i = '1'`): `pc_reg <= target_i`
 3. **Pipeline advance** (`pcwr_en_i = '1'`): `pc_reg <= next_res`
-4. **Stall** (nenhuma condição acima): `pc_reg` mantém valor
+4. **Stall** (no condition above): `pc_reg` holds value
 
-### ID/EX Stage (`id_stage.vhdl`)
+---
 
-#### Interface
+#### 2.2 ID Stage: `id_stage`
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
+File: `rtl/id_stage.vhdl`
+
+Combines instruction decode, register file read, and CSR access. Passes decoded control signals to `ex_block`.
+
+##### Ports
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
 | `clk_i` | in | 1 | Clock |
-| `reset_i` | in | 1 | Reset síncrono (active high) |
+| `reset_i` | in | 1 | Synchronous reset (active high) |
 | `ex_irq_i` | in | 1 | External interrupt |
 | `sw_irq_i` | in | 1 | Software interrupt |
 | `tm_irq_i` | in | 1 | Timer interrupt |
@@ -214,7 +274,7 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 | `next_pc_i` | in | XLEN | PC + 4 (from if_stage) |
 | `instr_i` | in | XLEN | Fetched instruction |
 | `flush_i` | in | 1 | Flush — discard current instruction |
-| `csrwr_data_i` | in | XLEN | CSR write data (from csrs_logic) |
+| `csrwr_data_i` | in | XLEN | CSR write data (from csrs_logic in ex_block) |
 | `cop_dat_i` | in | XLEN | Coprocessor read data |
 | `func3_o` | out | 3 | funct3 field |
 | `func7_o` | out | 7 | funct7 field |
@@ -239,19 +299,45 @@ The COP interface bypasses `wb_ctrl` — it is a private channel between core an
 | `rd_data1_o` | out | XLEN | Register file read port 1 |
 | `csrrd_data_o` | out | XLEN | CSR read data |
 
-Combines decode, register file read, and CSR access:
+##### 2.2.1 main_ctrl
 
-- **main_ctrl** decodes the instruction: opcode, funct3, funct7 → control signals and immediate
-- **reg_file** reads two source registers (combinatorial read)
-- **csrs** handles CSR read/write and trap/exception logic
-- Passes decoded signals to `ex_block`
+File: `rtl/main_ctrl.vhdl`
 
-#### Register File (`reg_file.vhdl`)
+Decodes the instruction opcode to generate control signals and the appropriate immediate value.
 
-32 × XLEN register file with combinatorial read, synchronous write. Register x0 is hardwired to zero.
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `imrd_malgn_i` | in | 1 | Instruction fetch misaligned |
+| `dmld_malgn_i` | in | 1 | Data load misaligned |
+| `dmld_fault_i` | in | 1 | Data load fault |
+| `flush_i` | in | 1 | Pipeline flush |
+| `instr_i` | in | XLEN | Instruction word |
+| `instr_err_o` | out | 1 | Illegal instruction |
+| `csrwr_en_o` | out | 1 | CSR write enable |
+| `regwr_en_o` | out | 1 | Register file write enable |
+| `regwr_sel_o` | out | 2 | Register write data select (0=ALU, 1=dmem, 2=next_pc, 3=CSR) |
+| `dmls_mode_o` | out | 1 | Data memory mode (0=load, 1=store) |
+| `dmls_en_o` | out | 1 | Data memory enable |
+| `jmp_o` | out | 1 | Jump (JAL/JALR) |
+| `br_en_o` | out | 1 | Branch enable |
+| `opd0_src_sel_o` | out | 1 | Select PC vs reg0 as ALU operand 0 |
+| `opd1_src_sel_o` | out | 1 | Select imm vs reg1 as ALU operand 1 |
+| `opd0_pass_o` | out | 1 | Gate ALU operand 0 |
+| `opd1_pass_o` | out | 1 | Gate ALU operand 1 |
+| `ftype_o` | out | 1 | Instruction type for ALU control |
+| `op_en_o` | out | 1 | ALU operation enable |
+| `imm_o` | out | XLEN | Decoded immediate |
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
+Immediate encoding per RISC-V specification: I-type, S-type, B-type, U-type, J-type, Z-type (shamt for CSR).
+
+##### 2.2.2 reg_file
+
+File: `rtl/reg_file.vhdl`
+
+32 × XLEN register file with combinatorial read (dual-port) and synchronous write. Register x0 is hardwired to zero.
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
 | `clk_i` | in | 1 | Clock |
 | `we_i` | in | 1 | Write enable |
 | `wr_sel_i` | in | 2 | Write data mux select (0=ALU, 1=dmem, 2=next_pc, 3=CSR) |
@@ -267,12 +353,57 @@ Combines decode, register file read, and CSR access:
 
 Dual-implementation: `SIZE=16` selects `small_reg_file` (4-bit addressing), `SIZE=32` selects `large_reg_file` (5-bit). Default is 32.
 
-### Execution Block (`ex_block.vhdl`)
+##### 2.2.3 csrs
 
-#### Interface
+File: `rtl/csrs.vhdl`
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
+Implements machine-mode CSR registers and all trap/exception logic. See [CSRs](#csrs) section for register map and trap behavior.
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `clk_i` | in | 1 | Clock |
+| `reset_i` | in | 1 | Synchronous reset |
+| `ex_irq_i` | in | 1 | External interrupt |
+| `sw_irq_i` | in | 1 | Software interrupt |
+| `tm_irq_i` | in | 1 | Timer interrupt |
+| `imrd_malgn_i` | in | 1 | Instruction fetch misaligned |
+| `imrd_fault_i` | in | 1 | Instruction fetch fault |
+| `instr_err_i` | in | 1 | Illegal instruction |
+| `dmld_malgn_i` | in | 1 | Data load misaligned |
+| `dmld_fault_i` | in | 1 | Data load fault |
+| `dmst_malgn_i` | in | 1 | Data store misaligned |
+| `dmst_fault_i` | in | 1 | Data store fault |
+| `wr_en_i` | in | 1 | CSR write enable |
+| `wr_mode_i` | in | 3 | CSR write mode (funct3) |
+| `rw_addr_i` | in | 12 | CSR address |
+| `wr_data_i` | in | XLEN | CSR write data |
+| `exec_res_i` | in | XLEN | ALU result (for mtval on misaligned) |
+| `pc_i` | in | XLEN | Current PC (for mepc/mtval on ebreak) |
+| `next_pc_i` | in | XLEN | Next PC (for mepc on WFI) |
+| `cycle_i` | in | 64 | Cycle counter |
+| `timer_i` | in | 64 | Timer value |
+| `instret_i` | in | 64 | Instruction retired counter |
+| `cop_dat_i` | in | XLEN | Coprocessor read data |
+| `cop_adr_o` | out | 6 | Coprocessor address |
+| `cop_dat_o` | out | XLEN | Coprocessor write data |
+| `cop_we_o` | out | 1 | Coprocessor write enable |
+| `pcwr_en_o` | out | 1 | Pipeline advance (0 during WFI until interrupt) |
+| `trap_taken_o` | out | 1 | Exception/interrupt/mret taken |
+| `trap_target_o` | out | XLEN | Trap handler or return address |
+| `rd_data_o` | out | XLEN | CSR read data |
+
+---
+
+#### 2.3 Execution Block: `ex_block`
+
+File: `rtl/ex_block.vhdl`
+
+Contains all datapath execution logic: ALU, branch detection, load/store alignment, and CSR write data muxing.
+
+##### Ports
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
 | `trap_taken_i` | in | 1 | Trap taken (from csrs) |
 | `trap_target_i` | in | XLEN | Trap handler PC |
 | `func3_i` | in | 3 | funct3 field |
@@ -305,26 +436,22 @@ Dual-implementation: `SIZE=16` selects `small_reg_file` (4-bit addressing), `SIZ
 | `dmwr_data_o` | out | XLEN | Data write data |
 | `dmrw_addr_o` | out | XLEN | Data memory address |
 | `dm_byte_en_o` | out | 4 | Data byte enables |
-| `dmld_data_o` | out | XLEN | Data load result (aligned/sextended) |
+| `dmld_data_o` | out | XLEN | Data load result (aligned/sign-extended) |
 | `csrwr_data_o` | out | XLEN | CSR write data (from csrs_logic) |
 | `taken_o` | out | 1 | Branch/jump/trap taken |
 | `target_o` | out | XLEN | Branch/jump/trap target address |
 | `res_o` | out | XLEN | ALU result |
 
-Contains all datapath execution logic:
+Sub-blocks within `ex_block`:
 
-- **alu_ctrl** — decodes ALU operation from funct3/funct7
-- **alu** — performs the selected operation (add, sub, sll, slt, etc.)
-- **br_detector** — evaluates branch conditions (eq, ne, lt, ge, ltu, geu)
-- **dmls_block** — load/store alignment and sign-extension
-- **csrs_logic** — CSR write data muxing (reg, immediate, or RS1-based modes)
+##### 2.3.1 alu_ctrl
 
-### ALU Control (`alu_ctrl.vhdl`)
+File: `rtl/alu_ctrl.vhdl`
 
-Combinational decoder that maps instruction fields to ALU operation codes:
+Combinational decoder that maps instruction fields to ALU operation codes.
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
 | `op_en_i` | in | 1 | ALU operation enable (0 = idle/ADD) |
 | `ftype_i` | in | 1 | Format type (0 = R-type, 1 = I-type) |
 | `func3_i` | in | 3 | funct3 field |
@@ -337,15 +464,17 @@ Decoding logic:
 - `func3 = 101`, `func7 = 0100000` → `ALU_SRA`
 - Otherwise maps `func3` to the corresponding ALU operation (ADD, SLL, SLT, SLTU, XOR, SRL, OR, AND)
 
-### ALU (`alu.vhdl`)
+##### 2.3.2 alu
+
+File: `rtl/alu.vhdl`
 
 Combinational datapath organized as a bypass chain: `arith → comp → logic → shifter → res_o`.
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
 | `opd0_i` | in | XLEN | Operand 0 |
 | `opd1_i` | in | XLEN | Operand 1 |
-| `op_i` | in | 6 | ALU operation code from `alu_ctrl` |
+| `op_i` | in | 6 | ALU operation code from alu_ctrl |
 | `res_o` | out | XLEN | Result |
 
 Sub-blocks:
@@ -354,14 +483,59 @@ Sub-blocks:
 - **logic_unit**: XOR/OR/AND with bypass
 - **shifter**: SLL/SRL/SRA via `numeric_std` shift functions (5-bit shift amount from `opd1_i(4:0)`)
 
-Bypass chain: when a sub-block's operation is not selected, it passes through the previous result.
+When a sub-block's operation is not selected, it passes through the previous result.
 
-### CSR Write Logic (`csrs_logic.vhdl`)
+##### 2.3.3 br_detector
 
-Combinational mux that computes the CSR write data based on the instruction's `funct3` field:
+File: `rtl/br_detector.vhdl`
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
+Combinational comparator for branch condition evaluation.
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `reg0_i` | in | XLEN | Register value 0 (RS1) |
+| `reg1_i` | in | XLEN | Register value 1 (RS2) |
+| `mode_i` | in | 3 | Branch mode (funct3: EQ/NE/LT/GE/LTU/GEU) |
+| `en_i` | in | 1 | Branch enable (from br_en_i) |
+| `branch_o` | out | 1 | Branch condition met |
+
+Output is gated: `branch_o <= branch_i and en_i`.
+
+##### 2.3.4 dmls_block
+
+File: `rtl/dmls_block.vhdl`
+
+Handles data memory load/store alignment and sign-extension for all RISC-V load/store data types (byte, halfword, word, signed/unsigned).
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `dmrd_err_i` | in | 1 | Data read bus error |
+| `dmwr_err_i` | in | 1 | Data write bus error |
+| `dmls_mode_i` | in | 1 | Mode (0=load, 1=store) |
+| `dmls_en_i` | in | 1 | Enable |
+| `dmls_dtype_i` | in | 3 | Data type (LSU_BYTE, LSU_BYTEU, LSU_HALF, LSU_HALFU, LSU_WORD) |
+| `dmst_data_i` | in | XLEN | Store data from register |
+| `dmls_addr_i` | in | XLEN | Load/store address |
+| `dmrd_data_i` | in | XLEN | Data read data from Wishbone |
+| `dmld_malgn_o` | out | 1 | Load address misaligned |
+| `dmld_fault_o` | out | 1 | Load bus fault |
+| `dmst_malgn_o` | out | 1 | Store address misaligned |
+| `dmst_fault_o` | out | 1 | Store bus fault |
+| `dmrd_en_o` | out | 1 | Data read request |
+| `dmwr_en_o` | out | 1 | Data write request |
+| `dmwr_data_o` | out | XLEN | Data write data (byte-rotated to align with byte enables) |
+| `dmrw_addr_o` | out | XLEN | Data memory address (word-aligned) |
+| `dm_byte_en_o` | out | 4 | Byte enables |
+| `dmld_data_o` | out | XLEN | Load data (aligned and sign/zero-extended) |
+
+##### 2.3.5 csrs_logic
+
+File: `rtl/csrs_logic.vhdl`
+
+Combinational mux that computes the CSR write data based on the instruction's `funct3` field.
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
 | `csrwr_mode_i` | in | 3 | CSR write mode (funct3) |
 | `csrrd_data_i` | in | XLEN | Current CSR read data |
 | `regwr_data_i` | in | XLEN | Register file read data (RS1) |
@@ -370,40 +544,112 @@ Combinational mux that computes the CSR write data based on the instruction's `f
 
 Modes: `001`=CSRRW, `010`=CSRRS, `011`=CSRRC, `101`=CSRRWI, `110`=CSRRSI, `111`=CSRRCI. `others` (incl. `000`) = 0 (ECALL/EBREAK/MRET/WFI).
 
-### Branch Detector (`br_detector.vhdl`)
+---
 
-Combinational comparator that evaluates branch conditions using `numeric_std` signed/unsigned comparisons:
+### 3. Clock and Counter Infrastructure
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
-| `reg0_i` | in | XLEN | Register value 0 (RS1) |
-| `reg1_i` | in | XLEN | Register value 1 (RS2) |
-| `mode_i` | in | 3 | Branch mode (funct3: EQ/NE/LT/GE/LTU/GEU) |
-| `en_i` | in | 1 | Branch enable (from `br_en_i`) |
-| `branch_o` | out | 1 | Branch condition met |
+#### 3.1 clk_ctrl
 
-Branch conditions evaluated via `signed`/`unsigned` comparisons and an equality check. Output is gated: `branch_o <= branch_i and en_i`.
+File: `rtl/clk_ctrl.vhdl`
 
-### Control Signals
+Generates a glitch-free gated clock using a transparent latch (enable sampled on falling edge) + AND gate.
 
-Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `clk_i` | in | 1 | Master clock |
+| `rst_i` | in | 1 | Reset (forces clock on during reset) |
+| `clk_en` | in | 1 | Clock enable (from wb_ctrl) |
+| `clk` | out | 1 | Gated clock (to core) |
 
-| Porta | Descrição |
-|-------|-----------|
-| `jmp_i` | Jump (JAL/JALR) |
-| `br_en_i` | Branch enable |
-| `opd0_src_sel_i` | Select PC vs reg0 as ALU operand 0 |
-| `opd1_src_sel_i` | Select imm vs reg1 as ALU operand 1 |
-| `opd0_pass_i` | Gate ALU operand 0 |
-| `opd1_pass_i` | Gate ALU operand 1 |
-| `ftype_i` | Instruction type for ALU control |
-| `op_en_i` | ALU operation enable |
+The `clk_en` is asserted when the Wishbone FSM is in `START`, `EXECUTE`, or `ERROR` states — meaning the core clock is **stopped** during bus transactions and **running** when the pipeline has work to do.
 
-## Wishbone Bus Interface
+```
+clk_i   ─┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──
+clk_en  ─┐    └──────┐    └──────┐    └──────┐    └──
+en_latch ─┐    └──────┐    └──────┐    └──────┐    └──
+clk      ─┐──┐  └──┐──┐  └──┐──┐  └──┐──┐  └──┐──┐
+         FETCH EXEC FETCH EXEC FETCH EXEC FETCH EXEC
+```
 
-`wb_ctrl.vhdl` implements a Wishbone B4-compatible master with a single-cycle arbitration FSM:
+#### 3.2 counters
 
-### States
+File: `rtl/counters.vhdl`
+
+Tracks three 64-bit values: `mcycle` (free-running, resettable), `time` (free-running, no reset), `minstret` (increments on instruction retire).
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `clk_i` | in | 1 | Clock (free-running, not gated) |
+| `reset_i` | in | 1 | Reset |
+| `retire_i` | in | 1 | Instruction retire pulse (from core) |
+| `cycle_o` | out | 64 | Cycle counter value (CSR 0xC00/0xC80) |
+| `timer_o` | out | 64 | Timer value (CSR 0xC01/0xC81) |
+| `instret_o` | out | 64 | Instruction retired counter (CSR 0xC02/0xC82) |
+
+| Counter | CSR (low) | CSR (high) | Reset | Behavior |
+|---------|-----------|-------------|-------|----------|
+| `mcycle` | `0xC00` | `0xC80` | Yes | Increments every `clk_i` cycle (free-running) |
+| `time` | `0xC01` | `0xC81` | No | Increments every `clk_i` cycle (free-running, separate register) |
+| `minstret` | `0xC02` | `0xC82` | Yes | Increments on instruction retire (`retire_i`) |
+
+The `time` counter has no reset — it counts continuously from power-on as a free-running real-time clock, independent of the core's operating state.
+
+##### Retire Signal
+
+The `retire` pulse is generated in `if_stage.vhdl` as:
+
+```vhdl
+retire_o <= pcwr_en_i and not flush_reg;
+```
+
+`flush_reg` is the registered version of flush (captured in the pipeline register). Since `flush_reg` reflects the flush from the previous cycle (when the instruction was fetched), a current taken branch has `flush_reg = 0` and is counted. The speculatively fetched instruction after the branch has `flush_reg = 1` and is not counted.
+
+This counts one instruction per valid pipeline advance:
+- **Normal instructions**: counted on each pipeline cycle
+- **Taken branches**: branch is counted, next instruction (flushed) is not
+- **Traps**: trap-causing instruction (ecall/ebreak) is counted
+- **Stalls**: no count when pipeline is stalled (pcwr_en = '0')
+- **Bus errors**: faulted instruction is not counted (flush = '1')
+
+---
+
+### 4. Wishbone Controller: `wb_ctrl`
+
+File: `rtl/wb_ctrl.vhdl`
+
+Implements a Wishbone B4-compatible master with a single-cycle arbitration FSM.
+
+#### Ports
+
+| Port | Direction | Width | Description |
+|------|-----------|-------|-------------|
+| `clk_i` | in | 1 | Clock (free-running) |
+| `rst_i` | in | 1 | Asynchronous reset (active high) |
+| `imrd_en_i` | in | 1 | Instruction fetch enable (from core) |
+| `dmrd_en_i` | in | 1 | Data read enable (from core) |
+| `dmwr_en_i` | in | 1 | Data write enable (from core) |
+| `ack_i` | in | 1 | Wishbone acknowledge |
+| `err_i` | in | 1 | Wishbone error |
+| `dat_i` | in | XLEN | Wishbone read data |
+| `dmwr_be_i` | in | 4 | Data write byte enables (from core) |
+| `imrd_addr_i` | in | XLEN | Instruction fetch address (from core) |
+| `dmrw_addr_i` | in | XLEN | Data memory address (from core) |
+| `dmwr_data_i` | in | XLEN | Data write data (from core) |
+| `cyc_o` | out | 1 | Wishbone cycle |
+| `stb_o` | out | 1 | Wishbone strobe |
+| `we_o` | out | 1 | Wishbone write enable |
+| `clk_en_o` | out | 1 | Clock enable (to clk_ctrl) |
+| `reset_o` | out | 1 | Core reset (to core) |
+| `imrd_err_o` | out | 1 | Instruction fetch bus error (to core) |
+| `dmrd_err_o` | out | 1 | Data read bus error (to core) |
+| `dmwr_err_o` | out | 1 | Data write bus error (to core) |
+| `sel_o` | out | 4 | Wishbone byte selects |
+| `adr_o` | out | XLEN | Wishbone address |
+| `dat_o` | out | XLEN | Wishbone write data |
+| `imrd_data_o` | out | XLEN | Instruction data (to core) |
+| `dmrd_data_o` | out | XLEN | Read data (to core) |
+
+#### FSM States
 
 | State | Description |
 |-------|-------------|
@@ -417,60 +663,33 @@ Individual ports from `main_ctrl`, passed through `id_stage` to `ex_block`:
 | `EXECUTE` | Single-cycle execute — clock gating enabled, bus released |
 | `ERROR` | Bus error response — signals error to core |
 
-### Bus Arbitration
+#### Bus Arbitration
 
 Read-modify-write is used for stores: the FSM goes `READ_INSTR → RMW_CYCLE → WRITE_DATA → EXECUTE`, ensuring the bus is acquired for the full memory operation.
 
-## CSRs (`csrs.vhdl`)
+---
 
-### Interface
+### Clock Domains
 
-| Porta | Direção | Largura | Descrição |
-|-------|---------|---------|-----------|
-| `clk_i` | in | 1 | Clock |
-| `reset_i` | in | 1 | Reset síncrono |
-| `ex_irq_i` | in | 1 | External interrupt |
-| `sw_irq_i` | in | 1 | Software interrupt |
-| `tm_irq_i` | in | 1 | Timer interrupt |
-| `imrd_malgn_i` | in | 1 | Instruction fetch misaligned |
-| `imrd_fault_i` | in | 1 | Instruction fetch fault |
-| `instr_err_i` | in | 1 | Illegal instruction |
-| `dmld_malgn_i` | in | 1 | Data load misaligned |
-| `dmld_fault_i` | in | 1 | Data load fault |
-| `dmst_malgn_i` | in | 1 | Data store misaligned |
-| `dmst_fault_i` | in | 1 | Data store fault |
-| `wr_en_i` | in | 1 | CSR write enable |
-| `wr_mode_i` | in | 3 | CSR write mode (funct3) |
-| `rw_addr_i` | in | 12 | CSR address |
-| `wr_data_i` | in | XLEN | CSR write data |
-| `exec_res_i` | in | XLEN | ALU result (for mtval on misaligned) |
-| `pc_i` | in | XLEN | Current PC (for mepc/mtval on ebreak) |
-| `next_pc_i` | in | XLEN | Next PC (for mepc on WFI) |
-| `cycle_i` | in | 64 | Cycle counter |
-| `timer_i` | in | 64 | Timer value |
-| `instret_i` | in | 64 | Instruction retired counter |
-| `cop_dat_i` | in | XLEN | Coprocessor read data |
-| `cop_adr_o` | out | 6 | Coprocessor address |
-| `cop_dat_o` | out | XLEN | Coprocessor write data |
-| `cop_we_o` | out | 1 | Coprocessor write enable |
-| `pcwr_en_o` | out | 1 | Pipeline advance (0 during WFI until interrupt) |
-| `trap_taken_o` | out | 1 | Exception/interrupt/mret taken |
-| `trap_target_o` | out | XLEN | Trap handler or return address |
-| `rd_data_o` | out | XLEN | CSR read data |
+| Domain | Signal | Source | Consumers |
+|--------|--------|--------|-----------|
+| Free-running | `clk_i` | External input | `wb_ctrl`, `counters`, `clk_ctrl` |
+| Gated | `clk` | `clk_ctrl(clk_i, clk_en)` | `core` (pipeline) |
 
-### Funcionamento
+### Reset Architecture
 
-The CSRs module implements the machine-mode CSR registers and all trap/exception logic:
+| Component | Reset Signal | Source | Deassertion |
+|-----------|-------------|--------|-------------|
+| `wb_ctrl` | `rst_i` | External | Immediate after `rst_i` |
+| `clk_ctrl` | `rst_i` | External | Immediate (clock forced on during reset) |
+| `counters` | `rst_i` | External | Immediate after `rst_i` |
+| `core` | `reset` | `wb_ctrl` | 1 cycle after `rst_i` (when FSM exits START) |
 
-- **System calls**: `ecall`, `ebreak`, `mret`, `wfi` decoded from write enable + address
-- **Interrupt pending**: `mip_meip/msip/mtip` directly wired from external IRQ inputs (level-sensitive)
-- **Exception vector**: `exc_taken` combines all fault signals, ecall, ebreak, and interrupts
-- **Trap taken**: `trap_taken_o <= exc_taken or mret` — redirects pipeline for both traps and MRET
-- **mstatus**: MIE/MPIE updated on entry (save+disable) and MRET (restore)
-- **mepc**: Saves PC on trap; `next_pc` on WFI (return after wakeup); writable via CSR
-- **mcause**: Priority encoder for exception source; interrupt bit = `int_taken`
-- **mtval**: Address for misaligned access faults; PC for ebreak; zero otherwise
-- **Coprocessor window**: CSR addresses `0x7C0`–`0x7FF` forwarded to `cop_dat_o` with `cop_we_o` strobe
+The core's `reset` is derived from the Wishbone FSM START state, introducing a 1-cycle skew relative to `rst_i`.
+
+---
+
+## CSRs
 
 ### Machine-Mode CSRs
 
@@ -480,7 +699,7 @@ The CSRs module implements the machine-mode CSR registers and all trap/exception
 | `0x301` | `misa` | ISA and extensions (RV32I) |
 | `0x304` | `mie` | Interrupt enable (MEIE, MTIE, MSIE) |
 | `0x305` | `mtvec` | Trap vector base address |
-| `0x320` | `mcountinhibit` | Machine counter inhibit (WARL) — *não implementado* |
+| `0x320` | `mcountinhibit` | Machine counter inhibit (WARL) — *not implemented* |
 | `0x321` | `mhpmevent3` | Hardware performance event select (future) |
 | `0x323`–`0x32F` | `mhpmevent4–31` | Hardware performance event select (future) |
 | `0x340` | `mscratch` | Machine scratchpad |
@@ -502,37 +721,39 @@ The CSRs module implements the machine-mode CSR registers and all trap/exception
 
 ### Counter Inhibit (`mcountinhibit`)
 
-`mcountinhibit` (CSR `0x320`) é um registrador WARL que permite ao software pausar seletivamente os contadores de performance:
+`mcountinhibit` (CSR `0x320`) is a WARL register that allows software to selectively pause performance counters:
 
-| Bit | Campo | Controle |
+| Bit | Field | Control |
 |-----|-------|----------|
-| 0 | CY | `mcycle` — 1 = inibe incremento |
-| 2 | IR | `minstret` — 1 = inibe incremento |
-| demais | — | Hardwired a 0 (reservados) |
+| 0 | CY | `mcycle` — 1 = inhibit increment |
+| 2 | IR | `minstret` — 1 = inhibit increment |
+| others | — | Hardwired to 0 (reserved) |
 
-Quando um bit é `1`, o respectivo contador para de incrementar. O bit 1 (TM para `time`) é hardwired a 0 — `time` é um timer wall-clock independente e não deve ser inibido.
+When a bit is `1`, the respective counter stops incrementing. Bit 1 (TM for `time`) is hardwired to 0 — `time` is an independent wall-clock timer and should not be inhibited.
 
-**Nota**: `mcountinhibit` ainda **não está implementado** no Leaf. A implementação futura requer:
+**Note**: `mcountinhibit` is **not yet implemented** in Leaf. Future implementation requires:
 
-1. Adicionar registrador `mcountinhibit_reg` em `csrs.vhdl` (bits 0 e 2 writable WARL, demais hardwired a 0)
-2. Adicionar portas `mcountinhibit_o` em `csrs` → `id_stage` → `core`
-3. Adicionar porta `inhibit_i` em `counters` — gating nos incrementos (`inhibit_i(0)` trava `cycle`, `inhibit_i(2)` trava `instret`)
-4. Conectar `core.mcountinhibit_o` → `counters.inhibit_i` em `leaf.vhdl`
+1. Add `mcountinhibit_reg` in `csrs.vhdl` (bits 0 and 2 writable WARL, others hardwired to 0)
+2. Add `mcountinhibit_o` ports in `csrs` → `id_stage` → `core`
+3. Add `inhibit_i` port in `counters` — gating on increments (`inhibit_i(0)` locks `cycle`, `inhibit_i(2)` locks `instret`)
+4. Connect `core.mcountinhibit_o` → `counters.inhibit_i` in `leaf.vhdl`
 
 ### Timer Interrupt (`tm_irq`)
 
-`tm_irq` é uma entrada externa do core — o Leaf não a gera internamente. O contador `time` (CSR `0xC01`/`0xC81`) incrementa a cada ciclo de `clk_i` e é legível por software, mas não há registrador `mtimecmp` para comparar o timer e gerar a IRQ automaticamente.
+`tm_irq` is an external core input — Leaf does not generate it internally. The `time` counter (CSR `0xC01`/`0xC81`) increments every `clk_i` cycle and is readable by software, but there is no `mtimecmp` register to compare the timer and generate the IRQ automatically.
 
-Para usar timer interrupts, é necessário hardware externo que:
-- Programe um valor de comparação via memory-mapped register ou CSR de coprocessador
-- Compare contra `time` ou seu próprio contador
-- Assevere `tm_irq` quando a condição for satisfeita
+To use timer interrupts, external hardware must:
+- Program a comparison value via memory-mapped register or coprocessor CSR
+- Compare against `time` or its own counter
+- Assert `tm_irq` when the condition is met
 
-A implementação de `mtimecmp` conforme a RISC-V Privileged Spec (seção 3.1.11) é uma melhoria futura.
+Implementation of `mtimecmp` per the RISC-V Privileged Spec (section 3.1.11) is a future improvement.
 
 ### Custom Coprocessor Window
 
 CSR addresses `0x7C0` to `0x7FF` are reserved for coprocessor attachment. Reads are forwarded to `cop_dat_i`, writes to `cop_dat_o` with `cop_we_o` strobe.
+
+---
 
 ## Exception and Trap Handling
 
@@ -550,21 +771,7 @@ Exception sources, their `mcause` codes, and `mtval` behavior:
 | 7 | Store access fault | Effective address (`exec_res`) |
 | 11 | Environment call (ecall) | 0 |
 
-Interrupt codes (mscause bit 31 = 1):
-
-| Code | Source |
-|------|--------|
-| 0 | Instruction address misaligned |
-| 1 | Instruction access fault |
-| 2 | Illegal instruction |
-| 3 | Breakpoint (ebreak) |
-| 4 | Load address misaligned |
-| 5 | Load access fault |
-| 6 | Store address misaligned |
-| 7 | Store access fault |
-| 11 | Environment call (ecall) |
-
-Interrupt codes (mscause bit 31 = 1):
+Interrupt codes (mcause bit 31 = 1):
 
 | Code | Source |
 |------|--------|
@@ -578,68 +785,7 @@ Trap flow:
 3. `mcause` and `mtval` are set
 4. PC jumps to `mtvec`
 
-## Counters (`rtl/counters.vhdl`)
-
-The counters module tracks three 64-bit values, all on the `clk_i` domain:
-
-| Counter | CSR (low) | CSR (high) | Reset | Behavior |
-|---------|-----------|-------------|-------|----------|
-| `mcycle` | `0xC00` | `0xC80` | Yes | Increments every `clk_i` cycle (free-running) |
-| `time` | `0xC01` | `0xC81` | No | Increments every `clk_i` cycle (free-running, separate register) |
-| `minstret` | `0xC02` | `0xC82` | Yes | Increments on instruction retire (`retire_i`) |
-
-The `time` counter has no reset — it counts continuously from power-on as a free-running real-time clock, independent of the core's operating state.
-
-### Retire Signal
-
-The `retire` pulse is generated in `if_stage.vhdl` as:
-
-```vhdl
-retire_o <= pcwr_en_i and not flush_reg;
-```
-
-`flush_reg` é a versão registrada do flush (capturada no pipeline register). Como `flush_reg` reflete o flush do ciclo anterior (quando a instrução foi buscada), uma branch taken corrente tem `flush_reg = 0` e é contada. A instrução especulativamente buscada após a branch recebe `flush_reg = 1` e não é contada.
-
-O sinal atravessa `core.vhdl` como wire-through direto (`retire_o => retire_o`).
-
-Isso conta uma instrução por avanço válido do pipeline:
-- **Normal instructions**: counted on each pipeline cycle
-- **Taken branches**: branch is counted, next instruction (flushed) is not
-- **Traps**: trap-causing instruction (ecall/ebreak) is counted
-- **Stalls**: no count when pipeline is stalled (pcwr_en = '0')
-- **Bus errors**: faulted instruction is not counted (flush = '1')
-
-## Register File
-
-The register file (`reg_file.vhdl`) has 32 × 32-bit registers with:
-
-- 2 asynchronous read ports
-- 1 synchronous write port with 4-way write mux (ALU result, load data, next PC, CSR read data)
-- Register x0 is hardwired to zero (writes to x0 are discarded)
-
-## Block Diagram
-
-```
-                  ┌──────────┐
-  clk_i ─────────▶│clk_ctrl  │───▶ clk (gated)
-  rst_i ─────────▶│          │
-                  └──────────┘
-                  ┌──────────┐
-  ack_i ─────────▶│          │
-  err_i ─────────▶│ wb_ctrl  │◀─── imrd_en, dmrd_en, dmwr_en
-  dat_i ◀────────▶│          │───▶ cyc_o, stb_o, we_o, adr_o, dat_o
-                  └──────────┘
-                        │
-               ┌────────┴────────┐
-               │                 │
-        ┌──────────────┐  ┌──────────────┐
-        │   counters   │  │    core      │
-        │ (cycle,time, │  │              │
-        │  instret)    │  │ if_stage     │
-        └──────────────┘  │ id_stage     │
-                          │ ex_block     │
-                          └──────────────┘
-```
+---
 
 ## RTL File Map
 
@@ -663,17 +809,7 @@ The register file (`reg_file.vhdl`) has 32 × 32-bit registers with:
 | `rtl/leaf_pkg.vhdl` | `leaf_pkg` | ISA constants, opcodes, ALU ops, component declarations |
 | `rtl/main_ctrl.vhdl` | `main_ctrl` | Main control decoder and immediate generator |
 
-## Test Support Files
-
-| File | Purpose |
-|------|---------|
-| `verif/tests/common/common.mk` | Build rules: .s → .elf → .bin → run/compare |
-| `verif/tests/common/leaf.ld` | Leaf linker script |
-| `verif/tests/common/spike.ld` | Spike linker script |
-| `verif/tests/common/leaf.S` | Leaf HALT routine |
-| `verif/tests/common/spike.S` | Spike finish routine |
-| `verif/tests/common/common.S` | `store_regs` helper (dumps x0-x31 + CSRs) |
-| `verif/tests/common/defs.inc` | Memory map constants |
+---
 
 ## Key Constants
 
