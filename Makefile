@@ -36,7 +36,7 @@ $(WORK_DIR)/.import: $(RTL_SRC) $(TBS_SRC) | $(WORK_DIR)
 $(WORK_DIR)/.make: $(WORK_DIR)/.import
 	@$(SIM) make $(SIMFLAGS) $(TBS_TOP) | tee $@
 
-$(WORK_DIR)/$(RTL_TOP).v: $(RTL_SRC) $(WORK_DIR)/.make
+$(WORK_DIR)/$(RTL_TOP).v: $(RTL_SRC) $(WORK_DIR)/.make Makefile
 	@$(SIM) synth $(SIMFLAGS) --latches --out=verilog -gREG_FILE_SIZE=$(REG_FILE) $(RTL_TOP) > $@
 
 $(WORK_DIR)/$(RTL_TOP).rpt: $(WORK_DIR)/$(RTL_TOP).v $(YOSYS_SCRIPT)
