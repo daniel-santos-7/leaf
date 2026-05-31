@@ -239,7 +239,6 @@ package leaf_pkg is
             flush_i       : in  std_logic;
             func3_o       : out std_logic_vector(2  downto 0);
             func7_o       : out std_logic_vector(6  downto 0);
-            imm_o         : out std_logic_vector(XLEN-1 downto 0);
             jmp_o         : out std_logic;
             br_en_o       : out std_logic;
             ftype_o       : out std_logic;
@@ -256,9 +255,7 @@ package leaf_pkg is
             trap_taken_o  : out std_logic;
             trap_target_o : out std_logic_vector(XLEN-1 downto 0);
             rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
-            rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
-            csrwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
-            csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0)
+            rd_data1_o    : out std_logic_vector(XLEN-1 downto 0)
         );
     end component id_stage;
 
@@ -299,8 +296,6 @@ package leaf_pkg is
             func7_i       : in  std_logic_vector(6  downto 0);
             reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
             reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
-            imm_i         : in  std_logic_vector(XLEN-1 downto 0);
-            csrrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
             opd0_i        : in  std_logic_vector(XLEN-1 downto 0);
             opd1_i        : in  std_logic_vector(XLEN-1 downto 0);
             jmp_i         : in  std_logic;
@@ -323,7 +318,6 @@ package leaf_pkg is
             dmrw_addr_o   : out std_logic_vector(XLEN-1 downto 0);
             dm_byte_en_o  : out std_logic_vector(3  downto 0);
             dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
-            csrwr_data_o  : out std_logic_vector(XLEN-1 downto 0);
             taken_o       : out std_logic;
             target_o      : out std_logic_vector(XLEN-1 downto 0);
             res_o         : out std_logic_vector(XLEN-1 downto 0)

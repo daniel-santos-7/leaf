@@ -59,7 +59,6 @@ architecture rtl of core is
 
     signal func3      : std_logic_vector(2  downto 0);
     signal func7      : std_logic_vector(6  downto 0);
-    signal imm        : std_logic_vector(XLEN-1 downto 0);
     signal opd0       : std_logic_vector(XLEN-1 downto 0);
     signal opd1       : std_logic_vector(XLEN-1 downto 0);
     signal jmp          : std_logic;
@@ -76,8 +75,6 @@ architecture rtl of core is
     signal reg1_data : std_logic_vector(XLEN-1 downto 0);
     signal exec_res  : std_logic_vector(XLEN-1 downto 0);
     signal dmld_data : std_logic_vector(XLEN-1 downto 0);
-    signal csrrd_data : std_logic_vector(XLEN-1 downto 0);
-    signal csrwr_data : std_logic_vector(XLEN-1 downto 0);
 
     signal imrd_malgn : std_logic;
     signal dmld_malgn : std_logic;
@@ -137,7 +134,6 @@ begin
         flush_i       => flush,
         func3_o       => func3,
         func7_o       => func7,
-        imm_o         => imm,
         jmp_o         => jmp,
         br_en_o       => br_en,
         ftype_o       => ftype,
@@ -154,9 +150,7 @@ begin
         trap_taken_o  => trap_taken,
         trap_target_o => trap_target,
         rd_data0_o    => reg0_data,
-        rd_data1_o    => reg1_data,
-        csrwr_data_i  => csrwr_data,
-        csrrd_data_o  => csrrd_data
+        rd_data1_o    => reg1_data
     );
 
     core_ex_block: ex_block port map (
@@ -166,8 +160,6 @@ begin
         func7_i        => func7,
         reg0_i         => reg0_data,
         reg1_i         => reg1_data,
-        imm_i          => imm,
-        csrrd_data_i   => csrrd_data,
         opd0_i         => opd0,
         opd1_i         => opd1,
         jmp_i          => jmp,
@@ -190,7 +182,6 @@ begin
         dmrw_addr_o    => dmrw_addr_o,
         dm_byte_en_o   => dmwr_be_o,
         dmld_data_o    => dmld_data,
-        csrwr_data_o   => csrwr_data,
         taken_o        => taken,
         target_o       => target,
         res_o          => exec_res

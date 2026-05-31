@@ -17,8 +17,6 @@ entity ex_block is
         func7_i       : in  std_logic_vector(6  downto 0);
         reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
-        imm_i         : in  std_logic_vector(XLEN-1 downto 0);
-        csrrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
         opd0_i        : in  std_logic_vector(XLEN-1 downto 0);
         opd1_i        : in  std_logic_vector(XLEN-1 downto 0);
         jmp_i         : in  std_logic;
@@ -41,7 +39,6 @@ entity ex_block is
         dmrw_addr_o   : out std_logic_vector(XLEN-1 downto 0);
         dm_byte_en_o  : out std_logic_vector(3  downto 0);
         dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
-        csrwr_data_o  : out std_logic_vector(XLEN-1 downto 0);
         taken_o       : out std_logic;
         target_o      : out std_logic_vector(XLEN-1 downto 0);
         res_o         : out std_logic_vector(XLEN-1 downto 0)
@@ -69,14 +66,6 @@ begin
         opd1_i => opd1_i,
         op_i   => alu_op,
         res_o  => alu_res
-    );
-
-    exec_csrs_logic: csrs_logic port map (
-        csrwr_mode_i => func3_i,
-        csrrd_data_i => csrrd_data_i,
-        regwr_data_i => reg0_i,
-        immwr_data_i => imm_i,
-        csrwr_data_o => csrwr_data_o
     );
 
     exec_br_detector: br_detector port map (

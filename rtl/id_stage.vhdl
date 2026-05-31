@@ -37,7 +37,6 @@ entity id_stage is
         flush_i       : in  std_logic;
         func3_o       : out std_logic_vector(2  downto 0);
         func7_o       : out std_logic_vector(6  downto 0);
-        imm_o         : out std_logic_vector(XLEN-1 downto 0);
         jmp_o         : out std_logic;
         br_en_o       : out std_logic;
         ftype_o       : out std_logic;
@@ -54,9 +53,7 @@ entity id_stage is
         trap_taken_o  : out std_logic;
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
-        rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
-        csrwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
-        csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0)
+        rd_data1_o    : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity id_stage;
 
@@ -78,6 +75,7 @@ architecture rtl of id_stage is
 
     signal csrwr_en     : std_logic;
     signal csrrd_data_s : std_logic_vector(XLEN-1 downto 0);
+    signal csrwr_data_s : std_logic_vector(XLEN-1 downto 0);
 
     signal opd0_src_sel_s : std_logic;
     signal opd1_src_sel_s : std_logic;
@@ -136,6 +134,14 @@ begin
         rd_data1_o => regrd_data1
     );
 
+    id_stage_csrs_logic: csrs_logic port map (
+        csrwr_mode_i => func3_value,
+        csrrd_data_i => csrrd_data_s,
+        regwr_data_i => regrd_data0,
+        immwr_data_i => imm_value,
+        csrwr_data_o => csrwr_data_s
+    );
+
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
     ) port map (
@@ -154,7 +160,7 @@ begin
         wr_en_i      => csrwr_en,
         wr_mode_i    => func3_value,
         rw_addr_i    => csrs_addr,
-        wr_data_i    => csrwr_data_i,
+        wr_data_i    => csrwr_data_s,
         exec_res_i   => exec_res_i,
         pc_i         => pc_i,
         next_pc_i    => next_pc_i,
@@ -171,11 +177,9 @@ begin
         rd_data_o    => csrrd_data_s
     );
 
-    imm_o      <= imm_value;
     func3_o    <= func3_value;
     rd_data0_o <= regrd_data0;
     rd_data1_o <= regrd_data1;
-    csrrd_data_o <= csrrd_data_s;
 
     opd0     <= pc_i  when opd0_src_sel_s = '1' else regrd_data0;
     opd1     <= imm_value when opd1_src_sel_s = '1' else regrd_data1;
