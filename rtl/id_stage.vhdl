@@ -40,14 +40,12 @@ entity id_stage is
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
         jmp_o         : out std_logic;
         br_en_o       : out std_logic;
-        opd0_src_sel_o: out std_logic;
-        opd1_src_sel_o: out std_logic;
-        opd0_pass_o   : out std_logic;
-        opd1_pass_o   : out std_logic;
         ftype_o       : out std_logic;
         op_en_o       : out std_logic;
         dmls_mode_o   : out std_logic;
         dmls_en_o     : out std_logic;
+        opd0_o        : out std_logic_vector(XLEN-1 downto 0);
+        opd1_o        : out std_logic_vector(XLEN-1 downto 0);
         cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
         cop_adr_o     : out std_logic_vector(5 downto 0);
         cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
@@ -81,6 +79,15 @@ architecture rtl of id_stage is
     signal csrwr_en     : std_logic;
     signal csrrd_data_s : std_logic_vector(XLEN-1 downto 0);
 
+    signal opd0_src_sel_s : std_logic;
+    signal opd1_src_sel_s : std_logic;
+    signal opd0_pass_s    : std_logic;
+    signal opd1_pass_s    : std_logic;
+    signal opd0           : std_logic_vector(XLEN-1 downto 0);
+    signal opd1           : std_logic_vector(XLEN-1 downto 0);
+    signal gtd_opd0       : std_logic_vector(XLEN-1 downto 0);
+    signal gtd_opd1       : std_logic_vector(XLEN-1 downto 0);
+
 begin
 
     id_stage_main_ctrl: main_ctrl port map (
@@ -97,10 +104,10 @@ begin
         dmls_en_o    => dmls_en_o,
         jmp_o        => jmp_o,
         br_en_o      => br_en_o,
-        opd0_src_sel_o => opd0_src_sel_o,
-        opd1_src_sel_o => opd1_src_sel_o,
-        opd0_pass_o  => opd0_pass_o,
-        opd1_pass_o  => opd1_pass_o,
+        opd0_src_sel_o => opd0_src_sel_s,
+        opd1_src_sel_o => opd1_src_sel_s,
+        opd0_pass_o  => opd0_pass_s,
+        opd1_pass_o  => opd1_pass_s,
         ftype_o      => ftype_o,
         op_en_o      => op_en_o,
         imm_o        => imm_value,
@@ -169,5 +176,13 @@ begin
     rd_data0_o <= regrd_data0;
     rd_data1_o <= regrd_data1;
     csrrd_data_o <= csrrd_data_s;
+
+    opd0     <= pc_i  when opd0_src_sel_s = '1' else regrd_data0;
+    opd1     <= imm_value when opd1_src_sel_s = '1' else regrd_data1;
+    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass_s);
+    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass_s);
+
+    opd0_o <= gtd_opd0;
+    opd1_o <= gtd_opd1;
 
 end architecture rtl;

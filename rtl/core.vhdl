@@ -60,12 +60,10 @@ architecture rtl of core is
     signal func3      : std_logic_vector(2  downto 0);
     signal func7      : std_logic_vector(6  downto 0);
     signal imm        : std_logic_vector(XLEN-1 downto 0);
+    signal opd0       : std_logic_vector(XLEN-1 downto 0);
+    signal opd1       : std_logic_vector(XLEN-1 downto 0);
     signal jmp          : std_logic;
     signal br_en        : std_logic;
-    signal opd0_src_sel : std_logic;
-    signal opd1_src_sel : std_logic;
-    signal opd0_pass    : std_logic;
-    signal opd1_pass    : std_logic;
     signal ftype        : std_logic;
     signal op_en        : std_logic;
     signal dmls_mode : std_logic;
@@ -142,14 +140,12 @@ begin
         imm_o         => imm,
         jmp_o         => jmp,
         br_en_o       => br_en,
-        opd0_src_sel_o=> opd0_src_sel,
-        opd1_src_sel_o=> opd1_src_sel,
-        opd0_pass_o   => opd0_pass,
-        opd1_pass_o   => opd1_pass,
         ftype_o       => ftype,
         op_en_o       => op_en,
         dmls_mode_o   => dmls_mode,
         dmls_en_o     => dmls_en,
+        opd0_o        => opd0,
+        opd1_o        => opd1,
         cop_dat_i     => cop_dat_i,
         cop_adr_o     => cop_adr_o,
         cop_dat_o     => cop_dat_o,
@@ -170,15 +166,12 @@ begin
         func7_i        => func7,
         reg0_i         => reg0_data,
         reg1_i         => reg1_data,
-        pc_i           => pc,
         imm_i          => imm,
         csrrd_data_i   => csrrd_data,
+        opd0_i         => opd0,
+        opd1_i         => opd1,
         jmp_i          => jmp,
         br_en_i        => br_en,
-        opd0_src_sel_i => opd0_src_sel,
-        opd1_src_sel_i => opd1_src_sel,
-        opd0_pass_i    => opd0_pass,
-        opd1_pass_i    => opd1_pass,
         ftype_i        => ftype,
         op_en_i        => op_en,
         dmls_mode_i    => dmls_mode,

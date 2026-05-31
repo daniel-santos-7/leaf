@@ -17,15 +17,12 @@ entity ex_block is
         func7_i       : in  std_logic_vector(6  downto 0);
         reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
-        pc_i          : in  std_logic_vector(XLEN-1 downto 0);
         imm_i         : in  std_logic_vector(XLEN-1 downto 0);
         csrrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+        opd0_i        : in  std_logic_vector(XLEN-1 downto 0);
+        opd1_i        : in  std_logic_vector(XLEN-1 downto 0);
         jmp_i         : in  std_logic;
         br_en_i       : in  std_logic;
-        opd0_src_sel_i: in  std_logic;
-        opd1_src_sel_i: in  std_logic;
-        opd0_pass_i   : in  std_logic;
-        opd1_pass_i   : in  std_logic;
         ftype_i       : in  std_logic;
         op_en_i       : in  std_logic;
         dmls_mode_i   : in  std_logic;
@@ -53,21 +50,11 @@ end entity ex_block;
 
 architecture ex_block_arch of ex_block is
 
-    signal opd0     : std_logic_vector(XLEN-1 downto 0);
-    signal opd1     : std_logic_vector(XLEN-1 downto 0);
-    signal gtd_opd0 : std_logic_vector(XLEN-1 downto 0);
-    signal gtd_opd1 : std_logic_vector(XLEN-1 downto 0);
     signal alu_op   : std_logic_vector(5  downto 0);
     signal alu_res  : std_logic_vector(XLEN-1 downto 0);
     signal branch   : std_logic;
 
 begin
-
-    opd0 <= pc_i  when opd0_src_sel_i = '1' else reg0_i;
-    opd1 <= imm_i when opd1_src_sel_i = '1' else reg1_i;
-
-    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass_i);
-    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass_i);
 
     exec_alu_ctrl: alu_ctrl port map (
         op_en_i => op_en_i,
@@ -78,8 +65,8 @@ begin
     );
 
     exec_alu: alu port map (
-        opd0_i => gtd_opd0,
-        opd1_i => gtd_opd1,
+        opd0_i => opd0_i,
+        opd1_i => opd1_i,
         op_i   => alu_op,
         res_o  => alu_res
     );
