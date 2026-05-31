@@ -1,148 +1,81 @@
-# :leaves: Leaf
+# Leaf 🍃
 
-Leaf is a compact 32-bit RISC-V core written in VHDL. It implements the RV32I base ISA with a two-stage pipeline and a Wishbone B4-compatible master interface.
+Leaf is a compact 32-bit RISC-V processor core (RV32I) in VHDL with a two-stage pipeline and Wishbone B4-compatible bus interface.
 
 ## Features
 
 - RV32I base integer ISA
-- Two-stage pipeline (`IF` + `ID/EX`)
-- Wishbone B4-compatible bus interface
-- Machine-mode CSR support
-- GHDL simulation flow
-- GHDL-based VHDL-to-Verilog synthesis flow
+- Two-stage pipeline (IF + ID/EX)
+- Wishbone B4-compatible master interface
+- Machine-mode CSR support (mtvec, mepc, mcause, mstatus, mie, mip, mscratch, mtval)
+- Machine counters (mcycle, minstret, mtime)
+- External, software, and timer interrupt support
+- Custom CSR window (0x7C0-0x7FF) for coprocessor interface
 
-## Repository Layout
+## Project Structure
 
-Directory | Description
---------- | -----------
-`docs/`   | Documentation and design notes
-`ip/`     | Third-party or auxiliary IP
-`py/`     | Python utilities
-`rtl/`    | VHDL RTL source files
-`tbs/`    | Testbenches and testbench packages
-`tcl/`    | Tool automation scripts
-`verif/`  | Verification assets, tests, and RISCOF setup
-`waves/`  | Waveform outputs
-`work/`   | GHDL work library
-
-## Requirements
-
-- `ghdl`
-- `make`
-- `riscv32-unknown-elf-gcc`
-- `riscv32-unknown-elf-objcopy`
-- `riscv32-unknown-elf-objdump`
-- `spike` for Spike-based comparison flows
-- `gtkwave` optional
-
-Example for Debian/Ubuntu:
-
-```bash
-sudo apt install ghdl gtkwave make
+```
+rtl/     VHDL RTL source files
+tbs/     Testbench sources
+verif/   Verification and test infrastructure
+tcl/     GTKWave helper scripts
+specs/   RISC-V ISA specification PDFs
+syn/     Synthesis scripts
+waves/   Waveform outputs (gitignored)
+work/    Build artifacts (gitignored)
 ```
 
-RISC-V GNU toolchain and Spike installation depend on your environment and package source.
+See [rtl/README.md](rtl/README.md) for the full microarchitecture reference.
 
-## Build And Simulation
+## Build and Simulate
 
-Run the top-level simulation with an explicit program image:
+The top-level Makefile compiles all VHDL sources and runs the testbench with a user-supplied binary. Set `PROGRAM` to the `.bin` path and `DUMP_FILE` for register dump output:
 
-```bash
-make run PROGRAM=/abs/path/to/program.bin DUMP_FILE=/abs/path/to/result.dump
-```
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PROGRAM` | `verif/tests/dump/out.bin` | Program binary loaded into RAM |
+| `DUMP_FILE` | `verif/tests/dump/out.dump` | Register dump output path |
+| `WAVEFORM` | `leaf_tb.ghw` | GHDL waveform file |
+| `REG_FILE` | 32 | Register count override (synthesis only) |
 
-The top-level `Makefile` defaults to:
+Clock period is 20 ns (50 MHz). GHDL flags: `--ieee=synopsys --workdir=work`.
 
-```bash
-PROGRAM=verif/tests/dump/out.bin
-DUMP_FILE=verif/tests/dump/out.dump
-```
-
-That default binary is not currently present in the repository, so `make run` without overrides will fail unless you generate or provide that file first.
-
-Clean build artifacts:
-
-```bash
-make clean
-```
-
-Generate synthesized Verilog with GHDL:
-
-```bash
-make synthesis
-```
-
-Output is written to `syn/leaf.v`.
-
-## Running Tests
-
-Tests are organized per directory under `verif/tests/`. Run them from each test directory:
-
-```bash
-make -C verif/tests/addi run
-make -C verif/tests/ecall run
-make -C verif/tests/li run
-make -C verif/tests/lui run
-```
-
-Each test flow can build:
-
-- a Leaf ELF/binary/debug image
-- a Spike ELF/binary/debug image
-- a Leaf dump
-- a Spike signature
-
-Useful targets inside a test directory:
-
-```bash
-make -C verif/tests/addi run
-make -C verif/tests/addi run-leaf
-make -C verif/tests/addi run-spike
-make -C verif/tests/addi compare
-make -C verif/tests/addi clean
-```
-
-## RISCOF
-
-Set up and run the compliance flow with:
-
-```bash
-make -C verif/riscof riscv-arch-test
-make -C verif/riscof run
-```
-
-## Utilities
-
-Parse a GHDL CSV trace:
-
-```bash
-python3 py/trace.py <csv_file>
-```
-
-Parse a Spike trace log:
-
-```bash
-python3 py/spike-trace-parser.py <log>
-```
-
-Open the main waveform:
+Waveforms are written to `leaf_tb.ghw` and viewed with `gtkwave`:
 
 ```bash
 gtkwave leaf_tb.ghw
 ```
 
-## Main RTL Files
+TCL helper scripts for GTKWave are in `tcl/`: `add-signals.tcl`, `gen-trace.tcl`, `gtkwave.tcl`.
 
-File | Description
----- | -----------
-`rtl/leaf.vhdl` | Top-level core wrapper with Wishbone interface
-`rtl/core.vhdl` | CPU core integration
-`rtl/if_stage.vhdl` | Instruction fetch stage
-`rtl/id_stage.vhdl` | Decode stage, register file, and CSR integration
-`rtl/ex_block.vhdl` | ALU, branch, CSR write, and load/store execution block
-`rtl/csrs.vhdl` | Machine CSR implementation and trap control
-`rtl/wb_ctrl.vhdl` | Wishbone master FSM
+### Requirements
 
-## Review Notes
+- `ghdl` — VHDL simulator and synthesis front-end
+- `make` — build automation
+- `gtkwave` — waveform viewer (optional)
 
-Static RTL review notes are available in [rtl-review.md](rtl-review.md).
+## Synthesis
+
+Leaf supports GHDL-based VHDL-to-Verilog synthesis followed by Yosys/ABC for area and timing estimation:
+
+```bash
+make synthesis
+```
+
+This produces:
+
+| Output | Description |
+|--------|-------------|
+| `work/leaf.v` | Synthesized Verilog netlist |
+| `work/leaf.rpt` | Yosys area/timing report |
+| `work/leaf_netlist.v` | Post-synthesis gate-level netlist |
+
+Edit the `abc -D 20` command in `syn/leaf_analysis.ys` to change the timing constraint.
+
+## Known Issues
+
+See [issues.md](issues.md) for documented RTL issues and planned improvements.
+
+## License
+
+Distributed under the [MIT License](LICENSE).

@@ -1,0 +1,27 @@
+# Yosys synthesis and timing analysis for the Leaf RISC-V core.
+# Generated from VHDL by GHDL synth (see: make synthesis).
+# Clock: clk_i, 20 ns (50 MHz)
+
+read_verilog work/leaf.v
+synth -flatten -top leaf
+
+# Technology mapping with 20 ns delay target (50 MHz)
+abc -D 20
+
+# Area statistics (generic CMOS estimates)
+stat -top leaf -tech cmos
+
+# Longest topological path report (logic depth in gates)
+ltp -noff leaf
+
+# Write post-synthesis Verilog netlist
+write_verilog work/leaf_netlist.v
+
+# -------------------------------------------------------------------
+# Full STA requires a liberty file with cell timing models.
+# With one, replace the abc line above with:
+#   abc -liberty <your_lib.lib> -D 20 -constr <constraints.sdc>
+# Then uncomment:
+#   read_liberty -lib <your_lib.lib>
+#   sta
+# -------------------------------------------------------------------

@@ -55,9 +55,9 @@ begin
     ) port map (
         clk_i  => clk_i,
         rst_i  => rst_i,
-        ex_irq => ex_irq,
-        sw_irq => sw_irq,
-        tm_irq => tm_irq,
+        ex_irq_i    => ex_irq,
+        sw_irq_i    => sw_irq,
+        tm_irq_i    => tm_irq,
         ack_i  => ack_i,
         err_i  => err_i,
         dat_i  => dat_i,
