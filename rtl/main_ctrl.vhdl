@@ -31,7 +31,13 @@ entity main_ctrl is
         opd1_pass_o   : out std_logic;
         ftype_o       : out std_logic;
         op_en_o       : out std_logic;
-        imm_o         : out std_logic_vector(XLEN-1 downto 0)
+        imm_o         : out std_logic_vector(XLEN-1 downto 0);
+        func3_o       : out std_logic_vector(2  downto 0);
+        func7_o       : out std_logic_vector(6  downto 0);
+        regwr_addr_o  : out std_logic_vector(4  downto 0);
+        regrd_addr0_o : out std_logic_vector(4  downto 0);
+        regrd_addr1_o : out std_logic_vector(4  downto 0);
+        csrs_addr_o   : out std_logic_vector(11 downto 0)
     );
 end entity main_ctrl;
 
@@ -167,5 +173,12 @@ begin
     csrwr_en_o  <= istg_ctrl(3);
 
     (jmp_o, br_en_o, opd0_src_sel_o, opd1_src_sel_o, opd0_pass_o, opd1_pass_o, ftype_o, op_en_o) <= exec_ctrl;
+
+    func3_o       <= instr_i(14 downto 12);
+    func7_o       <= instr_i(31 downto 25);
+    regwr_addr_o  <= instr_i(11 downto  7);
+    regrd_addr0_o <= instr_i(19 downto 15);
+    regrd_addr1_o <= instr_i(24 downto 20);
+    csrs_addr_o   <= instr_i(31 downto 20);
 
 end architecture main_ctrl_arch;

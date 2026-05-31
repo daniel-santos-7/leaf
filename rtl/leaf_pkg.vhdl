@@ -133,7 +133,13 @@ package leaf_pkg is
             opd1_pass_o   : out std_logic;
             ftype_o       : out std_logic;
             op_en_o       : out std_logic;
-            imm_o         : out std_logic_vector(XLEN-1 downto 0)
+            imm_o         : out std_logic_vector(XLEN-1 downto 0);
+            func3_o       : out std_logic_vector(2  downto 0);
+            func7_o       : out std_logic_vector(6  downto 0);
+            regwr_addr_o  : out std_logic_vector(4  downto 0);
+            regrd_addr0_o : out std_logic_vector(4  downto 0);
+            regrd_addr1_o : out std_logic_vector(4  downto 0);
+            csrs_addr_o   : out std_logic_vector(11 downto 0)
         );
     end component main_ctrl;
 

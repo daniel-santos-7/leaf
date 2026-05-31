@@ -83,13 +83,6 @@ architecture rtl of id_stage is
 
 begin
 
-    func3_value <= instr_i(14 downto 12);
-    func7_o     <= instr_i(31 downto 25);
-    regwr_addr  <= instr_i(11 downto  7);
-    regrd_addr0 <= instr_i(19 downto 15);
-    regrd_addr1 <= instr_i(24 downto 20);
-    csrs_addr   <= instr_i(31 downto 20);
-
     id_stage_main_ctrl: main_ctrl port map (
         imrd_malgn_i => imrd_malgn_i,
         dmld_malgn_i => dmld_malgn_i,
@@ -110,7 +103,13 @@ begin
         opd1_pass_o  => opd1_pass_o,
         ftype_o      => ftype_o,
         op_en_o      => op_en_o,
-        imm_o        => imm_value
+        imm_o        => imm_value,
+        func3_o       => func3_value,
+        func7_o       => func7_o,
+        regwr_addr_o  => regwr_addr,
+        regrd_addr0_o => regrd_addr0,
+        regrd_addr1_o => regrd_addr1,
+        csrs_addr_o   => csrs_addr
     );
 
     id_stage_reg_file: reg_file generic map (
