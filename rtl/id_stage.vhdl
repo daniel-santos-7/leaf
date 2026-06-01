@@ -36,11 +36,9 @@ entity id_stage is
         instr_i       : in  std_logic_vector(XLEN-1 downto 0);
         flush_i       : in  std_logic;
         func3_o       : out std_logic_vector(2  downto 0);
-        func7_o       : out std_logic_vector(6  downto 0);
         jmp_o         : out std_logic;
         br_en_o       : out std_logic;
-        ftype_o       : out std_logic;
-        op_en_o       : out std_logic;
+        alu_op_o      : out std_logic_vector(5  downto 0);
         dmls_mode_o   : out std_logic;
         dmls_en_o     : out std_logic;
         opd0_o        : out std_logic_vector(XLEN-1 downto 0);
@@ -106,11 +104,9 @@ begin
         opd1_src_sel_o => opd1_src_sel_s,
         opd0_pass_o  => opd0_pass_s,
         opd1_pass_o  => opd1_pass_s,
-        ftype_o      => ftype_o,
-        op_en_o      => op_en_o,
+        alu_op_o     => alu_op_o,
         imm_o        => imm_value,
         func3_o       => func3_value,
-        func7_o       => func7_o,
         regwr_addr_o  => regwr_addr,
         regrd_addr0_o => regrd_addr0,
         regrd_addr1_o => regrd_addr1,

@@ -58,13 +58,11 @@ architecture rtl of core is
     signal instr      : std_logic_vector(XLEN-1 downto 0);
 
     signal func3      : std_logic_vector(2  downto 0);
-    signal func7      : std_logic_vector(6  downto 0);
     signal opd0       : std_logic_vector(XLEN-1 downto 0);
     signal opd1       : std_logic_vector(XLEN-1 downto 0);
     signal jmp          : std_logic;
     signal br_en        : std_logic;
-    signal ftype        : std_logic;
-    signal op_en        : std_logic;
+    signal alu_op       : std_logic_vector(5  downto 0);
     signal dmls_mode : std_logic;
     signal dmls_en   : std_logic;
 
@@ -133,11 +131,9 @@ begin
         instr_i       => instr,
         flush_i       => flush,
         func3_o       => func3,
-        func7_o       => func7,
         jmp_o         => jmp,
         br_en_o       => br_en,
-        ftype_o       => ftype,
-        op_en_o       => op_en,
+        alu_op_o      => alu_op,
         dmls_mode_o   => dmls_mode,
         dmls_en_o     => dmls_en,
         opd0_o        => opd0,
@@ -157,15 +153,13 @@ begin
         trap_taken_i   => trap_taken,
         trap_target_i  => trap_target,
         func3_i        => func3,
-        func7_i        => func7,
         reg0_i         => reg0_data,
         reg1_i         => reg1_data,
         opd0_i         => opd0,
         opd1_i         => opd1,
         jmp_i          => jmp,
         br_en_i        => br_en,
-        ftype_i        => ftype,
-        op_en_i        => op_en,
+        alu_op_i       => alu_op,
         dmls_mode_i    => dmls_mode,
         dmls_en_i      => dmls_en,
         dmrd_err_i     => dmrd_err_i,

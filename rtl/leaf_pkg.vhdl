@@ -131,11 +131,9 @@ package leaf_pkg is
             opd1_src_sel_o: out std_logic;
             opd0_pass_o   : out std_logic;
             opd1_pass_o   : out std_logic;
-            ftype_o       : out std_logic;
-            op_en_o       : out std_logic;
+            alu_op_o      : out std_logic_vector(5  downto 0);
             imm_o         : out std_logic_vector(XLEN-1 downto 0);
             func3_o       : out std_logic_vector(2  downto 0);
-            func7_o       : out std_logic_vector(6  downto 0);
             regwr_addr_o  : out std_logic_vector(4  downto 0);
             regrd_addr0_o : out std_logic_vector(4  downto 0);
             regrd_addr1_o : out std_logic_vector(4  downto 0);
@@ -238,11 +236,9 @@ package leaf_pkg is
             instr_i       : in  std_logic_vector(XLEN-1 downto 0);
             flush_i       : in  std_logic;
             func3_o       : out std_logic_vector(2  downto 0);
-            func7_o       : out std_logic_vector(6  downto 0);
             jmp_o         : out std_logic;
             br_en_o       : out std_logic;
-            ftype_o       : out std_logic;
-            op_en_o       : out std_logic;
+            alu_op_o      : out std_logic_vector(5  downto 0);
             dmls_mode_o   : out std_logic;
             dmls_en_o     : out std_logic;
             opd0_o        : out std_logic_vector(XLEN-1 downto 0);
@@ -268,16 +264,6 @@ package leaf_pkg is
         );
     end component alu;
 
-    component alu_ctrl is
-        port (
-            op_en_i : in  std_logic;
-            ftype_i : in  std_logic;
-            func3_i : in  std_logic_vector(2 downto 0);
-            func7_i : in  std_logic_vector(6 downto 0);
-            op_o    : out std_logic_vector(5 downto 0)
-        );
-    end component alu_ctrl;
-
     component br_detector is
         port (
             reg0_i   : in  std_logic_vector(XLEN-1 downto 0);
@@ -293,15 +279,13 @@ package leaf_pkg is
             trap_taken_i  : in  std_logic;
             trap_target_i : in  std_logic_vector(XLEN-1 downto 0);
             func3_i       : in  std_logic_vector(2  downto 0);
-            func7_i       : in  std_logic_vector(6  downto 0);
             reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
             reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
             opd0_i        : in  std_logic_vector(XLEN-1 downto 0);
             opd1_i        : in  std_logic_vector(XLEN-1 downto 0);
             jmp_i         : in  std_logic;
             br_en_i       : in  std_logic;
-            ftype_i       : in  std_logic;
-            op_en_i       : in  std_logic;
+            alu_op_i      : in  std_logic_vector(5  downto 0);
             dmls_mode_i   : in  std_logic;
             dmls_en_i     : in  std_logic;
             dmrd_err_i    : in  std_logic;

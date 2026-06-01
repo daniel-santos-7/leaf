@@ -29,11 +29,9 @@ entity main_ctrl is
         opd1_src_sel_o: out std_logic;
         opd0_pass_o   : out std_logic;
         opd1_pass_o   : out std_logic;
-        ftype_o       : out std_logic;
-        op_en_o       : out std_logic;
+        alu_op_o      : out std_logic_vector(5  downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
         func3_o       : out std_logic_vector(2  downto 0);
-        func7_o       : out std_logic_vector(6  downto 0);
         regwr_addr_o  : out std_logic_vector(4  downto 0);
         regrd_addr0_o : out std_logic_vector(4  downto 0);
         regrd_addr1_o : out std_logic_vector(4  downto 0);
@@ -49,6 +47,8 @@ architecture main_ctrl_arch of main_ctrl is
 
     signal istg_ctrl : std_logic_vector(3  downto 0);
     signal exec_ctrl : std_logic_vector(7  downto 0);
+    signal ftype_s   : std_logic;
+    signal op_en_s   : std_logic;
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -172,13 +172,41 @@ begin
     regwr_sel_o <= istg_ctrl(2 downto 1);
     csrwr_en_o  <= istg_ctrl(3);
 
-    (jmp_o, br_en_o, opd0_src_sel_o, opd1_src_sel_o, opd0_pass_o, opd1_pass_o, ftype_o, op_en_o) <= exec_ctrl;
+    (jmp_o, br_en_o, opd0_src_sel_o, opd1_src_sel_o, opd0_pass_o, opd1_pass_o, ftype_s, op_en_s) <= exec_ctrl;
 
     func3_o       <= instr_i(14 downto 12);
-    func7_o       <= instr_i(31 downto 25);
     regwr_addr_o  <= instr_i(11 downto  7);
     regrd_addr0_o <= instr_i(19 downto 15);
     regrd_addr1_o <= instr_i(24 downto 20);
     csrs_addr_o   <= instr_i(31 downto 20);
+
+    alu_op_ctrl: process(op_en_s, ftype_s, instr_i)
+    begin
+        if op_en_s = '0' then
+            alu_op_o <= ALU_ADD;
+        else
+            case instr_i(14 downto 12) is
+                when b"000" =>
+                    if instr_i(31 downto 25) = b"0100000" and ftype_s = '0' then
+                        alu_op_o <= ALU_SUB;
+                    else
+                        alu_op_o <= ALU_ADD;
+                    end if;
+                when b"001" => alu_op_o <= ALU_SLL;
+                when b"010" => alu_op_o <= ALU_SLT;
+                when b"011" => alu_op_o <= ALU_SLTU;
+                when b"100" => alu_op_o <= ALU_XOR;
+                when b"101" =>
+                    if instr_i(31 downto 25) = b"0100000" then
+                        alu_op_o <= ALU_SRA;
+                    else
+                        alu_op_o <= ALU_SRL;
+                    end if;
+                when b"110" => alu_op_o <= ALU_OR;
+                when b"111" => alu_op_o <= ALU_AND;
+                when others => alu_op_o <= ALU_ADD;
+            end case;
+        end if;
+    end process alu_op_ctrl;
 
 end architecture main_ctrl_arch;

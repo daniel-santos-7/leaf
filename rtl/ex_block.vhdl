@@ -14,15 +14,13 @@ entity ex_block is
         trap_taken_i  : in  std_logic;
         trap_target_i : in  std_logic_vector(XLEN-1 downto 0);
         func3_i       : in  std_logic_vector(2  downto 0);
-        func7_i       : in  std_logic_vector(6  downto 0);
         reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
         opd0_i        : in  std_logic_vector(XLEN-1 downto 0);
         opd1_i        : in  std_logic_vector(XLEN-1 downto 0);
         jmp_i         : in  std_logic;
         br_en_i       : in  std_logic;
-        ftype_i       : in  std_logic;
-        op_en_i       : in  std_logic;
+        alu_op_i      : in  std_logic_vector(5  downto 0);
         dmls_mode_i   : in  std_logic;
         dmls_en_i     : in  std_logic;
         dmrd_err_i    : in  std_logic;
@@ -47,24 +45,15 @@ end entity ex_block;
 
 architecture ex_block_arch of ex_block is
 
-    signal alu_op   : std_logic_vector(5  downto 0);
     signal alu_res  : std_logic_vector(XLEN-1 downto 0);
     signal branch   : std_logic;
 
 begin
 
-    exec_alu_ctrl: alu_ctrl port map (
-        op_en_i => op_en_i,
-        ftype_i => ftype_i,
-        func3_i => func3_i,
-        func7_i => func7_i,
-        op_o    => alu_op
-    );
-
     exec_alu: alu port map (
         opd0_i => opd0_i,
         opd1_i => opd1_i,
-        op_i   => alu_op,
+        op_i   => alu_op_i,
         res_o  => alu_res
     );
 
