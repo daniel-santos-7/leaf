@@ -60,8 +60,8 @@ architecture rtl of id_stage is
     signal instr_err : std_logic;
     signal csrs_addr : std_logic_vector(11 downto 0);
 
-    signal imm_value   : std_logic_vector(XLEN-1 downto 0);
-    signal func3_value : std_logic_vector(2  downto 0);
+    signal imm   : std_logic_vector(XLEN-1 downto 0);
+    signal func3 : std_logic_vector(2  downto 0);
 
     signal regwr_en    : std_logic;
     signal regwr_addr  : std_logic_vector(4  downto 0);
@@ -72,13 +72,13 @@ architecture rtl of id_stage is
     signal regrd_data1 : std_logic_vector(XLEN-1 downto 0);
 
     signal csrwr_en     : std_logic;
-    signal csrrd_data_s : std_logic_vector(XLEN-1 downto 0);
-    signal csrwr_data_s : std_logic_vector(XLEN-1 downto 0);
+    signal csrrd_data : std_logic_vector(XLEN-1 downto 0);
+    signal csrwr_data : std_logic_vector(XLEN-1 downto 0);
 
-    signal opd0_src_sel_s : std_logic;
-    signal opd1_src_sel_s : std_logic;
-    signal opd0_pass_s    : std_logic;
-    signal opd1_pass_s    : std_logic;
+    signal opd0_src_sel : std_logic;
+    signal opd1_src_sel : std_logic;
+    signal opd0_pass    : std_logic;
+    signal opd1_pass    : std_logic;
     signal opd0           : std_logic_vector(XLEN-1 downto 0);
     signal opd1           : std_logic_vector(XLEN-1 downto 0);
     signal gtd_opd0       : std_logic_vector(XLEN-1 downto 0);
@@ -100,13 +100,13 @@ begin
         dmls_en_o    => dmls_en_o,
         jmp_o        => jmp_o,
         br_en_o      => br_en_o,
-        opd0_src_sel_o => opd0_src_sel_s,
-        opd1_src_sel_o => opd1_src_sel_s,
-        opd0_pass_o  => opd0_pass_s,
-        opd1_pass_o  => opd1_pass_s,
+        opd0_src_sel_o => opd0_src_sel,
+        opd1_src_sel_o => opd1_src_sel,
+        opd0_pass_o  => opd0_pass,
+        opd1_pass_o  => opd1_pass,
         alu_op_o     => alu_op_o,
-        imm_o        => imm_value,
-        func3_o       => func3_value,
+        imm_o        => imm,
+        func3_o       => func3,
         regwr_addr_o  => regwr_addr,
         regrd_addr0_o => regrd_addr0,
         regrd_addr1_o => regrd_addr1,
@@ -123,7 +123,7 @@ begin
         wr_data0_i => exec_res_i,
         wr_data1_i => dmld_data_i,
         wr_data2_i => next_pc_i,
-        wr_data3_i => csrrd_data_s,
+        wr_data3_i => csrrd_data,
         rd_addr0_i => regrd_addr0,
         rd_addr1_i => regrd_addr1,
         rd_data0_o => regrd_data0,
@@ -131,11 +131,11 @@ begin
     );
 
     id_stage_csrs_logic: csrs_logic port map (
-        csrwr_mode_i => func3_value,
-        csrrd_data_i => csrrd_data_s,
+        csrwr_mode_i => func3,
+        csrrd_data_i => csrrd_data,
         regwr_data_i => regrd_data0,
-        immwr_data_i => imm_value,
-        csrwr_data_o => csrwr_data_s
+        immwr_data_i => imm,
+        csrwr_data_o => csrwr_data
     );
 
     id_stage_csrs: csrs generic map (
@@ -154,9 +154,9 @@ begin
         dmst_malgn_i => dmst_malgn_i,
         dmst_fault_i => dmst_fault_i,
         wr_en_i      => csrwr_en,
-        wr_mode_i    => func3_value,
+        wr_mode_i    => func3,
         rw_addr_i    => csrs_addr,
-        wr_data_i    => csrwr_data_s,
+        wr_data_i    => csrwr_data,
         exec_res_i   => exec_res_i,
         pc_i         => pc_i,
         next_pc_i    => next_pc_i,
@@ -170,17 +170,17 @@ begin
         pcwr_en_o    => pcwr_en_o,
         trap_taken_o => trap_taken_o,
         trap_target_o=> trap_target_o,
-        rd_data_o    => csrrd_data_s
+        rd_data_o    => csrrd_data
     );
 
-    func3_o    <= func3_value;
+    func3_o    <= func3;
     rd_data0_o <= regrd_data0;
     rd_data1_o <= regrd_data1;
 
-    opd0     <= pc_i  when opd0_src_sel_s = '1' else regrd_data0;
-    opd1     <= imm_value when opd1_src_sel_s = '1' else regrd_data1;
-    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass_s);
-    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass_s);
+    opd0     <= pc_i  when opd0_src_sel = '1' else regrd_data0;
+    opd1     <= imm when opd1_src_sel = '1' else regrd_data1;
+    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass);
+    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass);
 
     opd0_o <= gtd_opd0;
     opd1_o <= gtd_opd1;
