@@ -49,16 +49,16 @@ entity csrs is
         cop_adr_o    : out std_logic_vector(5 downto 0);
         cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o     : out std_logic;
-            mie_meie_o   : out std_logic;
-            mie_mtie_o   : out std_logic;
-            mie_msie_o   : out std_logic;
-            mstatus_mie_o: out std_logic;
-            mip_meip_o   : out std_logic;
-            mip_mtip_o   : out std_logic;
-            mip_msip_o   : out std_logic;
-            mepc_o       : out std_logic_vector(XLEN-1 downto 2);
-            mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
-            rd_data_o    : out std_logic_vector(XLEN-1 downto 0)
+        mie_meie_o   : out std_logic;
+        mie_mtie_o   : out std_logic;
+        mie_msie_o   : out std_logic;
+        mstatus_mie_o: out std_logic;
+        mip_meip_o   : out std_logic;
+        mip_mtip_o   : out std_logic;
+        mip_msip_o   : out std_logic;
+        mepc_o       : out std_logic_vector(XLEN-1 downto 2);
+        mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
+        rd_data_o    : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity csrs;
 
@@ -274,10 +274,6 @@ begin
         end if;
     end process write_mip;
 
-    cop_adr_o <= rw_addr_i(5 downto 0);
-    cop_dat_o <= wr_data_i;
-    cop_we_o  <= wr_en_i and cop_sel;
-
     mie_meie_o    <= mie_meie;
     mie_mtie_o    <= mie_mtie;
     mie_msie_o    <= mie_msie;
@@ -287,5 +283,8 @@ begin
     mip_msip_o    <= mip_msip;
     mepc_o        <= mepc;
     mtvec_base_o  <= mtvec_base;
+    cop_we_o      <= wr_en_i and cop_sel;
+    cop_adr_o     <= rw_addr_i(5 downto 0);
+    cop_dat_o     <= wr_data_i;
 
 end architecture rtl;

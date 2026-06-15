@@ -233,13 +233,11 @@ begin
     func3_o    <= func3;
     rd_data0_o <= regrd_data0;
     rd_data1_o <= regrd_data1;
-
-    opd0     <= pc_i  when opd0_src_sel = '1' else regrd_data0;
-    opd1     <= imm when opd1_src_sel = '1' else regrd_data1;
-    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass);
-    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass);
-
-    opd0_o <= gtd_opd0;
-    opd1_o <= gtd_opd1;
+    opd0       <= pc_i  when opd0_src_sel = '1' else regrd_data0;
+    opd1       <= imm when opd1_src_sel = '1' else regrd_data1;
+    gtd_opd0   <= opd0 and (XLEN-1 downto 0 => opd0_pass);
+    gtd_opd1   <= opd1 and (XLEN-1 downto 0 => opd1_pass);
+    opd0_o     <= gtd_opd0;
+    opd1_o     <= gtd_opd1;
 
 end architecture rtl;
