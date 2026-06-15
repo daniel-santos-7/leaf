@@ -279,8 +279,6 @@ package leaf_pkg is
             alu_op_o      : out std_logic_vector(5  downto 0);
             dmls_mode_o   : out std_logic;
             dmls_en_o     : out std_logic;
-            opd0_o        : out std_logic_vector(XLEN-1 downto 0);
-            opd1_o        : out std_logic_vector(XLEN-1 downto 0);
             cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
             cop_adr_o     : out std_logic_vector(5 downto 0);
             cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
@@ -289,7 +287,14 @@ package leaf_pkg is
             trap_taken_o  : out std_logic;
             trap_target_o : out std_logic_vector(XLEN-1 downto 0);
             rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
-            rd_data1_o    : out std_logic_vector(XLEN-1 downto 0)
+            rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
+            csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
+            imm_o         : out std_logic_vector(XLEN-1 downto 0);
+            csrwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+            opd0_src_sel_o : out std_logic;
+            opd1_src_sel_o : out std_logic;
+            opd0_pass_o    : out std_logic;
+            opd1_pass_o    : out std_logic
         );
     end component id_stage;
 
@@ -319,8 +324,11 @@ package leaf_pkg is
             func3_i       : in  std_logic_vector(2  downto 0);
             reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
             reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
-            opd0_i        : in  std_logic_vector(XLEN-1 downto 0);
-            opd1_i        : in  std_logic_vector(XLEN-1 downto 0);
+            pc_i          : in  std_logic_vector(XLEN-1 downto 0);
+            opd0_src_sel_i : in  std_logic;
+            opd1_src_sel_i : in  std_logic;
+            opd0_pass_i    : in  std_logic;
+            opd1_pass_i    : in  std_logic;
             jmp_i         : in  std_logic;
             br_en_i       : in  std_logic;
             alu_op_i      : in  std_logic_vector(5  downto 0);
@@ -329,6 +337,9 @@ package leaf_pkg is
             dmrd_err_i    : in  std_logic;
             dmwr_err_i    : in  std_logic;
             dmrd_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+            csrrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+            immwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+            csrwr_data_o  : out std_logic_vector(XLEN-1 downto 0);
             imrd_malgn_o  : out std_logic;
             dmld_malgn_o  : out std_logic;
             dmld_fault_o  : out std_logic;

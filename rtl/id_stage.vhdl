@@ -41,8 +41,6 @@ entity id_stage is
         alu_op_o      : out std_logic_vector(5  downto 0);
         dmls_mode_o   : out std_logic;
         dmls_en_o     : out std_logic;
-        opd0_o        : out std_logic_vector(XLEN-1 downto 0);
-        opd1_o        : out std_logic_vector(XLEN-1 downto 0);
         cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
         cop_adr_o     : out std_logic_vector(5 downto 0);
         cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
@@ -51,7 +49,14 @@ entity id_stage is
         trap_taken_o  : out std_logic;
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
-        rd_data1_o    : out std_logic_vector(XLEN-1 downto 0)
+        rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
+        csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
+        imm_o         : out std_logic_vector(XLEN-1 downto 0);
+        csrwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+        opd0_src_sel_o : out std_logic;
+        opd1_src_sel_o : out std_logic;
+        opd0_pass_o    : out std_logic;
+        opd1_pass_o    : out std_logic
     );
 end entity id_stage;
 
@@ -77,16 +82,11 @@ architecture rtl of id_stage is
 
     signal csrwr_en     : std_logic;
     signal csrrd_data : std_logic_vector(XLEN-1 downto 0);
-    signal csrwr_data : std_logic_vector(XLEN-1 downto 0);
 
     signal opd0_src_sel : std_logic;
     signal opd1_src_sel : std_logic;
     signal opd0_pass    : std_logic;
     signal opd1_pass    : std_logic;
-    signal opd0         : std_logic_vector(XLEN-1 downto 0);
-    signal opd1         : std_logic_vector(XLEN-1 downto 0);
-    signal gtd_opd0     : std_logic_vector(XLEN-1 downto 0);
-    signal gtd_opd1     : std_logic_vector(XLEN-1 downto 0);
 
     signal exc_taken   : std_logic;
     signal int_taken   : std_logic;
@@ -173,13 +173,6 @@ begin
         rd_data1_o => regrd_data1
     );
 
-    id_stage_csrs_logic: csrs_logic port map (
-        csrwr_mode_i => func3,
-        csrrd_data_i => csrrd_data,
-        regwr_data_i => regrd_data0,
-        immwr_data_i => imm,
-        csrwr_data_o => csrwr_data
-    );
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -207,7 +200,7 @@ begin
         swi_taken_i  => swi_taken,
         wr_en_i      => csrwr_en,
         rw_addr_i    => csrs_addr,
-        wr_data_i    => csrwr_data,
+        wr_data_i    => csrwr_data_i,
         exec_res_i   => exec_res_i,
         pc_i         => pc_i,
         next_pc_i    => next_pc_i,
@@ -230,14 +223,14 @@ begin
         rd_data_o    => csrrd_data
     );
 
-    func3_o    <= func3;
-    rd_data0_o <= regrd_data0;
-    rd_data1_o <= regrd_data1;
-    opd0       <= pc_i  when opd0_src_sel = '1' else regrd_data0;
-    opd1       <= imm when opd1_src_sel = '1' else regrd_data1;
-    gtd_opd0   <= opd0 and (XLEN-1 downto 0 => opd0_pass);
-    gtd_opd1   <= opd1 and (XLEN-1 downto 0 => opd1_pass);
-    opd0_o     <= gtd_opd0;
-    opd1_o     <= gtd_opd1;
+    func3_o        <= func3;
+    rd_data0_o     <= regrd_data0;
+    rd_data1_o     <= regrd_data1;
+    csrrd_data_o   <= csrrd_data;
+    opd0_src_sel_o <= opd0_src_sel;
+    opd1_src_sel_o <= opd1_src_sel;
+    opd0_pass_o    <= opd0_pass;
+    opd1_pass_o    <= opd1_pass;
+    imm_o          <= imm;
 
 end architecture rtl;

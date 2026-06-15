@@ -58,8 +58,6 @@ architecture rtl of core is
     signal instr      : std_logic_vector(XLEN-1 downto 0);
 
     signal func3      : std_logic_vector(2  downto 0);
-    signal opd0       : std_logic_vector(XLEN-1 downto 0);
-    signal opd1       : std_logic_vector(XLEN-1 downto 0);
     signal jmp          : std_logic;
     signal br_en        : std_logic;
     signal alu_op       : std_logic_vector(5  downto 0);
@@ -79,6 +77,14 @@ architecture rtl of core is
     signal dmld_fault : std_logic;
     signal dmst_malgn : std_logic;
     signal dmst_fault : std_logic;
+
+    signal csrrd_data : std_logic_vector(XLEN-1 downto 0);
+    signal imm        : std_logic_vector(XLEN-1 downto 0);
+    signal csrwr_data : std_logic_vector(XLEN-1 downto 0);
+    signal opd0_src_sel : std_logic;
+    signal opd1_src_sel : std_logic;
+    signal opd0_pass    : std_logic;
+    signal opd1_pass    : std_logic;
 
 begin
 
@@ -136,8 +142,6 @@ begin
         alu_op_o      => alu_op,
         dmls_mode_o   => dmls_mode,
         dmls_en_o     => dmls_en,
-        opd0_o        => opd0,
-        opd1_o        => opd1,
         cop_dat_i     => cop_dat_i,
         cop_adr_o     => cop_adr_o,
         cop_dat_o     => cop_dat_o,
@@ -146,7 +150,14 @@ begin
         trap_taken_o  => trap_taken,
         trap_target_o => trap_target,
         rd_data0_o    => reg0_data,
-        rd_data1_o    => reg1_data
+        rd_data1_o    => reg1_data,
+        csrrd_data_o  => csrrd_data,
+        imm_o         => imm,
+        csrwr_data_i  => csrwr_data,
+        opd0_src_sel_o => opd0_src_sel,
+        opd1_src_sel_o => opd1_src_sel,
+        opd0_pass_o    => opd0_pass,
+        opd1_pass_o    => opd1_pass
     );
 
     core_ex_block: ex_block port map (
@@ -155,8 +166,6 @@ begin
         func3_i        => func3,
         reg0_i         => reg0_data,
         reg1_i         => reg1_data,
-        opd0_i         => opd0,
-        opd1_i         => opd1,
         jmp_i          => jmp,
         br_en_i        => br_en,
         alu_op_i       => alu_op,
@@ -178,7 +187,15 @@ begin
         dmld_data_o    => dmld_data,
         taken_o        => taken,
         target_o       => target,
-        res_o          => exec_res
+        res_o          => exec_res,
+        csrrd_data_i   => csrrd_data,
+        immwr_data_i   => imm,
+        csrwr_data_o   => csrwr_data,
+        pc_i           => pc,
+        opd0_src_sel_i => opd0_src_sel,
+        opd1_src_sel_i => opd1_src_sel,
+        opd0_pass_i    => opd0_pass,
+        opd1_pass_i    => opd1_pass
     );
 
 end architecture rtl;
