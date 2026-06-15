@@ -58,6 +58,10 @@ end entity id_stage;
 architecture rtl of id_stage is
 
     signal instr_err : std_logic;
+    signal ecall     : std_logic;
+    signal ebreak    : std_logic;
+    signal mret      : std_logic;
+    signal wfi       : std_logic;
     signal csrs_addr : std_logic_vector(11 downto 0);
 
     signal imm   : std_logic_vector(XLEN-1 downto 0);
@@ -93,6 +97,10 @@ begin
         flush_i      => flush_i,
         instr_i      => instr_i,
         instr_err_o  => instr_err,
+        ecall_o      => ecall,
+        ebreak_o     => ebreak,
+        mret_o       => mret,
+        wfi_o        => wfi,
         csrwr_en_o   => csrwr_en,
         regwr_en_o   => regwr_en,
         regwr_sel_o  => regwr_sel,
@@ -153,8 +161,11 @@ begin
         dmld_fault_i => dmld_fault_i,
         dmst_malgn_i => dmst_malgn_i,
         dmst_fault_i => dmst_fault_i,
+        ecall_i      => ecall,
+        ebreak_i     => ebreak,
+        mret_i       => mret,
+        wfi_i        => wfi,
         wr_en_i      => csrwr_en,
-        wr_mode_i    => func3,
         rw_addr_i    => csrs_addr,
         wr_data_i    => csrwr_data,
         exec_res_i   => exec_res_i,

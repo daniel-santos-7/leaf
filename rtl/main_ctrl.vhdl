@@ -18,6 +18,10 @@ entity main_ctrl is
         flush_i       : in  std_logic;
         instr_i       : in  std_logic_vector(XLEN-1 downto 0);
         instr_err_o   : out std_logic;
+        ecall_o       : out std_logic;
+        ebreak_o      : out std_logic;
+        mret_o        : out std_logic;
+        wfi_o         : out std_logic;
         csrwr_en_o    : out std_logic;
         regwr_en_o    : out std_logic;
         regwr_sel_o   : out std_logic_vector(1  downto 0);
@@ -72,7 +76,14 @@ begin
         end case;
     end process gen;
 
-    main_ctrl_proc: process(opcode, flush_i)
+    -- system instruction decode (concurrent, gated by flush)
+
+    ecall_o  <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"000" else '0';
+    ebreak_o <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"001" else '0';
+    mret_o   <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
+    wfi_o    <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
+
+    main_ctrl_proc: process(opcode, flush_i, instr_i)
     begin
         if flush_i = '1' then
             dmls_mode_o    <= '0';
@@ -249,9 +260,17 @@ begin
                     opd1_pass_o    <= '0';
                     ftype        <= '0';
                     op_en        <= '0';
-                    regwr_sel_o    <= b"11";
-                    csrwr_en_o     <= '1';
-                    regwr_en   <= '1';
+                    if instr_i(14 downto 12) = b"000" then
+                        -- system instructions (ecall, ebreak, mret, wfi)
+                        regwr_sel_o <= b"00";
+                        csrwr_en_o  <= '0';
+                        regwr_en    <= '0';
+                    else
+                        -- CSR access instructions
+                        regwr_sel_o <= b"11";
+                        csrwr_en_o  <= '1';
+                        regwr_en    <= '1';
+                    end if;
                 when FENCE_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';

@@ -27,8 +27,11 @@ entity csrs is
         dmld_fault_i : in  std_logic;
         dmst_malgn_i : in  std_logic;
         dmst_fault_i : in  std_logic;
+        ecall_i      : in  std_logic;
+        ebreak_i     : in  std_logic;
+        mret_i       : in  std_logic;
+        wfi_i        : in  std_logic;
         wr_en_i      : in  std_logic;
-        wr_mode_i    : in  std_logic_vector(2  downto 0);
         rw_addr_i    : in  std_logic_vector(11 downto 0);
         wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
         exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
@@ -67,14 +70,6 @@ architecture rtl of csrs is
     signal mip_mtip     : std_logic;
     signal mip_msip     : std_logic;
 
-    -- system calls --
-
-    signal env_exc : std_logic;
-    signal ecall   : std_logic;
-    signal ebreak  : std_logic;
-    signal mret    : std_logic;
-    signal wfi     : std_logic;
-
     -- interruptions taken signals --
 
     signal exi_taken : std_logic;
@@ -86,18 +81,12 @@ architecture rtl of csrs is
 
 begin
 
-    env_exc <= '1' when wr_en_i = '1' and wr_mode_i = b"000" else '0';
-    ecall   <= '1' when env_exc = '1' and rw_addr_i = x"000" else '0';
-    ebreak  <= '1' when env_exc = '1' and rw_addr_i = x"001" else '0';
-    wfi     <= '1' when env_exc = '1' and rw_addr_i = x"105" else '0';
-    mret    <= '1' when env_exc = '1' and rw_addr_i = x"302" else '0';
-
     exi_taken <= mie_meie and mip_meip;
     tmi_taken <= mie_mtie and mip_mtip;
     swi_taken <= mie_msie and mip_msip;
 
     int_taken <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie;
-    exc_taken <= imrd_malgn_i or imrd_fault_i or instr_err_i or ebreak or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i or ecall or int_taken;
+    exc_taken <= imrd_malgn_i or imrd_fault_i or instr_err_i or ebreak_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i or ecall_i or int_taken;
     cop_sel <= '1' when rw_addr_i(11 downto 6) = b"011111" else '0';
 
     read_csr: process(rw_addr_i, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle_i, timer_i, instret_i, cop_sel, cop_dat_i)
@@ -137,7 +126,7 @@ begin
             elsif exc_taken = '1' then
                 mstatus_mie  <= '0';
                 mstatus_mpie <= mstatus_mie;
-            elsif mret = '1' then
+            elsif mret_i = '1' then
                 mstatus_mie  <= mstatus_mpie;
                 mstatus_mpie <= '1';
             elsif rw_addr_i = CSR_ADDR_MSTATUS and wr_en_i = '1' then
@@ -190,7 +179,7 @@ begin
             if reset_i = '1' then
                 mepc <= (others => '0');
             elsif exc_taken = '1' then
-                if wfi = '1' then
+                if wfi_i = '1' then
                     mepc <= next_pc_i(XLEN-1 downto 2);
                 else
                     mepc <= pc_i(XLEN-1 downto 2);
@@ -224,7 +213,7 @@ begin
                         mcause_exc <= b"00001";
                     elsif instr_err_i = '1' then
                         mcause_exc <= b"00010";
-                    elsif ebreak = '1' then
+                    elsif ebreak_i = '1' then
                         mcause_exc <= b"00011";
                     elsif dmld_malgn_i = '1' then
                         mcause_exc <= b"00100";
@@ -234,7 +223,7 @@ begin
                         mcause_exc <= b"00110";
                     elsif dmst_fault_i = '1' then
                         mcause_exc <= b"00111";
-                    elsif ecall = '1' then
+                    elsif ecall_i = '1' then
                         mcause_exc <= b"01011";
                     end if;
                 end if;
@@ -259,12 +248,12 @@ begin
                     mtval <= pc_i;
                 elsif instr_err_i = '1' then
                     mtval <= (others => '0');
-                elsif ebreak = '1' then
+                elsif ebreak_i = '1' then
                     mtval <= pc_i;
                 elsif dmld_malgn_i = '1' or dmld_fault_i = '1' or dmst_malgn_i = '1' or dmst_fault_i = '1' then
                     mtval <= exec_res_i;
                 else
-                    mtval <= (others => '0');   -- ecall
+                    mtval <= (others => '0');   -- ecall_i
                 end if;
             elsif rw_addr_i = CSR_ADDR_MTVAL and wr_en_i = '1' then
                 mtval <= wr_data_i;
@@ -289,8 +278,8 @@ begin
     cop_dat_o <= wr_data_i;
     cop_we_o  <= wr_en_i and cop_sel;
 
-    pcwr_en_o     <= exi_taken or tmi_taken or swi_taken or not wfi;
-    trap_taken_o  <= exc_taken or mret;
-    trap_target_o <= mepc & b"00" when mret = '1' else mtvec_base & b"00";
+    pcwr_en_o     <= exi_taken or tmi_taken or swi_taken or not wfi_i;
+    trap_taken_o  <= exc_taken or mret_i;
+    trap_target_o <= mepc & b"00" when mret_i = '1' else mtvec_base & b"00";
 
 end architecture rtl;

@@ -120,6 +120,10 @@ package leaf_pkg is
             flush_i       : in  std_logic;
             instr_i       : in  std_logic_vector(XLEN-1 downto 0);
             instr_err_o   : out std_logic;
+            ecall_o       : out std_logic;
+            ebreak_o      : out std_logic;
+            mret_o        : out std_logic;
+            wfi_o         : out std_logic;
             csrwr_en_o    : out std_logic;
             regwr_en_o    : out std_logic;
             regwr_sel_o   : out std_logic_vector(1  downto 0);
@@ -188,8 +192,11 @@ package leaf_pkg is
             dmld_fault_i : in  std_logic;
             dmst_malgn_i : in  std_logic;
             dmst_fault_i : in  std_logic;
+            ecall_i      : in  std_logic;
+            ebreak_i     : in  std_logic;
+            mret_i       : in  std_logic;
+            wfi_i        : in  std_logic;
             wr_en_i      : in  std_logic;
-            wr_mode_i    : in  std_logic_vector(2  downto 0);
             rw_addr_i    : in  std_logic_vector(11 downto 0);
             wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
             exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
