@@ -31,6 +31,11 @@ entity csrs is
         ebreak_i     : in  std_logic;
         mret_i       : in  std_logic;
         wfi_i        : in  std_logic;
+        exc_taken_i  : in  std_logic;
+        int_taken_i  : in  std_logic;
+        exi_taken_i  : in  std_logic;
+        tmi_taken_i  : in  std_logic;
+        swi_taken_i  : in  std_logic;
         wr_en_i      : in  std_logic;
         rw_addr_i    : in  std_logic_vector(11 downto 0);
         wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
@@ -44,10 +49,16 @@ entity csrs is
         cop_adr_o    : out std_logic_vector(5 downto 0);
         cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o     : out std_logic;
-        pcwr_en_o    : out std_logic;
-        trap_taken_o : out std_logic;
-        trap_target_o: out std_logic_vector(XLEN-1 downto 0);
-        rd_data_o    : out std_logic_vector(XLEN-1 downto 0)
+            mie_meie_o   : out std_logic;
+            mie_mtie_o   : out std_logic;
+            mie_msie_o   : out std_logic;
+            mstatus_mie_o: out std_logic;
+            mip_meip_o   : out std_logic;
+            mip_mtip_o   : out std_logic;
+            mip_msip_o   : out std_logic;
+            mepc_o       : out std_logic_vector(XLEN-1 downto 2);
+            mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
+            rd_data_o    : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity csrs;
 
@@ -70,23 +81,10 @@ architecture rtl of csrs is
     signal mip_mtip     : std_logic;
     signal mip_msip     : std_logic;
 
-    -- interruptions taken signals --
-
-    signal exi_taken : std_logic;
-    signal swi_taken : std_logic;
-    signal tmi_taken : std_logic;
-    signal int_taken : std_logic;
-    signal exc_taken : std_logic;
-    signal cop_sel   : std_logic;
+    signal cop_sel : std_logic;
 
 begin
 
-    exi_taken <= mie_meie and mip_meip;
-    tmi_taken <= mie_mtie and mip_mtip;
-    swi_taken <= mie_msie and mip_msip;
-
-    int_taken <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie;
-    exc_taken <= imrd_malgn_i or imrd_fault_i or instr_err_i or ebreak_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i or ecall_i or int_taken;
     cop_sel <= '1' when rw_addr_i(11 downto 6) = b"011111" else '0';
 
     read_csr: process(rw_addr_i, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle_i, timer_i, instret_i, cop_sel, cop_dat_i)
@@ -123,7 +121,7 @@ begin
             if reset_i = '1' then
                 mstatus_mie  <= '0';
                 mstatus_mpie <= '1';
-            elsif exc_taken = '1' then
+            elsif exc_taken_i = '1' then
                 mstatus_mie  <= '0';
                 mstatus_mpie <= mstatus_mie;
             elsif mret_i = '1' then
@@ -178,7 +176,7 @@ begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 mepc <= (others => '0');
-            elsif exc_taken = '1' then
+            elsif exc_taken_i = '1' then
                 if wfi_i = '1' then
                     mepc <= next_pc_i(XLEN-1 downto 2);
                 else
@@ -196,14 +194,14 @@ begin
             if reset_i = '1' then
                 mcause_int <= '0';
                 mcause_exc <= (others => '0');
-            elsif exc_taken = '1' then
-                mcause_int <= int_taken;
-                if int_taken = '1' then
-                    if swi_taken = '1' then
+            elsif exc_taken_i = '1' then
+                mcause_int <= int_taken_i;
+                if int_taken_i = '1' then
+                    if swi_taken_i = '1' then
                         mcause_exc <= b"00011";
-                    elsif tmi_taken = '1' then
+                    elsif tmi_taken_i = '1' then
                         mcause_exc <= b"00111";
-                    elsif exi_taken = '1' then
+                    elsif exi_taken_i = '1' then
                         mcause_exc <= b"01011";
                     end if;
                 else
@@ -239,8 +237,8 @@ begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 mtval <= (others => '0');
-            elsif exc_taken = '1' then
-                if int_taken = '1' then
+            elsif exc_taken_i = '1' then
+                if int_taken_i = '1' then
                     mtval <= (others => '0');
                 elsif imrd_malgn_i = '1' then
                     mtval <= exec_res_i;
@@ -261,16 +259,18 @@ begin
         end if;
     end process write_mtval;
 
-    write_mip: process(reset_i, ex_irq_i, sw_irq_i, tm_irq_i)
+    write_mip: process(clk_i)
     begin
-        if reset_i = '1' then
-            mip_meip <= '0';
-            mip_msip <= '0';
-            mip_mtip <= '0';
-        else
-            mip_meip <= ex_irq_i;
-            mip_msip <= sw_irq_i;
-            mip_mtip <= tm_irq_i;
+        if rising_edge(clk_i) then
+            if reset_i = '1' then
+                mip_meip <= '0';
+                mip_msip <= '0';
+                mip_mtip <= '0';
+            else
+                mip_meip <= ex_irq_i;
+                mip_msip <= sw_irq_i;
+                mip_mtip <= tm_irq_i;
+            end if;
         end if;
     end process write_mip;
 
@@ -278,8 +278,14 @@ begin
     cop_dat_o <= wr_data_i;
     cop_we_o  <= wr_en_i and cop_sel;
 
-    pcwr_en_o     <= exi_taken or tmi_taken or swi_taken or not wfi_i;
-    trap_taken_o  <= exc_taken or mret_i;
-    trap_target_o <= mepc & b"00" when mret_i = '1' else mtvec_base & b"00";
+    mie_meie_o    <= mie_meie;
+    mie_mtie_o    <= mie_mtie;
+    mie_msie_o    <= mie_msie;
+    mstatus_mie_o <= mstatus_mie;
+    mip_meip_o    <= mip_meip;
+    mip_mtip_o    <= mip_mtip;
+    mip_msip_o    <= mip_msip;
+    mepc_o        <= mepc;
+    mtvec_base_o  <= mtvec_base;
 
 end architecture rtl;

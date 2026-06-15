@@ -12,34 +12,54 @@ use work.leaf_pkg.all;
 
 entity main_ctrl is
     port (
-        imrd_malgn_i  : in  std_logic;
-        dmld_malgn_i  : in  std_logic;
-        dmld_fault_i  : in  std_logic;
-        flush_i       : in  std_logic;
-        instr_i       : in  std_logic_vector(XLEN-1 downto 0);
-        instr_err_o   : out std_logic;
-        ecall_o       : out std_logic;
-        ebreak_o      : out std_logic;
-        mret_o        : out std_logic;
-        wfi_o         : out std_logic;
-        csrwr_en_o    : out std_logic;
-        regwr_en_o    : out std_logic;
-        regwr_sel_o   : out std_logic_vector(1  downto 0);
-        dmls_mode_o   : out std_logic;
-        dmls_en_o     : out std_logic;
-        jmp_o         : out std_logic;
-        br_en_o       : out std_logic;
-        opd0_src_sel_o: out std_logic;
-        opd1_src_sel_o: out std_logic;
-        opd0_pass_o   : out std_logic;
-        opd1_pass_o   : out std_logic;
-        alu_op_o      : out std_logic_vector(5  downto 0);
-        imm_o         : out std_logic_vector(XLEN-1 downto 0);
-        func3_o       : out std_logic_vector(2  downto 0);
-        regwr_addr_o  : out std_logic_vector(4  downto 0);
-        regrd_addr0_o : out std_logic_vector(4  downto 0);
-        regrd_addr1_o : out std_logic_vector(4  downto 0);
-        csrs_addr_o   : out std_logic_vector(11 downto 0)
+        imrd_malgn_i   : in  std_logic;
+        imrd_fault_i   : in  std_logic;
+        dmld_malgn_i   : in  std_logic;
+        dmld_fault_i   : in  std_logic;
+        dmst_malgn_i   : in  std_logic;
+        dmst_fault_i   : in  std_logic;
+        flush_i        : in  std_logic;
+        instr_i        : in  std_logic_vector(XLEN-1 downto 0);
+        mip_meip_i     : in  std_logic;
+        mip_msip_i     : in  std_logic;
+        mip_mtip_i     : in  std_logic;
+        mie_meie_i     : in  std_logic;
+        mie_mtie_i     : in  std_logic;
+        mie_msie_i     : in  std_logic;
+        mstatus_mie_i  : in  std_logic;
+        mepc_i         : in  std_logic_vector(XLEN-1 downto 2);
+        mtvec_base_i   : in  std_logic_vector(XLEN-1 downto 2);
+        instr_err_o    : out std_logic;
+        ecall_o        : out std_logic;
+        ebreak_o       : out std_logic;
+        mret_o         : out std_logic;
+        wfi_o          : out std_logic;
+        csrwr_en_o     : out std_logic;
+        regwr_en_o     : out std_logic;
+        regwr_sel_o    : out std_logic_vector(1  downto 0);
+        dmls_mode_o    : out std_logic;
+        dmls_en_o      : out std_logic;
+        jmp_o          : out std_logic;
+        br_en_o        : out std_logic;
+        opd0_src_sel_o : out std_logic;
+        opd1_src_sel_o : out std_logic;
+        opd0_pass_o    : out std_logic;
+        opd1_pass_o    : out std_logic;
+        alu_op_o       : out std_logic_vector(5  downto 0);
+        imm_o          : out std_logic_vector(XLEN-1 downto 0);
+        func3_o        : out std_logic_vector(2  downto 0);
+        regwr_addr_o   : out std_logic_vector(4  downto 0);
+        regrd_addr0_o  : out std_logic_vector(4  downto 0);
+        regrd_addr1_o  : out std_logic_vector(4  downto 0);
+        csrs_addr_o    : out std_logic_vector(11 downto 0);
+        exc_taken_o    : out std_logic;
+        int_taken_o    : out std_logic;
+        exi_taken_o    : out std_logic;
+        tmi_taken_o    : out std_logic;
+        swi_taken_o    : out std_logic;
+        pcwr_en_o      : out std_logic;
+        trap_taken_o   : out std_logic;
+        trap_target_o  : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity main_ctrl;
 
@@ -51,7 +71,19 @@ architecture rtl of main_ctrl is
 
     signal ftype     : std_logic;
     signal op_en     : std_logic;
-    signal regwr_en : std_logic;
+    signal regwr_en  : std_logic;
+
+    signal exi_taken : std_logic;
+    signal tmi_taken : std_logic;
+    signal swi_taken : std_logic;
+    signal int_taken : std_logic;
+    signal exc_taken : std_logic;
+
+    signal instr_err : std_logic;
+    signal ecall     : std_logic;
+    signal ebreak    : std_logic;
+    signal mret      : std_logic;
+    signal wfi       : std_logic;
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -78,17 +110,17 @@ begin
 
     -- system instruction decode (concurrent, gated by flush)
 
-    ecall_o  <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"000" else '0';
-    ebreak_o <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"001" else '0';
-    mret_o   <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
-    wfi_o    <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
+    ecall  <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"000" else '0';
+    ebreak <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"001" else '0';
+    mret   <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
+    wfi    <= '1' when flush_i = '0' and opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
 
     main_ctrl_proc: process(opcode, flush_i, instr_i)
     begin
         if flush_i = '1' then
             dmls_mode_o    <= '0';
             dmls_en_o      <= '0';
-            instr_err_o    <= '0';
+            instr_err      <= '0';
             imm_type       <= (others => '-');
             jmp_o          <= '0';
             br_en_o        <= '0';
@@ -106,7 +138,7 @@ begin
                 when RR_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= (others => '-');
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -122,7 +154,7 @@ begin
                 when IMM_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_I_TYPE;
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -138,7 +170,7 @@ begin
                 when JALR_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_I_TYPE;
                     jmp_o          <= '1';
                     br_en_o        <= '0';
@@ -154,7 +186,7 @@ begin
                 when LOAD_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '1';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_I_TYPE;
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -170,7 +202,7 @@ begin
                 when STORE_OPCODE =>
                     dmls_mode_o    <= '1';
                     dmls_en_o      <= '1';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_S_TYPE;
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -186,7 +218,7 @@ begin
                 when BRANCH_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_B_TYPE;
                     jmp_o          <= '0';
                     br_en_o        <= '1';
@@ -202,7 +234,7 @@ begin
                 when LUI_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_U_TYPE;
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -218,7 +250,7 @@ begin
                 when AUIPC_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_U_TYPE;
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -234,7 +266,7 @@ begin
                 when JAL_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_J_TYPE;
                     jmp_o          <= '1';
                     br_en_o        <= '0';
@@ -250,7 +282,7 @@ begin
                 when SYSTEM_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= IMM_Z_TYPE;
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -274,7 +306,7 @@ begin
                 when FENCE_OPCODE =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '0';
+                    instr_err      <= '0';
                     imm_type       <= (others => '-');
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -290,7 +322,7 @@ begin
                 when others =>
                     dmls_mode_o    <= '0';
                     dmls_en_o      <= '0';
-                    instr_err_o    <= '1';
+                    instr_err      <= '1';
                     imm_type       <= (others => '-');
                     jmp_o          <= '0';
                     br_en_o        <= '0';
@@ -343,5 +375,29 @@ begin
     regrd_addr0_o <= instr_i(19 downto 15);
     regrd_addr1_o <= instr_i(24 downto 20);
     csrs_addr_o   <= instr_i(31 downto 20);
+
+    -- Trap logic --
+    exi_taken     <= mie_meie_i and mip_meip_i;
+    tmi_taken     <= mie_mtie_i and mip_mtip_i;
+    swi_taken     <= mie_msie_i and mip_msip_i;
+    int_taken     <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_i;
+    exc_taken     <= imrd_malgn_i or imrd_fault_i or instr_err or ebreak or
+                     dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i or
+                     ecall or int_taken;
+    exi_taken_o   <= exi_taken;
+    tmi_taken_o   <= tmi_taken;
+    swi_taken_o   <= swi_taken;
+    int_taken_o   <= int_taken;
+    exc_taken_o   <= exc_taken;
+    pcwr_en_o     <= exi_taken or tmi_taken or swi_taken or not wfi;
+    trap_taken_o  <= exc_taken or mret;
+    trap_target_o <= mepc_i & b"00" when mret = '1' else mtvec_base_i & b"00";
+
+    -- Output port assignments from internal signals --
+    instr_err_o   <= instr_err;
+    ecall_o       <= ecall;
+    ebreak_o      <= ebreak;
+    mret_o        <= mret;
+    wfi_o         <= wfi;
 
 end architecture rtl;
