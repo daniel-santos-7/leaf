@@ -105,7 +105,11 @@ begin
                     next_state <= WRITE_DATA;
                 end if;
             when EXECUTE =>
-                next_state <= IDLE;
+                if imrd_en_i = '1' then
+                    next_state <= READ_INSTR;
+                else
+                    next_state <= IDLE;
+                end if;
             when ERROR =>
                 next_state <= IDLE;
         end case;
