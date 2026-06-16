@@ -149,7 +149,7 @@ The immediate generator injects don't-care values (`'-'`) during flush and unkno
 ## Validation Notes
 
 - `make run` fails because the default target depends on `verif/tests/dump/out.bin`, which doesn't exist in the repository.
-- `make -C verif/tests/addi run` compiles but the simulation does not converge — emits continuous `numeric_std` metavalue warnings, consistent with the datapath contamination described above.
+- `verif/tests/addi` was fixed — no longer diverges, matches Spike signature.
 - `make -C verif/tests run TEST=...` doesn't match the current Makefile; the correct invocation is `make -C verif/tests/<test> run`.
 
 ---

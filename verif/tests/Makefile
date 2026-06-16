@@ -1,4 +1,4 @@
-TEST_DIRS := $(sort $(patsubst %/,%,$(filter-out common/,$(wildcard */))))
+TEST_DIRS := $(sort $(patsubst %/,%,$(filter-out common/ dump/,$(wildcard */))))
 
 .PHONY: list run compare clean $(TEST_DIRS)
 
