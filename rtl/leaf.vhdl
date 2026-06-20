@@ -75,6 +75,7 @@ architecture rtl of leaf is
     -- retire signal (core -> counters) --
 
     signal retire : std_logic;
+    signal core_cop_we : std_logic;
 
 begin
 
@@ -151,7 +152,7 @@ begin
         cop_dat_i   => cop_dat_i,
         cop_adr_o   => cop_adr_o,
         cop_dat_o   => cop_dat_o,
-        cop_we_o    => cop_we_o,
+        cop_we_o    => core_cop_we,
         retire_o    => retire,
         imrd_en_o   => imrd_en,
         dmrd_en_o   => dmrd_en,
@@ -161,5 +162,7 @@ begin
         dmrw_addr_o => dmrw_addr,
         dmwr_data_o => dmwr_data
     );
+
+    cop_we_o <= core_cop_we and clk_en;
 
 end architecture rtl;
