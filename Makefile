@@ -13,7 +13,7 @@ TBS_TOP = leaf_tb
 # VHDL simulator
 SIM = ghdl
 SIMFLAGS = --workdir=$(WORK_DIR) --ieee=synopsys
-SIMXOPTS =
+SIMXOPTS = --ieee-asserts=disable
 WAVEFORM ?= $(TBS_TOP).ghw
 ifdef WAVEFORM
 SIMXOPTS += --wave=$(WAVEFORM)

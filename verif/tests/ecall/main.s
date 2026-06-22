@@ -7,9 +7,7 @@ _start:
     li a7, 1
     li a0, 10
     ecall
-    li t0, HALT_CMD_ADDR
-    li t1, HALT_CMD_DATA
-    sw t1, 0x0(t0)
+    call finish_test
 
 trap_handler:
     csrr t0, mepc
