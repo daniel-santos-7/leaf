@@ -37,8 +37,7 @@ entity id_stage is
         valid_i       : in  std_logic;
         inst_adr_i    : in  std_logic_vector(XLEN-1 downto 2);
         branch_i      : in  std_logic;
-        data_ack_i    : in  std_logic;
-        data_err_i    : in  std_logic;
+        dmls_ready_i  : in  std_logic;
         func3_o       : out std_logic_vector(2  downto 0);
         jmp_o         : out std_logic;
         br_en_o       : out std_logic;
@@ -137,8 +136,7 @@ begin
         instr_i        => instr_i,
         valid_i        => valid_i,
         branch_i       => branch_i,
-        data_ack_i     => data_ack_i,
-        data_err_i     => data_err_i,
+        dmls_ready_i   => dmls_ready_i,
         mip_meip_i     => mip_meip,
         mip_msip_i     => mip_msip,
         mip_mtip_i     => mip_mtip,

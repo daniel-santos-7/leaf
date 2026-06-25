@@ -55,8 +55,7 @@ architecture rtl of core is
     signal taken : std_logic;
     signal target : std_logic_vector(XLEN-1 downto 0);
     signal branch     : std_logic;
-    signal data_ack   : std_logic;
-    signal data_err   : std_logic;
+    signal dmls_ready : std_logic;
 
     -- IF stage combinatorial outputs (before pipeline register)
     signal if_inst_adr : std_logic_vector(XLEN-1 downto 2);
@@ -149,8 +148,7 @@ begin
         valid_i       => if_valid,
         inst_adr_i    => if_inst_adr,
         branch_i      => branch,
-        data_ack_i    => data_ack,
-        data_err_i    => data_err,
+        dmls_ready_i  => dmls_ready,
         func3_o       => func3,
         jmp_o         => jmp,
         br_en_o       => br_en,
@@ -209,8 +207,7 @@ begin
         target_o  => target,
         branch_o       => branch,
         res_o          => exec_res,
-        data_ack_o     => data_ack,
-        data_err_o     => data_err,
+        dmls_ready_o   => dmls_ready,
         csrrd_data_i   => csrrd_data,
         immwr_data_i   => imm,
         csrwr_data_o   => csrwr_data,

@@ -45,8 +45,7 @@ entity ex_block is
         data_adr_o   : out std_logic_vector(XLEN-1 downto 2);
         data_sel_o  : out std_logic_vector(3  downto 0);
         data_we_o   : out std_logic;
-        data_ack_o  : out std_logic;
-        data_err_o  : out std_logic;
+        dmls_ready_o  : out std_logic;
         dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
         taken_o  : out std_logic;
         target_o : out std_logic_vector(XLEN-1 downto 0);
@@ -64,15 +63,14 @@ architecture ex_block_arch of ex_block is
     signal taken_int  : std_logic;
     signal target_int : std_logic_vector(XLEN-1 downto 0);
 
-    signal data_cyc_reg    : std_logic;
-    signal data_cyc_int    : std_logic;
-    signal data_stb_int    : std_logic;
-    signal data_dat_int  : std_logic_vector(XLEN-1 downto 0);
-    signal data_adr_int  : std_logic_vector(XLEN-1 downto 2);
-    signal data_sel_int : std_logic_vector(3 downto 0);
-    signal data_we_int  : std_logic;
-    signal data_ack_int : std_logic;
-    signal data_err_int : std_logic;
+    signal dmls_ready : std_logic;
+
+    signal dmls_cyc : std_logic;
+    signal dmls_stb : std_logic;
+    signal dmls_adr : std_logic_vector(XLEN-1 downto 2);
+    signal dmls_dat : std_logic_vector(XLEN-1 downto 0);
+    signal dmls_sel : std_logic_vector(3 downto 0);
+    signal dmls_we  : std_logic;
 
     signal taken_reg  : std_logic;
     signal target_reg : std_logic_vector(XLEN-1 downto 0);
@@ -124,60 +122,29 @@ begin
         end if;
     end process exec_branch_reg;
 
-    exec_taken_reg: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if reset_i = '1' then
-                data_cyc_reg  <= '0';
-                data_stb_o    <= '0';
-                data_dat_o    <= (others => '0');
-                data_adr_o    <= (others => '0');
-                data_sel_o    <= (others => '0');
-                data_we_o     <= '0';
-            else
-                if data_ack_i = '1' or data_err_i = '1' then
-                    data_cyc_reg <= '0';
-                    data_stb_o   <= '0';
-                    data_we_o    <= '0';
-                    data_adr_o   <= (others => '0');
-                    data_dat_o   <= (others => '0');
-                    data_sel_o   <= (others => '0');
-                elsif data_cyc_reg = '0' then
-                    data_cyc_reg <= data_cyc_int;
-                    data_stb_o   <= data_stb_int;
-                    data_we_o    <= data_we_int;
-                    data_adr_o   <= data_adr_int;
-                    data_dat_o   <= data_dat_int;
-                    data_sel_o   <= data_sel_int;
-                end if;
-            end if;
-        end if;
-    end process exec_taken_reg;
-
-    data_cyc_o <= data_cyc_reg;
-
     exec_dmls_block: dmls_block port map (
-        dmls_mode_i  => dmls_mode_i,
-        dmls_en_i    => dmls_en_i,
-        dmls_dtype_i => func3_i,
-        dmst_data_i  => reg1_i,
-        dmls_addr_i  => alu_res,
-        data_dat_i  => data_dat_i,
-        data_ack_i  => data_ack_i,
-        data_err_i  => data_err_i,
-        dmld_malgn_o => dmld_malgn_o,
-        dmld_fault_o => dmld_fault_o,
-        dmst_malgn_o => dmst_malgn_o,
-        dmst_fault_o => dmst_fault_o,
-        data_cyc_o    => data_cyc_int,
-        data_stb_o    => data_stb_int,
-        data_dat_o  => data_dat_int,
-        data_adr_o  => data_adr_int,
-        data_sel_o => data_sel_int,
-        data_we_o  => data_we_int,
-        data_ack_o => data_ack_int,
-        data_err_o => data_err_int,
-        dmld_data_o  => dmld_data_o
+        clk_i         => clk_i,
+        reset_i       => reset_i,
+        dmls_mode_i   => dmls_mode_i,
+        dmls_en_i     => dmls_en_i,
+        dmls_dtype_i  => func3_i,
+        dmst_data_i   => reg1_i,
+        dmls_addr_i   => alu_res,
+        data_dat_i    => data_dat_i,
+        data_ack_i    => data_ack_i,
+        data_err_i    => data_err_i,
+        data_cyc_o    => dmls_cyc,
+        data_stb_o    => dmls_stb,
+        data_dat_o    => dmls_dat,
+        data_adr_o    => dmls_adr,
+        data_sel_o    => dmls_sel,
+        data_we_o     => dmls_we,
+        dmls_ready_o  => dmls_ready,
+        dmld_malgn_o  => dmld_malgn_o,
+        dmld_fault_o  => dmld_fault_o,
+        dmst_malgn_o  => dmst_malgn_o,
+        dmst_fault_o  => dmst_fault_o,
+        dmld_data_o   => dmld_data_o
     );
 
     exec_csrs_logic: csrs_logic port map (
@@ -188,8 +155,14 @@ begin
         csrwr_data_o => csrwr_data_o
     );
 
-    data_ack_o <= data_ack_int;
-    data_err_o <= data_err_int;
+    data_cyc_o <= dmls_cyc;
+    data_stb_o <= dmls_stb;
+    data_dat_o <= dmls_dat;
+    data_adr_o <= dmls_adr;
+    data_sel_o <= dmls_sel;
+    data_we_o  <= dmls_we;
+    dmls_ready_o <= dmls_ready;
+
     branch_o   <= branch;
     taken_o  <= taken_reg;
     target_o <= target_reg;

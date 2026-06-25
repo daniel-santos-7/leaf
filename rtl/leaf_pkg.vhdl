@@ -126,8 +126,7 @@ package leaf_pkg is
             instr_i        : in  std_logic_vector(XLEN-1 downto 0);
             valid_i        : in  std_logic;
             branch_i       : in  std_logic;
-            data_ack_i     : in  std_logic;
-            data_err_i     : in  std_logic;
+            dmls_ready_i   : in  std_logic;
             mip_meip_i     : in  std_logic;
             mip_msip_i     : in  std_logic;
             mip_mtip_i     : in  std_logic;
@@ -281,8 +280,7 @@ package leaf_pkg is
             valid_i       : in  std_logic;
             inst_adr_i    : in  std_logic_vector(XLEN-1 downto 2);
             branch_i      : in  std_logic;
-            data_ack_i    : in  std_logic;
-            data_err_i    : in  std_logic;
+            dmls_ready_i  : in  std_logic;
             func3_o       : out std_logic_vector(2  downto 0);
             jmp_o         : out std_logic;
             br_en_o       : out std_logic;
@@ -366,8 +364,7 @@ package leaf_pkg is
             data_adr_o   : out std_logic_vector(XLEN-1 downto 2);
             data_sel_o  : out std_logic_vector(3  downto 0);
             data_we_o   : out std_logic;
-            data_ack_o  : out std_logic;
-            data_err_o  : out std_logic;
+            dmls_ready_o  : out std_logic;
             dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
             taken_o  : out std_logic;
             target_o : out std_logic_vector(XLEN-1 downto 0);
@@ -379,6 +376,8 @@ package leaf_pkg is
 
     component dmls_block is
         port (
+            clk_i        : in  std_logic;
+            reset_i      : in  std_logic;
             dmls_mode_i  : in  std_logic;
             dmls_en_i    : in  std_logic;
             dmls_dtype_i : in  std_logic_vector(2           downto 0);
@@ -397,8 +396,7 @@ package leaf_pkg is
             data_adr_o  : out std_logic_vector(XLEN-1      downto 2);
             data_sel_o : out std_logic_vector(3           downto 0);
             data_we_o  : out std_logic;
-            data_ack_o : out std_logic;
-            data_err_o : out std_logic;
+            dmls_ready_o : out std_logic;
             dmld_data_o  : out std_logic_vector(XLEN-1      downto 0)
         );
     end component dmls_block;

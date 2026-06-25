@@ -23,8 +23,7 @@ entity main_ctrl is
         instr_i        : in  std_logic_vector(XLEN-1 downto 0);
         valid_i        : in  std_logic;
         branch_i       : in  std_logic;
-        data_ack_i     : in  std_logic;
-        data_err_i     : in  std_logic;
+        dmls_ready_i   : in  std_logic;
         mip_meip_i     : in  std_logic;
         mip_msip_i     : in  std_logic;
         mip_mtip_i     : in  std_logic;
@@ -146,7 +145,7 @@ begin
                             ready_reg <= '1';
                         end if;
                     when LOAD | STORE =>
-                        if data_ack_i = '1' or data_err_i = '1' then
+                        if dmls_ready_i = '1' then
                             state <= DECODE;
                             ready_reg <= '1';
                         end if;
@@ -183,7 +182,7 @@ begin
     mret   <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
     wfi    <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
 
-    main_ctrl_proc: process(opcode, instr_i, state, valid_i, data_ack_i)
+    main_ctrl_proc: process(opcode, instr_i, state, valid_i, dmls_ready_i)
     begin
         case state is
             when FLUSH | WAIT_FOR_INTERRUPT =>
@@ -438,7 +437,7 @@ begin
                 op_en        <= '0';
                 regwr_sel_o    <= b"01";
                 csrwr_en_o     <= '0';
-                regwr_en   <= data_ack_i;
+                regwr_en   <= dmls_ready_i;
             when STORE =>
                 dmls_mode_o    <= '1';
                 dmls_en_o      <= '1';
