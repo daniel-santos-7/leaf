@@ -21,7 +21,6 @@ entity id_stage is
         sw_irq_i      : in  std_logic;
         tm_irq_i      : in  std_logic;
         imrd_malgn_i  : in  std_logic;
-        imrd_fault_i  : in  std_logic;
         dmld_malgn_i  : in  std_logic;
         dmld_fault_i  : in  std_logic;
         dmst_malgn_i  : in  std_logic;
@@ -31,10 +30,15 @@ entity id_stage is
         instret_i     : in  std_logic_vector(63 downto 0);
         exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
         dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
-        pc_i          : in  std_logic_vector(XLEN-1 downto 0);
-        next_pc_i     : in  std_logic_vector(XLEN-1 downto 0);
+        pc_i          : in  std_logic_vector(XLEN-1 downto 2);
+        next_pc_i     : in  std_logic_vector(XLEN-1 downto 2);
         instr_i       : in  std_logic_vector(XLEN-1 downto 0);
-        flush_i       : in  std_logic;
+        fault_i       : in  std_logic;
+        valid_i       : in  std_logic;
+        inst_adr_i    : in  std_logic_vector(XLEN-1 downto 2);
+        branch_i      : in  std_logic;
+        data_ack_i    : in  std_logic;
+        data_err_i    : in  std_logic;
         func3_o       : out std_logic_vector(2  downto 0);
         jmp_o         : out std_logic;
         br_en_o       : out std_logic;
@@ -45,7 +49,6 @@ entity id_stage is
         cop_adr_o     : out std_logic_vector(5 downto 0);
         cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o      : out std_logic;
-        pcwr_en_o     : out std_logic;
         trap_taken_o  : out std_logic;
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
@@ -56,7 +59,11 @@ entity id_stage is
         opd0_src_sel_o : out std_logic;
         opd1_src_sel_o : out std_logic;
         opd0_pass_o    : out std_logic;
-        opd1_pass_o    : out std_logic
+        opd1_pass_o    : out std_logic;
+        pc_o          : out std_logic_vector(XLEN-1 downto 2);
+        retire_o      : out std_logic;
+        ready_o       : out std_logic;
+        pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity id_stage;
 
@@ -88,6 +95,11 @@ architecture rtl of id_stage is
     signal opd0_pass    : std_logic;
     signal opd1_pass    : std_logic;
 
+    signal pc_full     : std_logic_vector(XLEN-1 downto 0);
+    signal next_pc_full : std_logic_vector(XLEN-1 downto 0);
+
+    signal main_ctrl_ready : std_logic;
+
     signal exc_taken   : std_logic;
     signal int_taken   : std_logic;
     signal exi_taken   : std_logic;
@@ -105,15 +117,28 @@ architecture rtl of id_stage is
 
 begin
 
+    pc_full     <= pc_i & b"00";
+    next_pc_full <= next_pc_i & b"00";
+
+    pc_o    <= pc_i;
+    retire_o <= main_ctrl_ready and valid_i;
+    pc_full_o <= pc_full;
+    ready_o <= main_ctrl_ready;
+
     id_stage_main_ctrl: main_ctrl port map (
+        clk_i          => clk_i,
+        reset_i        => reset_i,
         imrd_malgn_i   => imrd_malgn_i,
-        imrd_fault_i   => imrd_fault_i,
+        imrd_fault_i   => fault_i,
         dmld_malgn_i   => dmld_malgn_i,
         dmld_fault_i   => dmld_fault_i,
         dmst_malgn_i   => dmst_malgn_i,
         dmst_fault_i   => dmst_fault_i,
-        flush_i        => flush_i,
         instr_i        => instr_i,
+        valid_i        => valid_i,
+        branch_i       => branch_i,
+        data_ack_i     => data_ack_i,
+        data_err_i     => data_err_i,
         mip_meip_i     => mip_meip,
         mip_msip_i     => mip_msip,
         mip_mtip_i     => mip_mtip,
@@ -151,9 +176,9 @@ begin
         exi_taken_o    => exi_taken,
         tmi_taken_o    => tmi_taken,
         swi_taken_o    => swi_taken,
-        pcwr_en_o      => pcwr_en_o,
         trap_taken_o   => trap_taken_o,
-        trap_target_o  => trap_target_o
+        trap_target_o  => trap_target_o,
+        ready_o        => main_ctrl_ready
     );
 
     id_stage_reg_file: reg_file generic map (
@@ -165,7 +190,7 @@ begin
         wr_addr_i  => regwr_addr,
         wr_data0_i => exec_res_i,
         wr_data1_i => dmld_data_i,
-        wr_data2_i => next_pc_i,
+        wr_data2_i => next_pc_full,
         wr_data3_i => csrrd_data,
         rd_addr0_i => regrd_addr0,
         rd_addr1_i => regrd_addr1,
@@ -183,7 +208,7 @@ begin
         sw_irq_i     => sw_irq_i,
         tm_irq_i     => tm_irq_i,
         imrd_malgn_i => imrd_malgn_i,
-        imrd_fault_i => imrd_fault_i,
+        imrd_fault_i => fault_i,
         instr_err_i  => instr_err,
         dmld_malgn_i => dmld_malgn_i,
         dmld_fault_i => dmld_fault_i,
@@ -202,8 +227,8 @@ begin
         rw_addr_i    => csrs_addr,
         wr_data_i    => csrwr_data_i,
         exec_res_i   => exec_res_i,
-        pc_i         => pc_i,
-        next_pc_i    => next_pc_i,
+        pc_i         => pc_full,
+        next_pc_i    => next_pc_full,
         cycle_i      => cycle_i,
         timer_i      => timer_i,
         instret_i    => instret_i,

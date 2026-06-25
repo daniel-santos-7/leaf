@@ -35,7 +35,7 @@ architecture leaf_tb_arch of leaf_tb is
     signal stb_o  : std_logic;
     signal we_o   : std_logic;
     signal sel_o  : std_logic_vector(3  downto 0);
-    signal adr_o  : std_logic_vector(31 downto 0);
+    signal adr_o  : std_logic_vector(31 downto 2);
     signal dat_o  : std_logic_vector(31 downto 0);
     signal cop_dat_i : std_logic_vector(31 downto 0);
     signal cop_adr_o : std_logic_vector(5 downto 0);
