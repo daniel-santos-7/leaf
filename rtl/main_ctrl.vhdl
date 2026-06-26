@@ -85,6 +85,7 @@ architecture rtl of main_ctrl is
 
     signal instr_err : std_logic;
     signal ecall     : std_logic;
+    signal decode_state : std_logic;
     signal ebreak    : std_logic;
     signal mret      : std_logic;
     signal wfi       : std_logic;
@@ -552,13 +553,14 @@ begin
     csrs_addr_o   <= instr_i(31 downto 20);
 
     -- Trap logic --
+    decode_state  <= '1' when state = DECODE else '0';
     exi_taken     <= mie_meie_i and mip_meip_i;
     tmi_taken     <= mie_mtie_i and mip_mtip_i;
     swi_taken     <= mie_msie_i and mip_msip_i;
     int_taken     <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_i;
-    exc_taken     <= imrd_malgn_i or imrd_fault_i or instr_err or ebreak or
+    exc_taken     <= imrd_malgn_i or imrd_fault_i or instr_err or
                      dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i or
-                     ecall or int_taken;
+                     ((ecall or ebreak) and decode_state) or int_taken;
     exc_taken_o   <= exc_taken;
     exi_taken_o   <= exi_taken;
     tmi_taken_o   <= tmi_taken;
