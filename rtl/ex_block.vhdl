@@ -115,6 +115,7 @@ begin
                 target_reg <= (others => '0');
             elsif taken_reg = '1' and valid_i = '1' then
                 taken_reg  <= '0';
+                target_reg <= (others => '0');
             elsif taken_reg = '0' then
                 taken_reg  <= taken_int;
                 target_reg <= target_int;

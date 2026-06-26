@@ -66,7 +66,7 @@ begin
     dmem_rd <= not dmls_mode_i and dmls_en_i;
     dmem_wr <= dmls_mode_i and dmls_en_i;
 
-    addr_base    <= data_adr_reg(1 downto 0);
+    addr_base    <= data_adr_reg(1 downto 0) when data_cyc_reg = '1' else dmls_addr_i(1 downto 0);
     addr_base_wr <= dmls_addr_i(1 downto 0);
 
     read_dmem: process(dmem_rd, dmls_dtype_i, data_dat_i, addr_base)
@@ -259,7 +259,7 @@ begin
                     data_we_reg  <= '0';
                     data_dat_reg <= (others => '0');
                     data_sel_reg <= (others => '0');
-                elsif data_cyc_reg = '0' then
+                elsif data_cyc_reg = '0' and (dmwr_en = '1' or dmrd_en = '1') then
                     data_cyc_reg <= data_cyc_int;
                     data_stb_reg <= data_stb_int;
                     data_we_reg  <= data_we_int;
