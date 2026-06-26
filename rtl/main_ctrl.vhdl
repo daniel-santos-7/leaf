@@ -89,75 +89,106 @@ architecture rtl of main_ctrl is
     signal mret      : std_logic;
     signal wfi       : std_logic;
 
+    -- Decoded signals (from opcode, before state overrides)
+    signal dmls_mode_dec    : std_logic;
+    signal dmls_en_dec      : std_logic;
+    signal instr_err_dec    : std_logic;
+    signal imm_type_dec     : std_logic_vector(2 downto 0);
+    signal jmp_dec          : std_logic;
+    signal br_en_dec        : std_logic;
+    signal opd0_src_sel_dec : std_logic;
+    signal opd1_src_sel_dec : std_logic;
+    signal opd0_pass_dec    : std_logic;
+    signal opd1_pass_dec    : std_logic;
+    signal ftype_dec        : std_logic;
+    signal op_en_dec        : std_logic;
+    signal regwr_sel_dec    : std_logic_vector(1 downto 0);
+    signal csrwr_en_dec     : std_logic;
+    signal regwr_en_dec     : std_logic;
+
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
         return std_logic_vector(resize(signed(value), XLEN));
     end function resize_signed;
 
     type stage_state is (DECODE, FLUSH, LOAD, STORE, WAIT_FOR_INTERRUPT);
-    signal state     : stage_state;
+    signal state      : stage_state;
+    signal state_next : stage_state;
     signal ready_reg  : std_logic;
+    signal ready_next : std_logic;
 
 begin
 
-    -- FSM --
+    -- State register (sync) --
 
-    fsm: process(clk_i)
+    state_reg_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 state     <= DECODE;
                 ready_reg <= '1';
             else
-                case state is
-                    when DECODE =>
-                        if valid_i = '1' then
-                            if opcode = JAL_OPCODE or opcode = JALR_OPCODE or (opcode = BRANCH_OPCODE and branch_i = '1') then
-                                state <= FLUSH;
-                                ready_reg <= '1';
-                            elsif opcode = LOAD_OPCODE then
-                                if dmld_malgn_i = '1' then
-                                    state <= FLUSH;
-                                    ready_reg <= '1';
-                                else
-                                    state <= LOAD;
-                                    ready_reg <= '0';
-                                end if;
-                            elsif opcode = STORE_OPCODE then
-                                if dmst_malgn_i = '1' then
-                                    state <= FLUSH;
-                                    ready_reg <= '1';
-                                else
-                                    state <= STORE;
-                                    ready_reg <= '0';
-                                end if;
-                            elsif ecall = '1' or ebreak = '1' or mret = '1' then
-                                state <= FLUSH;
-                                ready_reg <= '1';
-                            elsif wfi = '1' then
-                                state <= WAIT_FOR_INTERRUPT;
-                                ready_reg <= '0';
-                            end if;
-                        end if;
-                    when FLUSH =>
-                        if valid_i = '1' then
-                            state <= DECODE;
-                            ready_reg <= '1';
-                        end if;
-                    when LOAD | STORE =>
-                        if dmls_ready_i = '1' then
-                            state <= DECODE;
-                            ready_reg <= '1';
-                        end if;
-                    when WAIT_FOR_INTERRUPT =>
-                        if exi_taken = '1' or tmi_taken = '1' or swi_taken = '1' then
-                            state <= DECODE;
-                            ready_reg <= '1';
-                        end if;
-                end case;
+                state     <= state_next;
+                ready_reg <= ready_next;
             end if;
         end if;
-    end process fsm;
+    end process state_reg_proc;
+
+    -- Next state logic (combinational) --
+
+    next_state_proc: process(state, valid_i, opcode, branch_i, dmld_malgn_i, dmst_malgn_i,
+                             ecall, ebreak, mret, wfi, dmls_ready_i, exi_taken, tmi_taken, swi_taken)
+    begin
+        state_next <= state;
+        ready_next <= ready_reg;
+
+        case state is
+            when DECODE =>
+                if valid_i = '1' then
+                    if opcode = JAL_OPCODE or opcode = JALR_OPCODE or (opcode = BRANCH_OPCODE and branch_i = '1') then
+                        state_next <= FLUSH;
+                        ready_next <= '1';
+                    elsif opcode = LOAD_OPCODE then
+                        if dmld_malgn_i = '1' then
+                            state_next <= FLUSH;
+                            ready_next <= '1';
+                        else
+                            state_next <= LOAD;
+                            ready_next <= '0';
+                        end if;
+                    elsif opcode = STORE_OPCODE then
+                        if dmst_malgn_i = '1' then
+                            state_next <= FLUSH;
+                            ready_next <= '1';
+                        else
+                            state_next <= STORE;
+                            ready_next <= '0';
+                        end if;
+                    elsif ecall = '1' or ebreak = '1' or mret = '1' then
+                        state_next <= FLUSH;
+                        ready_next <= '1';
+                    elsif wfi = '1' then
+                        state_next <= WAIT_FOR_INTERRUPT;
+                        ready_next <= '0';
+                    end if;
+                end if;
+            when FLUSH =>
+                if valid_i = '1' then
+                    state_next <= DECODE;
+                    ready_next <= '1';
+                end if;
+            when LOAD | STORE =>
+                if dmls_ready_i = '1' then
+                    state_next <= DECODE;
+                    ready_next <= '1';
+                end if;
+            when WAIT_FOR_INTERRUPT =>
+                if exi_taken = '1' or tmi_taken = '1' or swi_taken = '1' then
+                    state_next <= DECODE;
+                    ready_next <= '1';
+                end if;
+        end case;
+    end process next_state_proc;
 
     opcode  <= instr_i(6  downto  0);
     payload <= instr_i(31 downto  7);
@@ -182,9 +213,254 @@ begin
     mret   <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
     wfi    <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
 
-    main_ctrl_proc: process(opcode, instr_i, state, valid_i, dmls_ready_i)
+    -- Decode process (opcode-based, no state dependency) --
+
+    main_ctrl_proc: process(opcode, instr_i, valid_i)
+    begin
+        if valid_i = '0' then
+            dmls_mode_dec    <= '0';
+            dmls_en_dec      <= '0';
+            instr_err_dec    <= '0';
+            imm_type_dec     <= (others => '-');
+            jmp_dec          <= '0';
+            br_en_dec        <= '0';
+            opd0_src_sel_dec <= '0';
+            opd1_src_sel_dec <= '0';
+            opd0_pass_dec    <= '0';
+            opd1_pass_dec    <= '0';
+            ftype_dec        <= '0';
+            op_en_dec        <= '0';
+            regwr_sel_dec    <= b"00";
+            csrwr_en_dec     <= '0';
+            regwr_en_dec     <= '0';
+        else
+            case opcode is
+                when RR_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= (others => '-');
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '0';
+                    opd0_pass_dec    <= '1';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '1';
+                    regwr_sel_dec    <= b"00";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '1';
+                when IMM_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_I_TYPE;
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '1';
+                    opd0_pass_dec    <= '1';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '1';
+                    op_en_dec        <= '1';
+                    regwr_sel_dec    <= b"00";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '1';
+                when JALR_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_I_TYPE;
+                    jmp_dec          <= '1';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '1';
+                    opd0_pass_dec    <= '1';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"10";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '1';
+                when LOAD_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '1';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_I_TYPE;
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '1';
+                    opd0_pass_dec    <= '1';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"01";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '0';
+                when STORE_OPCODE =>
+                    dmls_mode_dec    <= '1';
+                    dmls_en_dec      <= '1';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_S_TYPE;
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '1';
+                    opd0_pass_dec    <= '1';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"00";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '0';
+                when BRANCH_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_B_TYPE;
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '1';
+                    opd0_src_sel_dec <= '1';
+                    opd1_src_sel_dec <= '1';
+                    opd0_pass_dec    <= '1';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"00";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '0';
+                when LUI_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_U_TYPE;
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '1';
+                    opd0_pass_dec    <= '0';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"00";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '1';
+                when AUIPC_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_U_TYPE;
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '1';
+                    opd1_src_sel_dec <= '1';
+                    opd0_pass_dec    <= '1';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"00";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '1';
+                when JAL_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_J_TYPE;
+                    jmp_dec          <= '1';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '1';
+                    opd1_src_sel_dec <= '1';
+                    opd0_pass_dec    <= '1';
+                    opd1_pass_dec    <= '1';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"10";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '1';
+                when SYSTEM_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= IMM_Z_TYPE;
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '0';
+                    opd0_pass_dec    <= '0';
+                    opd1_pass_dec    <= '0';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    if instr_i(14 downto 12) = b"000" then
+                        regwr_sel_dec <= b"00";
+                        csrwr_en_dec  <= '0';
+                        regwr_en_dec  <= '0';
+                    else
+                        regwr_sel_dec <= b"11";
+                        csrwr_en_dec  <= '1';
+                        regwr_en_dec  <= '1';
+                    end if;
+                when FENCE_OPCODE =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '0';
+                    imm_type_dec     <= (others => '-');
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '0';
+                    opd0_pass_dec    <= '0';
+                    opd1_pass_dec    <= '0';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"00";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '0';
+                when others =>
+                    dmls_mode_dec    <= '0';
+                    dmls_en_dec      <= '0';
+                    instr_err_dec    <= '1';
+                    imm_type_dec     <= (others => '-');
+                    jmp_dec          <= '0';
+                    br_en_dec        <= '0';
+                    opd0_src_sel_dec <= '0';
+                    opd1_src_sel_dec <= '0';
+                    opd0_pass_dec    <= '0';
+                    opd1_pass_dec    <= '0';
+                    ftype_dec        <= '0';
+                    op_en_dec        <= '0';
+                    regwr_sel_dec    <= b"00";
+                    csrwr_en_dec     <= '0';
+                    regwr_en_dec     <= '0';
+            end case;
+        end if;
+    end process main_ctrl_proc;
+
+    -- State output override process --
+
+    state_out_proc: process(state, dmls_mode_dec, dmls_en_dec, instr_err_dec, imm_type_dec,
+                            jmp_dec, br_en_dec, opd0_src_sel_dec, opd1_src_sel_dec,
+                            opd0_pass_dec, opd1_pass_dec, ftype_dec, op_en_dec,
+                            regwr_sel_dec, csrwr_en_dec, regwr_en_dec, dmls_ready_i)
     begin
         case state is
+            when DECODE =>
+                dmls_mode_o    <= dmls_mode_dec;
+                dmls_en_o      <= dmls_en_dec;
+                instr_err      <= instr_err_dec;
+                imm_type       <= imm_type_dec;
+                jmp_o          <= jmp_dec;
+                br_en_o        <= br_en_dec;
+                opd0_src_sel_o <= opd0_src_sel_dec;
+                opd1_src_sel_o <= opd1_src_sel_dec;
+                opd0_pass_o    <= opd0_pass_dec;
+                opd1_pass_o    <= opd1_pass_dec;
+                ftype          <= ftype_dec;
+                op_en          <= op_en_dec;
+                regwr_sel_o    <= regwr_sel_dec;
+                csrwr_en_o     <= csrwr_en_dec;
+                regwr_en       <= regwr_en_dec;
             when FLUSH | WAIT_FOR_INTERRUPT =>
                 dmls_mode_o    <= '0';
                 dmls_en_o      <= '0';
@@ -196,232 +472,11 @@ begin
                 opd1_src_sel_o <= '0';
                 opd0_pass_o    <= '0';
                 opd1_pass_o    <= '0';
-                ftype        <= '0';
-                op_en        <= '0';
+                ftype          <= '0';
+                op_en          <= '0';
                 regwr_sel_o    <= b"00";
                 csrwr_en_o     <= '0';
-                regwr_en   <= '0';
-
-            when DECODE =>
-                if valid_i = '0' then
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
-                    instr_err      <= '0';
-                    imm_type       <= (others => '-');
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
-                    opd0_src_sel_o <= '0';
-                    opd1_src_sel_o <= '0';
-                    opd0_pass_o    <= '0';
-                    opd1_pass_o    <= '0';
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel_o    <= b"00";
-                    csrwr_en_o     <= '0';
-                    regwr_en   <= '0';
-                else
-                    case opcode is
-                        when RR_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= (others => '-');
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '0';
-                            opd0_pass_o    <= '1';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '0';
-                            op_en        <= '1';
-                            regwr_sel_o    <= b"00";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '1';
-                        when IMM_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_I_TYPE;
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '1';
-                            opd0_pass_o    <= '1';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '1';
-                            op_en        <= '1';
-                            regwr_sel_o    <= b"00";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '1';
-                        when JALR_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_I_TYPE;
-                            jmp_o          <= '1';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '1';
-                            opd0_pass_o    <= '1';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"10";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '1';
-                        when LOAD_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '1';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_I_TYPE;
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '1';
-                            opd0_pass_o    <= '1';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"01";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '0';
-                        when STORE_OPCODE =>
-                            dmls_mode_o    <= '1';
-                            dmls_en_o      <= '1';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_S_TYPE;
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '1';
-                            opd0_pass_o    <= '1';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"00";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '0';
-                        when BRANCH_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_B_TYPE;
-                            jmp_o          <= '0';
-                            br_en_o        <= '1';
-                            opd0_src_sel_o <= '1';
-                            opd1_src_sel_o <= '1';
-                            opd0_pass_o    <= '1';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"00";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '0';
-                        when LUI_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_U_TYPE;
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '1';
-                            opd0_pass_o    <= '0';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"00";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '1';
-                        when AUIPC_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_U_TYPE;
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '1';
-                            opd1_src_sel_o <= '1';
-                            opd0_pass_o    <= '1';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"00";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '1';
-                        when JAL_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_J_TYPE;
-                            jmp_o          <= '1';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '1';
-                            opd1_src_sel_o <= '1';
-                            opd0_pass_o    <= '1';
-                            opd1_pass_o    <= '1';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"10";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '1';
-                        when SYSTEM_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= IMM_Z_TYPE;
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '0';
-                            opd0_pass_o    <= '0';
-                            opd1_pass_o    <= '0';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            if instr_i(14 downto 12) = b"000" then
-                                regwr_sel_o <= b"00";
-                                csrwr_en_o  <= '0';
-                                regwr_en    <= '0';
-                            else
-                                regwr_sel_o <= b"11";
-                                csrwr_en_o  <= '1';
-                                regwr_en    <= '1';
-                            end if;
-                        when FENCE_OPCODE =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '0';
-                            imm_type       <= (others => '-');
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '0';
-                            opd0_pass_o    <= '0';
-                            opd1_pass_o    <= '0';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"00";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '0';
-                        when others =>
-                            dmls_mode_o    <= '0';
-                            dmls_en_o      <= '0';
-                            instr_err      <= '1';
-                            imm_type       <= (others => '-');
-                            jmp_o          <= '0';
-                            br_en_o        <= '0';
-                            opd0_src_sel_o <= '0';
-                            opd1_src_sel_o <= '0';
-                            opd0_pass_o    <= '0';
-                            opd1_pass_o    <= '0';
-                            ftype        <= '0';
-                            op_en        <= '0';
-                            regwr_sel_o    <= b"00";
-                            csrwr_en_o     <= '0';
-                            regwr_en   <= '0';
-                    end case;
-                end if;
-
+                regwr_en       <= '0';
             when LOAD =>
                 dmls_mode_o    <= '0';
                 dmls_en_o      <= '1';
@@ -433,11 +488,11 @@ begin
                 opd1_src_sel_o <= '0';
                 opd0_pass_o    <= '0';
                 opd1_pass_o    <= '0';
-                ftype        <= '0';
-                op_en        <= '0';
+                ftype          <= '0';
+                op_en          <= '0';
                 regwr_sel_o    <= b"01";
                 csrwr_en_o     <= '0';
-                regwr_en   <= dmls_ready_i;
+                regwr_en       <= dmls_ready_i;
             when STORE =>
                 dmls_mode_o    <= '1';
                 dmls_en_o      <= '1';
@@ -449,13 +504,15 @@ begin
                 opd1_src_sel_o <= '0';
                 opd0_pass_o    <= '0';
                 opd1_pass_o    <= '0';
-                ftype        <= '0';
-                op_en        <= '0';
+                ftype          <= '0';
+                op_en          <= '0';
                 regwr_sel_o    <= b"00";
                 csrwr_en_o     <= '0';
-                regwr_en   <= '0';
+                regwr_en       <= '0';
+            when others =>
+                null;
         end case;
-    end process main_ctrl_proc;
+    end process state_out_proc;
 
     alu_op_ctrl: process(op_en, ftype, instr_i)
     begin
