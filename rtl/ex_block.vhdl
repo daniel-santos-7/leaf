@@ -58,10 +58,6 @@ end entity ex_block;
 architecture ex_block_arch of ex_block is
 
     signal alu_res  : std_logic_vector(XLEN-1 downto 0);
-    signal branch   : std_logic;
-
-    signal taken_int  : std_logic;
-    signal target_int : std_logic_vector(XLEN-1 downto 0);
 
     signal dmls_ready : std_logic;
 
@@ -71,9 +67,6 @@ architecture ex_block_arch of ex_block is
     signal dmls_dat : std_logic_vector(XLEN-1 downto 0);
     signal dmls_sel : std_logic_vector(3 downto 0);
     signal dmls_we  : std_logic;
-
-    signal taken_reg  : std_logic;
-    signal target_reg : std_logic_vector(XLEN-1 downto 0);
 
     signal opd0      : std_logic_vector(XLEN-1 downto 0);
     signal opd1      : std_logic_vector(XLEN-1 downto 0);
@@ -93,35 +86,25 @@ begin
         res_o  => alu_res
     );
 
-    exec_br_detector: br_detector port map (
-        reg0_i   => reg0_i,
-        reg1_i   => reg1_i,
-        mode_i   => func3_i,
-        en_i     => br_en_i,
-        branch_o => branch
+    exec_br_detector: entity work.br_detector port map (
+        clk_i         => clk_i,
+        reset_i       => reset_i,
+        reg0_i        => reg0_i,
+        reg1_i        => reg1_i,
+        mode_i        => func3_i,
+        en_i          => br_en_i,
+        jmp_i         => jmp_i,
+        alu_res_i     => alu_res,
+        trap_taken_i  => trap_taken_i,
+        trap_target_i => trap_target_i,
+        valid_i       => valid_i,
+        branch_o      => branch_o,
+        taken_o       => taken_o,
+        target_o      => target_o,
+        imrd_malgn_o  => imrd_malgn_o
     );
 
-    imrd_malgn_o <= alu_res(1) and (branch or jmp_i);
-
-    taken_int   <= branch or jmp_i or trap_taken_i;
-    target_int  <= trap_target_i when trap_taken_i = '1' else alu_res(XLEN-1 downto 1) & b"0";
     res_o       <= alu_res;
-
-    exec_branch_reg: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if reset_i = '1' then
-                taken_reg  <= '0';
-                target_reg <= (others => '0');
-            elsif taken_reg = '1' and valid_i = '1' then
-                taken_reg  <= '0';
-                target_reg <= (others => '0');
-            elsif taken_reg = '0' then
-                taken_reg  <= taken_int;
-                target_reg <= target_int;
-            end if;
-        end if;
-    end process exec_branch_reg;
 
     exec_dmls_block: dmls_block port map (
         clk_i         => clk_i,
@@ -163,9 +146,5 @@ begin
     data_sel_o <= dmls_sel;
     data_we_o  <= dmls_we;
     dmls_ready_o <= dmls_ready;
-
-    branch_o   <= branch;
-    taken_o  <= taken_reg;
-    target_o <= target_reg;
 
 end architecture ex_block_arch;
