@@ -68,22 +68,19 @@ architecture ex_block_arch of ex_block is
     signal dmls_sel : std_logic_vector(3 downto 0);
     signal dmls_we  : std_logic;
 
-    signal opd0      : std_logic_vector(XLEN-1 downto 0);
-    signal opd1      : std_logic_vector(XLEN-1 downto 0);
-    signal gtd_opd0  : std_logic_vector(XLEN-1 downto 0);
-    signal gtd_opd1  : std_logic_vector(XLEN-1 downto 0);
 begin
 
-    opd0 <= pc_i when opd0_src_sel_i = '1' else reg0_i;
-    opd1 <= immwr_data_i when opd1_src_sel_i = '1' else reg1_i;
-    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass_i);
-    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass_i);
-
-    exec_alu: alu port map (
-        opd0_i => gtd_opd0,
-        opd1_i => gtd_opd1,
-        op_i   => alu_op_i,
-        res_o  => alu_res
+    exec_alu: entity work.alu port map (
+        pc_i           => pc_i,
+        reg0_i         => reg0_i,
+        reg1_i         => reg1_i,
+        immwr_data_i   => immwr_data_i,
+        opd0_src_sel_i => opd0_src_sel_i,
+        opd1_src_sel_i => opd1_src_sel_i,
+        opd0_pass_i    => opd0_pass_i,
+        opd1_pass_i    => opd1_pass_i,
+        op_i           => alu_op_i,
+        res_o          => alu_res
     );
 
     exec_br_detector: entity work.br_detector port map (
@@ -103,8 +100,6 @@ begin
         target_o      => target_o,
         imrd_malgn_o  => imrd_malgn_o
     );
-
-    res_o       <= alu_res;
 
     exec_dmls_block: dmls_block port map (
         clk_i         => clk_i,
@@ -146,5 +141,6 @@ begin
     data_sel_o <= dmls_sel;
     data_we_o  <= dmls_we;
     dmls_ready_o <= dmls_ready;
+    res_o       <= alu_res;
 
 end architecture ex_block_arch;
