@@ -39,6 +39,9 @@ end entity dmls_block;
 
 architecture dmls_block_arch of dmls_block is
 
+    type state_t is (IDLE, BUSY, DONE);
+    signal state : state_t;
+
     signal dmem_rd : std_logic;
     signal dmem_wr : std_logic;
 
@@ -48,10 +51,7 @@ architecture dmls_block_arch of dmls_block is
     signal addr_base   : std_logic_vector(1 downto 0);
     signal addr_base_wr : std_logic_vector(1 downto 0);
 
-    signal data_cyc_int : std_logic;
-    signal data_stb_int : std_logic;
-    signal data_we_int  : std_logic;
-    signal data_adr_int : std_logic_vector(XLEN-1 downto 2);
+
     signal data_adr_reg : std_logic_vector(XLEN-1 downto 0);
     signal data_dat_int : std_logic_vector(XLEN-1 downto 0);
     signal data_sel_int : std_logic_vector(3 downto 0);
@@ -60,6 +60,13 @@ architecture dmls_block_arch of dmls_block is
     signal data_we_reg  : std_logic;
     signal data_dat_reg : std_logic_vector(XLEN-1 downto 0);
     signal data_sel_reg : std_logic_vector(3 downto 0);
+
+    signal dmld_data_comb : std_logic_vector(XLEN-1 downto 0);
+    signal dmld_data_reg  : std_logic_vector(XLEN-1 downto 0);
+
+    signal dmld_fault_reg : std_logic;
+    signal dmst_fault_reg : std_logic;
+    signal dmls_ready_reg : std_logic;
 
 begin
 
@@ -75,72 +82,72 @@ begin
             case dmls_dtype_i is
                 when LSU_BYTE  =>
                     case addr_base is
-                        when b"00" => dmld_data_o <= std_logic_vector(resize(signed(data_dat_i(7  downto 0)), XLEN));
-                        when b"01" => dmld_data_o <= std_logic_vector(resize(signed(data_dat_i(15 downto 8)), XLEN));
-                        when b"10" => dmld_data_o <= std_logic_vector(resize(signed(data_dat_i(23 downto 16)), XLEN));
-                        when b"11" => dmld_data_o <= std_logic_vector(resize(signed(data_dat_i(31 downto 24)), XLEN));
-                        when others => dmld_data_o <= (others => '-');
+                        when b"00" => dmld_data_comb <= std_logic_vector(resize(signed(data_dat_i(7  downto 0)), XLEN));
+                        when b"01" => dmld_data_comb <= std_logic_vector(resize(signed(data_dat_i(15 downto 8)), XLEN));
+                        when b"10" => dmld_data_comb <= std_logic_vector(resize(signed(data_dat_i(23 downto 16)), XLEN));
+                        when b"11" => dmld_data_comb <= std_logic_vector(resize(signed(data_dat_i(31 downto 24)), XLEN));
+                        when others => dmld_data_comb <= (others => '-');
                     end case;
                     dmld_malgn_o <= '0';
                     dmrd_en    <= '1';
                 when LSU_BYTEU =>
                     case addr_base is
-                        when b"00" => dmld_data_o <= std_logic_vector(resize(unsigned(data_dat_i(7  downto 0)), XLEN));
-                        when b"01" => dmld_data_o <= std_logic_vector(resize(unsigned(data_dat_i(15 downto 8)), XLEN));
-                        when b"10" => dmld_data_o <= std_logic_vector(resize(unsigned(data_dat_i(23 downto 16)), XLEN));
-                        when b"11" => dmld_data_o <= std_logic_vector(resize(unsigned(data_dat_i(31 downto 24)), XLEN));
-                        when others => dmld_data_o <= (others => '-');
+                        when b"00" => dmld_data_comb <= std_logic_vector(resize(unsigned(data_dat_i(7  downto 0)), XLEN));
+                        when b"01" => dmld_data_comb <= std_logic_vector(resize(unsigned(data_dat_i(15 downto 8)), XLEN));
+                        when b"10" => dmld_data_comb <= std_logic_vector(resize(unsigned(data_dat_i(23 downto 16)), XLEN));
+                        when b"11" => dmld_data_comb <= std_logic_vector(resize(unsigned(data_dat_i(31 downto 24)), XLEN));
+                        when others => dmld_data_comb <= (others => '-');
                     end case;
                     dmld_malgn_o <= '0';
                     dmrd_en    <= '1';
                 when LSU_HALF  =>
                     case addr_base is
                         when b"00" =>
-                            dmld_data_o  <= std_logic_vector(resize(signed(data_dat_i(15 downto 0)), XLEN));
+                            dmld_data_comb  <= std_logic_vector(resize(signed(data_dat_i(15 downto 0)), XLEN));
                             dmld_malgn_o <= '0';
                             dmrd_en    <= '1';
                         when b"01" =>
-                            dmld_data_o  <= std_logic_vector(resize(signed(data_dat_i(15 downto 0)), XLEN));
+                            dmld_data_comb  <= std_logic_vector(resize(signed(data_dat_i(15 downto 0)), XLEN));
                             dmld_malgn_o <= '1';
                             dmrd_en    <= '0';
                         when b"10" =>
-                            dmld_data_o  <= std_logic_vector(resize(signed(data_dat_i(31 downto 16)), XLEN));
+                            dmld_data_comb  <= std_logic_vector(resize(signed(data_dat_i(31 downto 16)), XLEN));
                             dmld_malgn_o <= '0';
                             dmrd_en    <= '1';
                         when b"11" =>
-                            dmld_data_o  <= std_logic_vector(resize(signed(data_dat_i(31 downto 16)), XLEN));
+                            dmld_data_comb  <= std_logic_vector(resize(signed(data_dat_i(31 downto 16)), XLEN));
                             dmld_malgn_o <= '1';
                             dmrd_en    <= '0';
                         when others =>
-                            dmld_data_o  <= (others => '-');
+                            dmld_data_comb  <= (others => '-');
                             dmld_malgn_o <= '-';
                             dmrd_en    <= '-';
                     end case;
                 when LSU_HALFU =>
                     case addr_base is
                         when b"00" =>
-                            dmld_data_o  <= std_logic_vector(resize(unsigned(data_dat_i(15 downto 0)), XLEN));
+                            dmld_data_comb  <= std_logic_vector(resize(unsigned(data_dat_i(15 downto 0)), XLEN));
                             dmld_malgn_o <= '0';
                             dmrd_en    <= '1';
                         when b"01" =>
-                            dmld_data_o  <= std_logic_vector(resize(unsigned(data_dat_i(15 downto 0)), XLEN));
+                            dmld_data_comb  <= std_logic_vector(resize(unsigned(data_dat_i(15 downto 0)), XLEN));
                             dmld_malgn_o <= '1';
                             dmrd_en    <= '0';
                         when b"10" =>
-                            dmld_data_o  <= std_logic_vector(resize(unsigned(data_dat_i(31 downto 16)), XLEN));
+                            dmld_data_comb  <= std_logic_vector(resize(unsigned(data_dat_i(31 downto 16)), XLEN));
                             dmld_malgn_o <= '0';
                             dmrd_en    <= '1';
                         when b"11" =>
-                            dmld_data_o  <= std_logic_vector(resize(unsigned(data_dat_i(31 downto 16)), XLEN));
+                            dmld_data_comb  <= std_logic_vector(resize(unsigned(data_dat_i(31 downto 16)), XLEN));
                             dmld_malgn_o <= '1';
                             dmrd_en    <= '0';
                         when others =>
-                            dmld_data_o  <= (others => '-');
+                            dmld_data_comb  <= (others => '-');
                             dmld_malgn_o <= '-';
                             dmrd_en    <= '-';
                     end case;
                 when LSU_WORD =>
-                    dmld_data_o <= data_dat_i;
+                    dmld_data_comb <= data_dat_i;
                     if addr_base = b"00" then
                         dmld_malgn_o <= '0';
                         dmrd_en    <= '1';
@@ -149,12 +156,12 @@ begin
                         dmrd_en    <= '0';
                     end if;
                 when others =>
-                    dmld_data_o  <= (others => '0');
+                    dmld_data_comb  <= (others => '0');
                     dmld_malgn_o <= '0';
                     dmrd_en    <= '0';
             end case;
         else
-            dmld_data_o  <= (others => '0');
+            dmld_data_comb  <= (others => '0');
             dmld_malgn_o <= '0';
             dmrd_en    <= '0';
         end if;
@@ -236,50 +243,65 @@ begin
         end if;
     end process write_dmem;
 
-    data_adr_int <= dmls_addr_i(XLEN-1 downto 2) when dmls_en_i = '1' else (others => '0');
-
-    data_cyc_int <= dmrd_en or dmwr_en;
-    data_stb_int <= dmrd_en or dmwr_en;
-    data_we_int  <= dmwr_en;
-
-    exec_taken_reg: process(clk_i)
+    fsm_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
-                data_cyc_reg  <= '0';
-                data_stb_reg  <= '0';
-                data_dat_reg  <= (others => '0');
-                data_adr_reg  <= (others => '0');
-                data_sel_reg  <= (others => '0');
-                data_we_reg   <= '0';
+                state           <= IDLE;
+                data_cyc_reg    <= '0';
+                data_stb_reg    <= '0';
+                data_we_reg     <= '0';
+                data_dat_reg    <= (others => '0');
+                data_adr_reg    <= (others => '0');
+                data_sel_reg    <= (others => '0');
+                dmld_data_reg   <= (others => '0');
+                dmls_ready_reg  <= '0';
+                dmld_fault_reg  <= '0';
+                dmst_fault_reg  <= '0';
             else
-                if data_ack_i = '1' or data_err_i = '1' then
-                    data_cyc_reg <= '0';
-                    data_stb_reg <= '0';
-                    data_we_reg  <= '0';
-                    data_dat_reg <= (others => '0');
-                    data_sel_reg <= (others => '0');
-                elsif data_cyc_reg = '0' and (dmwr_en = '1' or dmrd_en = '1') then
-                    data_cyc_reg <= data_cyc_int;
-                    data_stb_reg <= data_stb_int;
-                    data_we_reg  <= data_we_int;
-                    data_adr_reg <= dmls_addr_i;
-                    data_dat_reg <= data_dat_int;
-                    data_sel_reg <= data_sel_int;
-                end if;
+                case state is
+                    when IDLE =>
+                        if dmwr_en = '1' or dmrd_en = '1' then
+                            state        <= BUSY;
+                            data_cyc_reg <= dmrd_en or dmwr_en;
+                            data_stb_reg <= dmrd_en or dmwr_en;
+                            data_we_reg  <= dmwr_en;
+                            data_adr_reg <= dmls_addr_i;
+                            data_dat_reg <= data_dat_int;
+                            data_sel_reg <= data_sel_int;
+                        end if;
+                    when BUSY =>
+                        if data_ack_i = '1' or data_err_i = '1' then
+                            state          <= DONE;
+                            dmls_ready_reg <= '1';
+                            dmld_data_reg  <= dmld_data_comb;
+                            data_cyc_reg   <= '0';
+                            data_stb_reg   <= '0';
+                            data_we_reg    <= '0';
+                            data_dat_reg   <= (others => '0');
+                            data_sel_reg   <= (others => '0');
+                        end if;
+                    when DONE =>
+                        state          <= IDLE;
+                        dmls_ready_reg <= '0';
+                end case;
+
+                dmld_fault_reg <= data_err_i and dmem_rd;
+                dmst_fault_reg <= data_err_i and dmem_wr;
             end if;
         end if;
-    end process exec_taken_reg;
+    end process fsm_proc;
 
-    dmld_fault_o <= data_err_i and dmem_rd;
-    dmst_fault_o <= data_err_i and dmem_wr;
+    dmld_fault_o <= dmld_fault_reg;
+    dmst_fault_o <= dmst_fault_reg;
 
-    data_cyc_o <= data_cyc_reg;
-    data_stb_o <= data_stb_reg;
-    data_we_o  <= data_we_reg;
-    data_dat_o <= data_dat_reg;
-    data_sel_o <= data_sel_reg;
-    data_adr_o <= data_adr_reg(XLEN-1 downto 2);
-    dmls_ready_o <= data_cyc_reg and (data_ack_i or data_err_i);
+    data_cyc_o   <= data_cyc_reg;
+    data_stb_o   <= data_stb_reg;
+    data_we_o    <= data_we_reg;
+    data_dat_o   <= data_dat_reg;
+    data_sel_o   <= data_sel_reg;
+    data_adr_o   <= data_adr_reg(XLEN-1 downto 2);
+    dmls_ready_o <= dmls_ready_reg;
+    dmld_data_o  <= dmld_data_reg;
 
 end architecture dmls_block_arch;
