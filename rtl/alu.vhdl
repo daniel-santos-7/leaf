@@ -12,10 +12,16 @@ use work.leaf_pkg.all;
 
 entity alu is
     port(
-        opd0_i : in  std_logic_vector(XLEN-1 downto 0);
-        opd1_i : in  std_logic_vector(XLEN-1 downto 0);
-        op_i   : in  std_logic_vector(5        downto 0);
-        res_o  : out std_logic_vector(XLEN-1 downto 0)
+        pc_i           : in  std_logic_vector(XLEN-1 downto 0);
+        reg0_i         : in  std_logic_vector(XLEN-1 downto 0);
+        reg1_i         : in  std_logic_vector(XLEN-1 downto 0);
+        immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+        opd0_src_sel_i : in  std_logic;
+        opd1_src_sel_i : in  std_logic;
+        opd0_pass_i    : in  std_logic;
+        opd1_pass_i    : in  std_logic;
+        op_i           : in  std_logic_vector(5        downto 0);
+        res_o          : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity alu;
 
@@ -46,27 +52,37 @@ architecture alu_arch of alu is
     signal shifter_bypass : std_logic_vector(XLEN-1 downto 0);
     signal shifter_res    : std_logic_vector(XLEN-1 downto 0);
 
+    signal opd0      : std_logic_vector(XLEN-1 downto 0);
+    signal opd1      : std_logic_vector(XLEN-1 downto 0);
+    signal gtd_opd0  : std_logic_vector(XLEN-1 downto 0);
+    signal gtd_opd1  : std_logic_vector(XLEN-1 downto 0);
+
 begin
 
+    opd0 <= pc_i when opd0_src_sel_i = '1' else reg0_i;
+    opd1 <= immwr_data_i when opd1_src_sel_i = '1' else reg1_i;
+    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass_i);
+    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass_i);
+
     arith_op   <= op_i(4) or op_i(5);
-    arith_opd0 <= opd0_i;
-    arith_opd1 <= opd1_i;
+    arith_opd0 <= gtd_opd0;
+    arith_opd1 <= gtd_opd1;
 
     comp_en     <= op_i(5);
     comp_op     <= op_i(4);
-    comp_opd0   <= opd0_i(XLEN-1);
-    comp_opd1   <= opd1_i(XLEN-1);
+    comp_opd0   <= gtd_opd0(XLEN-1);
+    comp_opd1   <= gtd_opd1(XLEN-1);
     comp_opd2   <= arith_res(XLEN-1);
     comp_bypass <= arith_res;
 
     logic_op     <= op_i(3 downto 2);
-    logic_opd0   <= opd0_i;
-    logic_opd1   <= opd1_i;
+    logic_opd0   <= gtd_opd0;
+    logic_opd1   <= gtd_opd1;
     logic_bypass <= comp_res;
 
     shifter_op     <= op_i(1 downto 0);
-    shifter_opd    <= opd0_i;
-    shifter_shamt  <= opd1_i(4 downto 0);
+    shifter_opd    <= gtd_opd0;
+    shifter_shamt  <= gtd_opd1(4 downto 0);
     shifter_bypass <= logic_res;
 
     arith_unit: process(arith_op, arith_opd0, arith_opd1)
