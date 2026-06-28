@@ -109,7 +109,8 @@ package leaf_pkg is
             inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
             pc_o         : out std_logic_vector(XLEN-1 downto 2);
             next_pc_o    : out std_logic_vector(XLEN-1 downto 2);
-            inst_o       : out std_logic_vector(XLEN-1 downto 0)
+            inst_o       : out std_logic_vector(XLEN-1 downto 0);
+            retire_o     : out std_logic
         );
     end component if_stage;
 
