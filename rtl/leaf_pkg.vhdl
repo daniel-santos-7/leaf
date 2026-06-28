@@ -81,6 +81,12 @@ package leaf_pkg is
     constant LTU_BD_MODE : std_logic_vector(2 downto 0) := b"110";
     constant GEU_BD_MODE : std_logic_vector(2 downto 0) := b"111";
 
+    -- branch op --
+
+    constant BR_NONE   : std_logic_vector(1 downto 0) := "00";
+    constant BR_BRANCH : std_logic_vector(1 downto 0) := "01";
+    constant BR_JUMP   : std_logic_vector(1 downto 0) := "10";
+
     -- lsu data type --
 
     constant LSU_BYTE  : std_logic_vector(2 downto 0) := b"000";
@@ -88,6 +94,11 @@ package leaf_pkg is
     constant LSU_HALF  : std_logic_vector(2 downto 0) := b"001";
     constant LSU_HALFU : std_logic_vector(2 downto 0) := b"101";
     constant LSU_WORD  : std_logic_vector(2 downto 0) := b"010";
+
+    -- dmls ctrl --
+    constant DMLS_IDLE  : std_logic_vector(1 downto 0) := "00";
+    constant DMLS_LOAD  : std_logic_vector(1 downto 0) := "01";
+    constant DMLS_STORE : std_logic_vector(1 downto 0) := "10";
 
     component if_stage is
         generic (
@@ -141,10 +152,8 @@ package leaf_pkg is
             csrwr_en_o     : out std_logic;
             regwr_en_o     : out std_logic;
             regwr_sel_o    : out std_logic_vector(1  downto 0);
-            dmls_mode_o    : out std_logic;
-            dmls_en_o      : out std_logic;
-            jmp_o          : out std_logic;
-            br_en_o        : out std_logic;
+            dmls_ctrl_o    : out std_logic_vector(1  downto 0);
+            branch_op_o    : out std_logic_vector(1  downto 0);
             opd0_src_sel_o : out std_logic;
             opd1_src_sel_o : out std_logic;
             opd0_pass_o    : out std_logic;
@@ -275,11 +284,9 @@ package leaf_pkg is
             fault_i       : in  std_logic;
             valid_i       : in  std_logic;
             func3_o       : out std_logic_vector(2  downto 0);
-            jmp_o         : out std_logic;
-            br_en_o       : out std_logic;
+            branch_op_o   : out std_logic_vector(1  downto 0);
             alu_op_o      : out std_logic_vector(5  downto 0);
-            dmls_mode_o   : out std_logic;
-            dmls_en_o     : out std_logic;
+            dmls_ctrl_o   : out std_logic_vector(1  downto 0);
             cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
             cop_adr_o     : out std_logic_vector(5 downto 0);
             cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
@@ -342,11 +349,9 @@ package leaf_pkg is
             opd1_src_sel_i : in  std_logic;
             opd0_pass_i    : in  std_logic;
             opd1_pass_i    : in  std_logic;
-            jmp_i         : in  std_logic;
-            br_en_i       : in  std_logic;
+            branch_op_i   : in  std_logic_vector(1  downto 0);
             alu_op_i      : in  std_logic_vector(5  downto 0);
-            dmls_mode_i   : in  std_logic;
-            dmls_en_i     : in  std_logic;
+            dmls_ctrl_i   : in  std_logic_vector(1  downto 0);
             data_dat_i   : in  std_logic_vector(XLEN-1 downto 0);
             data_ack_i   : in  std_logic;
             data_err_i   : in  std_logic;
@@ -380,8 +385,7 @@ package leaf_pkg is
         port (
             clk_i        : in  std_logic;
             reset_i      : in  std_logic;
-            dmls_mode_i  : in  std_logic;
-            dmls_en_i    : in  std_logic;
+            dmls_ctrl_i  : in  std_logic_vector(1           downto 0);
             dmls_dtype_i : in  std_logic_vector(2           downto 0);
             dmst_data_i  : in  std_logic_vector(XLEN-1      downto 0);
             dmls_addr_i  : in  std_logic_vector(XLEN-1      downto 0);

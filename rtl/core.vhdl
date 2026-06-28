@@ -66,11 +66,9 @@ architecture rtl of core is
 
     signal id_pc_full : std_logic_vector(XLEN-1 downto 0);
     signal id_func3      : std_logic_vector(2  downto 0);
-    signal id_jmp        : std_logic;
-    signal id_br_en      : std_logic;
+    signal id_branch_op  : std_logic_vector(1  downto 0);
     signal id_alu_op     : std_logic_vector(5  downto 0);
-    signal id_dmls_mode  : std_logic;
-    signal id_dmls_en    : std_logic;
+    signal id_dmls_ctrl  : std_logic_vector(1  downto 0);
 
     signal id_trap_taken  : std_logic;
     signal id_trap_target : std_logic_vector(XLEN-1 downto 0);
@@ -147,11 +145,9 @@ begin
         fault_i       => if_imrd_fault,
         valid_i       => if_valid,
         func3_o       => id_func3,
-        jmp_o         => id_jmp,
-        br_en_o       => id_br_en,
+        branch_op_o   => id_branch_op,
         alu_op_o      => id_alu_op,
-        dmls_mode_o   => id_dmls_mode,
-        dmls_en_o     => id_dmls_en,
+        dmls_ctrl_o   => id_dmls_ctrl,
         cop_dat_i     => cop_dat_i,
         cop_adr_o     => cop_adr_o,
         cop_dat_o     => cop_dat_o,
@@ -180,11 +176,9 @@ begin
         func3_i        => id_func3,
         reg0_i         => id_rd0,
         reg1_i         => id_rd1,
-        jmp_i          => id_jmp,
-        br_en_i        => id_br_en,
+        branch_op_i    => id_branch_op,
         alu_op_i       => id_alu_op,
-        dmls_mode_i    => id_dmls_mode,
-        dmls_en_i      => id_dmls_en,
+        dmls_ctrl_i    => id_dmls_ctrl,
         data_dat_i     => data_dat_i,
         data_ack_i     => data_ack_i,
         data_err_i     => data_err_i,

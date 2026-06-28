@@ -23,11 +23,9 @@ entity ex_block is
         opd1_src_sel_i : in  std_logic;
         opd0_pass_i    : in  std_logic;
         opd1_pass_i    : in  std_logic;
-        jmp_i         : in  std_logic;
-        br_en_i       : in  std_logic;
+        branch_op_i   : in  std_logic_vector(1  downto 0);
         alu_op_i      : in  std_logic_vector(5  downto 0);
-        dmls_mode_i   : in  std_logic;
-        dmls_en_i     : in  std_logic;
+        dmls_ctrl_i   : in  std_logic_vector(1  downto 0);
         data_dat_i   : in  std_logic_vector(XLEN-1 downto 0);
         data_ack_i   : in  std_logic;
         data_err_i   : in  std_logic;
@@ -89,8 +87,8 @@ begin
         reg0_i        => reg0_i,
         reg1_i        => reg1_i,
         mode_i        => func3_i,
-        en_i          => br_en_i,
-        jmp_i         => jmp_i,
+        en_i          => branch_op_i(0),
+        jmp_i         => branch_op_i(1),
         alu_res_i     => alu_res,
         trap_taken_i  => trap_taken_i,
         trap_target_i => trap_target_i,
@@ -103,8 +101,7 @@ begin
     exec_dmls_block: dmls_block port map (
         clk_i         => clk_i,
         reset_i       => reset_i,
-        dmls_mode_i   => dmls_mode_i,
-        dmls_en_i     => dmls_en_i,
+        dmls_ctrl_i   => dmls_ctrl_i,
         dmls_dtype_i  => func3_i,
         dmst_data_i   => reg1_i,
         dmls_addr_i   => alu_res,
@@ -140,6 +137,6 @@ begin
     data_sel_o <= dmls_sel;
     data_we_o  <= dmls_we;
     res_o       <= alu_res;
-    ready_o <= '0' when (dmls_en_i = '1' and dmls_ready = '0') or (wfi_i = '1' and int_taken_i = '0') else '1';
+    ready_o <= '0' when (dmls_ctrl_i /= DMLS_IDLE and dmls_ready = '0') or (wfi_i = '1' and int_taken_i = '0') else '1';
 
 end architecture ex_block_arch;
