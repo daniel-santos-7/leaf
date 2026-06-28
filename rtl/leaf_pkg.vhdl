@@ -115,8 +115,6 @@ package leaf_pkg is
 
     component main_ctrl is
         port (
-            clk_i          : in  std_logic;
-            reset_i        : in  std_logic;
             imrd_malgn_i   : in std_logic;
             imrd_fault_i   : in std_logic;
             dmld_malgn_i   : in std_logic;
@@ -125,8 +123,6 @@ package leaf_pkg is
             dmst_fault_i   : in std_logic;
             instr_i        : in  std_logic_vector(XLEN-1 downto 0);
             valid_i        : in  std_logic;
-            branch_i       : in  std_logic;
-            dmls_ready_i   : in  std_logic;
             mip_meip_i     : in  std_logic;
             mip_msip_i     : in  std_logic;
             mip_mtip_i     : in  std_logic;
@@ -159,14 +155,13 @@ package leaf_pkg is
             regrd_addr0_o  : out std_logic_vector(4  downto 0);
             regrd_addr1_o  : out std_logic_vector(4  downto 0);
             csrs_addr_o    : out std_logic_vector(11 downto 0);
-            exc_taken_o    : out std_logic;
-            int_taken_o    : out std_logic;
-            exi_taken_o    : out std_logic;
-            tmi_taken_o    : out std_logic;
-            swi_taken_o    : out std_logic;
+            exc_taken_o   : out std_logic;
+            int_taken_o   : out std_logic;
+            exi_taken_o   : out std_logic;
+            tmi_taken_o   : out std_logic;
+            swi_taken_o   : out std_logic;
             trap_taken_o   : out std_logic;
-            trap_target_o  : out std_logic_vector(XLEN-1 downto 0);
-            ready_o        : out std_logic
+            trap_target_o  : out std_logic_vector(XLEN-1 downto 0)
         );
     end component main_ctrl;
 
@@ -278,9 +273,6 @@ package leaf_pkg is
             instr_i       : in  std_logic_vector(XLEN-1 downto 0);
             fault_i       : in  std_logic;
             valid_i       : in  std_logic;
-            inst_adr_i    : in  std_logic_vector(XLEN-1 downto 2);
-            branch_i      : in  std_logic;
-            dmls_ready_i  : in  std_logic;
             func3_o       : out std_logic_vector(2  downto 0);
             jmp_o         : out std_logic;
             br_en_o       : out std_logic;
@@ -303,8 +295,8 @@ package leaf_pkg is
             opd0_pass_o    : out std_logic;
             opd1_pass_o    : out std_logic;
             pc_o          : out std_logic_vector(XLEN-1 downto 2);
-            retire_o      : out std_logic;
-            ready_o       : out std_logic;
+            wfi_o         : out std_logic;
+            int_taken_o   : out std_logic;
             pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
         );
     end component id_stage;
@@ -320,11 +312,18 @@ package leaf_pkg is
 
     component br_detector is
         port (
-            reg0_i   : in  std_logic_vector(XLEN-1 downto 0);
-            reg1_i   : in  std_logic_vector(XLEN-1 downto 0);
-            mode_i   : in  std_logic_vector(2           downto 0);
-            en_i     : in  std_logic;
-            branch_o : out std_logic
+            reg0_i       : in  std_logic_vector(XLEN-1 downto 0);
+            reg1_i       : in  std_logic_vector(XLEN-1 downto 0);
+            mode_i       : in  std_logic_vector(2           downto 0);
+            en_i         : in  std_logic;
+            jmp_i        : in  std_logic;
+            alu_res_i    : in  std_logic_vector(XLEN-1 downto 0);
+            trap_taken_i : in  std_logic;
+            trap_target_i: in  std_logic_vector(XLEN-1 downto 0);
+            branch_o     : out std_logic;
+            taken_o      : out std_logic;
+            target_o     : out std_logic_vector(XLEN-1 downto 0);
+            imrd_malgn_o : out std_logic
         );
     end component br_detector;
 
@@ -364,10 +363,12 @@ package leaf_pkg is
             data_adr_o   : out std_logic_vector(XLEN-1 downto 2);
             data_sel_o  : out std_logic_vector(3  downto 0);
             data_we_o   : out std_logic;
-            dmls_ready_o  : out std_logic;
             dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
             taken_o  : out std_logic;
             target_o : out std_logic_vector(XLEN-1 downto 0);
+            wfi_i         : in  std_logic;
+            int_taken_i   : in  std_logic;
+            ready_o       : out std_logic;
             branch_o      : out std_logic;
             res_o         : out std_logic_vector(XLEN-1 downto 0);
             valid_i       : in  std_logic

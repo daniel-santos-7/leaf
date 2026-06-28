@@ -45,10 +45,12 @@ entity ex_block is
         data_adr_o   : out std_logic_vector(XLEN-1 downto 2);
         data_sel_o  : out std_logic_vector(3  downto 0);
         data_we_o   : out std_logic;
-        dmls_ready_o  : out std_logic;
         dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
         taken_o  : out std_logic;
         target_o : out std_logic_vector(XLEN-1 downto 0);
+        wfi_i         : in  std_logic;
+        int_taken_i   : in  std_logic;
+        ready_o       : out std_logic;
         branch_o      : out std_logic;
         res_o         : out std_logic_vector(XLEN-1 downto 0);
         valid_i       : in  std_logic
@@ -84,8 +86,6 @@ begin
     );
 
     exec_br_detector: entity work.br_detector port map (
-        clk_i         => clk_i,
-        reset_i       => reset_i,
         reg0_i        => reg0_i,
         reg1_i        => reg1_i,
         mode_i        => func3_i,
@@ -94,7 +94,6 @@ begin
         alu_res_i     => alu_res,
         trap_taken_i  => trap_taken_i,
         trap_target_i => trap_target_i,
-        valid_i       => valid_i,
         branch_o      => branch_o,
         taken_o       => taken_o,
         target_o      => target_o,
@@ -140,7 +139,7 @@ begin
     data_adr_o <= dmls_adr;
     data_sel_o <= dmls_sel;
     data_we_o  <= dmls_we;
-    dmls_ready_o <= dmls_ready;
     res_o       <= alu_res;
+    ready_o <= '0' when (dmls_en_i = '1' and dmls_ready = '0') or (wfi_i = '1' and int_taken_i = '0') else '1';
 
 end architecture ex_block_arch;

@@ -55,10 +55,9 @@ architecture rtl of core is
     signal taken : std_logic;
     signal target : std_logic_vector(XLEN-1 downto 0);
     signal branch     : std_logic;
-    signal dmls_ready : std_logic;
+    signal ex_wfi, ex_int_taken : std_logic;
 
     -- IF stage combinatorial outputs (before pipeline register)
-    signal if_inst_adr : std_logic_vector(XLEN-1 downto 2);
     signal if_pc      : std_logic_vector(XLEN-1 downto 2);
     signal if_next_pc : std_logic_vector(XLEN-1 downto 2);
     signal if_instr   : std_logic_vector(XLEN-1 downto 0);
@@ -113,7 +112,7 @@ begin
         inst_cyc_o   => inst_cyc_o,
         inst_stb_o   => inst_stb_o,
         inst_err_o   => if_imrd_fault,
-        inst_adr_o   => if_inst_adr,
+        inst_adr_o   => inst_adr_o,
         pc_o         => if_pc,
         next_pc_o    => if_next_pc,
         inst_o       => if_instr,
@@ -146,9 +145,6 @@ begin
         instr_i       => if_instr,
         fault_i       => if_imrd_fault,
         valid_i       => if_valid,
-        inst_adr_i    => if_inst_adr,
-        branch_i      => branch,
-        dmls_ready_i  => dmls_ready,
         func3_o       => func3,
         jmp_o         => jmp,
         br_en_o       => br_en,
@@ -159,7 +155,6 @@ begin
         cop_adr_o     => cop_adr_o,
         cop_dat_o     => cop_dat_o,
         cop_we_o      => cop_we_o,
-        ready_o       => id_ready,
         trap_taken_o  => trap_taken,
         trap_target_o => trap_target,
         rd_data0_o    => reg0_data,
@@ -171,7 +166,8 @@ begin
         opd1_src_sel_o => opd1_src_sel,
         opd0_pass_o    => opd0_pass,
         opd1_pass_o    => opd1_pass,
-        retire_o      => retire_o,
+        wfi_o         => ex_wfi,
+        int_taken_o   => ex_int_taken,
         pc_full_o     => id_pc_full
     );
 
@@ -207,10 +203,12 @@ begin
         target_o  => target,
         branch_o       => branch,
         res_o          => exec_res,
-        dmls_ready_o   => dmls_ready,
         csrrd_data_i   => csrrd_data,
         immwr_data_i   => imm,
         csrwr_data_o   => csrwr_data,
+        wfi_i          => ex_wfi,
+        int_taken_i    => ex_int_taken,
+        ready_o        => id_ready,
         pc_i           => id_pc_full,
         opd0_src_sel_i => opd0_src_sel,
         opd1_src_sel_i => opd1_src_sel,
@@ -219,6 +217,6 @@ begin
         valid_i        => if_valid
     );
 
-    inst_adr_o <= if_inst_adr;
+    retire_o   <= id_ready and if_valid;
 
 end architecture rtl;

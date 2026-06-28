@@ -12,8 +12,6 @@ use work.leaf_pkg.all;
 
 entity br_detector is
     port (
-        clk_i        : in  std_logic;
-        reset_i      : in  std_logic;
         reg0_i       : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i       : in  std_logic_vector(XLEN-1 downto 0);
         mode_i       : in  std_logic_vector(2           downto 0);
@@ -22,7 +20,6 @@ entity br_detector is
         alu_res_i    : in  std_logic_vector(XLEN-1 downto 0);
         trap_taken_i : in  std_logic;
         trap_target_i: in  std_logic_vector(XLEN-1 downto 0);
-        valid_i      : in  std_logic;
         branch_o     : out std_logic;
         taken_o      : out std_logic;
         target_o     : out std_logic_vector(XLEN-1 downto 0);
@@ -39,8 +36,6 @@ architecture br_detector_arch of br_detector is
 
     signal taken_int  : std_logic;
     signal target_int : std_logic_vector(XLEN-1 downto 0);
-    signal taken_reg  : std_logic;
-    signal target_reg : std_logic_vector(XLEN-1 downto 0);
 
 begin
 
@@ -68,24 +63,8 @@ begin
     taken_int   <= (branch_i and en_i) or jmp_i or trap_taken_i;
     target_int  <= trap_target_i when trap_taken_i = '1' else alu_res_i(XLEN-1 downto 1) & b"0";
 
-    exec_branch_reg: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if reset_i = '1' then
-                taken_reg  <= '0';
-                target_reg <= (others => '0');
-            elsif taken_reg = '1' and valid_i = '1' then
-                taken_reg  <= '0';
-                target_reg <= (others => '0');
-            elsif taken_reg = '0' then
-                taken_reg  <= taken_int;
-                target_reg <= target_int;
-            end if;
-        end if;
-    end process exec_branch_reg;
-
     branch_o <= branch_i and en_i;
-    taken_o  <= taken_reg;
-    target_o <= target_reg;
+    taken_o  <= taken_int;
+    target_o <= target_int;
 
 end architecture br_detector_arch;
