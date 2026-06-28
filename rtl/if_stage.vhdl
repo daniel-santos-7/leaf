@@ -30,7 +30,8 @@ entity if_stage is
         inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
         pc_o         : out std_logic_vector(XLEN-1 downto 2);
         next_pc_o    : out std_logic_vector(XLEN-1 downto 2);
-        inst_o       : out std_logic_vector(XLEN-1 downto 0)
+        inst_o       : out std_logic_vector(XLEN-1 downto 0);
+        retire_o     : out std_logic
     );
 end entity if_stage;
 
@@ -140,5 +141,6 @@ begin
     pc_o        <= pc_reg;
     next_pc_o   <= next_pc;
     inst_o      <= inst_reg;
+    retire_o    <= valid_reg and ready_i;
 
 end architecture rtl;
