@@ -14,8 +14,7 @@ entity dmls_block is
     port (
         clk_i        : in  std_logic;
         reset_i      : in  std_logic;
-        dmls_mode_i  : in  std_logic;
-        dmls_en_i    : in  std_logic;
+        dmls_ctrl_i  : in  std_logic_vector(1           downto 0);
         dmls_dtype_i : in  std_logic_vector(2           downto 0);
         dmst_data_i  : in  std_logic_vector(XLEN-1      downto 0);
         dmls_addr_i  : in  std_logic_vector(XLEN-1      downto 0);
@@ -64,8 +63,8 @@ architecture dmls_block_arch of dmls_block is
 
 begin
 
-    dmem_rd <= not dmls_mode_i and dmls_en_i;
-    dmem_wr <= dmls_mode_i and dmls_en_i;
+    dmem_rd <= dmls_ctrl_i(0);
+    dmem_wr <= dmls_ctrl_i(1);
 
     addr_base    <= data_adr_reg(1 downto 0) when state /= IDLE else dmls_addr_i(1 downto 0);
     addr_base_wr <= dmls_addr_i(1 downto 0);
@@ -278,7 +277,7 @@ begin
     data_dat_o   <= data_dat_reg;
     data_sel_o   <= data_sel_reg;
     data_adr_o   <= data_adr_reg(XLEN-1 downto 2);
-    dmls_ready_o <= '1' when state = DONE or (state = IDLE and dmrd_en = '0' and dmwr_en = '0' and dmls_en_i = '1') else '0';
+    dmls_ready_o <= '1' when state = DONE or (state = IDLE and dmrd_en = '0' and dmwr_en = '0' and dmls_ctrl_i /= DMLS_IDLE) else '0';
     dmld_data_o  <= dmld_data_reg;
 
 end architecture dmls_block_arch;

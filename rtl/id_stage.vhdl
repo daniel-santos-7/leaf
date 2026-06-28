@@ -36,11 +36,9 @@ entity id_stage is
         fault_i       : in  std_logic;
         valid_i       : in  std_logic;
         func3_o       : out std_logic_vector(2  downto 0);
-        jmp_o         : out std_logic;
-        br_en_o       : out std_logic;
+        branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
-        dmls_mode_o   : out std_logic;
-        dmls_en_o     : out std_logic;
+        dmls_ctrl_o   : out std_logic_vector(1  downto 0);
         cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
         cop_adr_o     : out std_logic_vector(5 downto 0);
         cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
@@ -143,10 +141,8 @@ begin
         csrwr_en_o     => csrwr_en,
         regwr_en_o     => regwr_en,
         regwr_sel_o    => regwr_sel,
-        dmls_mode_o    => dmls_mode_o,
-        dmls_en_o      => dmls_en_o,
-        jmp_o          => jmp_o,
-        br_en_o        => br_en_o,
+        dmls_ctrl_o    => dmls_ctrl_o,
+        branch_op_o    => branch_op_o,
         opd0_src_sel_o => opd0_src_sel,
         opd1_src_sel_o => opd1_src_sel,
         opd0_pass_o    => opd0_pass,

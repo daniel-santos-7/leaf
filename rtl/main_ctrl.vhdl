@@ -37,10 +37,8 @@ entity main_ctrl is
         csrwr_en_o     : out std_logic;
         regwr_en_o     : out std_logic;
         regwr_sel_o    : out std_logic_vector(1  downto 0);
-        dmls_mode_o    : out std_logic;
-        dmls_en_o      : out std_logic;
-        jmp_o          : out std_logic;
-        br_en_o        : out std_logic;
+        dmls_ctrl_o    : out std_logic_vector(1  downto 0);
+        branch_op_o    : out std_logic_vector(1  downto 0);
         opd0_src_sel_o : out std_logic;
         opd1_src_sel_o : out std_logic;
         opd0_pass_o    : out std_logic;
@@ -119,12 +117,10 @@ begin
     main_ctrl_proc: process(opcode, instr_i, valid_i)
     begin
         if valid_i = '0' then
-            dmls_mode_o    <= '0';
-            dmls_en_o      <= '0';
+            dmls_ctrl_o    <= DMLS_IDLE;
             instr_err      <= '0';
             imm_type       <= (others => '-');
-            jmp_o          <= '0';
-            br_en_o        <= '0';
+            branch_op_o    <= BR_NONE;
             opd0_src_sel_o <= '0';
             opd1_src_sel_o <= '0';
             opd0_pass_o    <= '0';
@@ -137,12 +133,10 @@ begin
         else
             case opcode is
                 when RR_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= (others => '-');
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '0';
                     opd0_pass_o    <= '1';
@@ -153,12 +147,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '1';
                 when IMM_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_I_TYPE;
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -169,12 +161,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '1';
                 when JALR_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_I_TYPE;
-                    jmp_o          <= '1';
-                    br_en_o        <= '0';
+            branch_op_o    <= BR_JUMP;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -185,12 +175,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '1';
                 when LOAD_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '1';
+                    dmls_ctrl_o    <= DMLS_LOAD;
                     instr_err      <= '0';
                     imm_type       <= IMM_I_TYPE;
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -201,12 +189,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '1';
                 when STORE_OPCODE =>
-                    dmls_mode_o    <= '1';
-                    dmls_en_o      <= '1';
+                    dmls_ctrl_o    <= DMLS_STORE;
                     instr_err      <= '0';
                     imm_type       <= IMM_S_TYPE;
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -217,12 +203,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '0';
                 when BRANCH_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_B_TYPE;
-                    jmp_o          <= '0';
-                    br_en_o        <= '1';
+            branch_op_o    <= BR_BRANCH;
                     opd0_src_sel_o <= '1';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -233,12 +217,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '0';
                 when LUI_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_U_TYPE;
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '0';
@@ -249,12 +231,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '1';
                 when AUIPC_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_U_TYPE;
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '1';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -265,12 +245,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '1';
                 when JAL_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_J_TYPE;
-                    jmp_o          <= '1';
-                    br_en_o        <= '0';
+            branch_op_o    <= BR_JUMP;
                     opd0_src_sel_o <= '1';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -281,12 +259,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '1';
                 when SYSTEM_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_Z_TYPE;
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '0';
                     opd0_pass_o    <= '0';
@@ -303,12 +279,10 @@ begin
                         regwr_en    <= '1';
                     end if;
                 when FENCE_OPCODE =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= (others => '-');
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '0';
                     opd0_pass_o    <= '0';
@@ -319,12 +293,10 @@ begin
                     csrwr_en_o     <= '0';
                     regwr_en       <= '0';
                 when others =>
-                    dmls_mode_o    <= '0';
-                    dmls_en_o      <= '0';
+                    dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '1';
                     imm_type       <= (others => '-');
-                    jmp_o          <= '0';
-                    br_en_o        <= '0';
+                    branch_op_o    <= BR_NONE;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '0';
                     opd0_pass_o    <= '0';
