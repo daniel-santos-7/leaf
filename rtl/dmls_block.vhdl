@@ -55,8 +55,6 @@ architecture dmls_block_arch of dmls_block is
     signal data_adr_reg : std_logic_vector(XLEN-1 downto 0);
     signal data_dat_int : std_logic_vector(XLEN-1 downto 0);
     signal data_sel_int : std_logic_vector(3 downto 0);
-    signal data_cyc_reg : std_logic;
-    signal data_stb_reg : std_logic;
     signal data_we_reg  : std_logic;
     signal data_dat_reg : std_logic_vector(XLEN-1 downto 0);
     signal data_sel_reg : std_logic_vector(3 downto 0);
@@ -64,16 +62,12 @@ architecture dmls_block_arch of dmls_block is
     signal dmld_data_comb : std_logic_vector(XLEN-1 downto 0);
     signal dmld_data_reg  : std_logic_vector(XLEN-1 downto 0);
 
-    signal dmld_fault_reg : std_logic;
-    signal dmst_fault_reg : std_logic;
-    signal dmls_ready_reg : std_logic;
-
 begin
 
     dmem_rd <= not dmls_mode_i and dmls_en_i;
     dmem_wr <= dmls_mode_i and dmls_en_i;
 
-    addr_base    <= data_adr_reg(1 downto 0) when data_cyc_reg = '1' else dmls_addr_i(1 downto 0);
+    addr_base    <= data_adr_reg(1 downto 0) when state /= IDLE else dmls_addr_i(1 downto 0);
     addr_base_wr <= dmls_addr_i(1 downto 0);
 
     read_dmem: process(dmem_rd, dmls_dtype_i, data_dat_i, addr_base)
@@ -247,24 +241,17 @@ begin
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
-                state           <= IDLE;
-                data_cyc_reg    <= '0';
-                data_stb_reg    <= '0';
-                data_we_reg     <= '0';
-                data_dat_reg    <= (others => '0');
-                data_adr_reg    <= (others => '0');
-                data_sel_reg    <= (others => '0');
-                dmld_data_reg   <= (others => '0');
-                dmls_ready_reg  <= '0';
-                dmld_fault_reg  <= '0';
-                dmst_fault_reg  <= '0';
+                state         <= IDLE;
+                data_we_reg   <= '0';
+                data_dat_reg  <= (others => '0');
+                data_adr_reg  <= (others => '0');
+                data_sel_reg  <= (others => '0');
+                dmld_data_reg <= (others => '0');
             else
                 case state is
                     when IDLE =>
                         if dmwr_en = '1' or dmrd_en = '1' then
                             state        <= BUSY;
-                            data_cyc_reg <= dmrd_en or dmwr_en;
-                            data_stb_reg <= dmrd_en or dmwr_en;
                             data_we_reg  <= dmwr_en;
                             data_adr_reg <= dmls_addr_i;
                             data_dat_reg <= data_dat_int;
@@ -272,36 +259,26 @@ begin
                         end if;
                     when BUSY =>
                         if data_ack_i = '1' or data_err_i = '1' then
-                            state          <= DONE;
-                            dmls_ready_reg <= '1';
-                            dmld_data_reg  <= dmld_data_comb;
-                            data_cyc_reg   <= '0';
-                            data_stb_reg   <= '0';
-                            data_we_reg    <= '0';
-                            data_dat_reg   <= (others => '0');
-                            data_sel_reg   <= (others => '0');
+                            state         <= DONE;
+                            dmld_data_reg <= dmld_data_comb;
                         end if;
                     when DONE =>
-                        state          <= IDLE;
-                        dmls_ready_reg <= '0';
+                        state <= IDLE;
                 end case;
-
-                dmld_fault_reg <= data_err_i and dmem_rd;
-                dmst_fault_reg <= data_err_i and dmem_wr;
             end if;
         end if;
     end process fsm_proc;
 
-    dmld_fault_o <= dmld_fault_reg;
-    dmst_fault_o <= dmst_fault_reg;
+    dmld_fault_o <= data_err_i and dmem_rd;
+    dmst_fault_o <= data_err_i and dmem_wr;
 
-    data_cyc_o   <= data_cyc_reg;
-    data_stb_o   <= data_stb_reg;
+    data_cyc_o   <= '1' when state = BUSY else '0';
+    data_stb_o   <= '1' when state = BUSY else '0';
     data_we_o    <= data_we_reg;
     data_dat_o   <= data_dat_reg;
     data_sel_o   <= data_sel_reg;
     data_adr_o   <= data_adr_reg(XLEN-1 downto 2);
-    dmls_ready_o <= dmls_ready_reg;
+    dmls_ready_o <= '1' when state = DONE or (state = IDLE and dmrd_en = '0' and dmwr_en = '0' and dmls_en_i = '1') else '0';
     dmld_data_o  <= dmld_data_reg;
 
 end architecture dmls_block_arch;

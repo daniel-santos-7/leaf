@@ -35,9 +35,6 @@ entity id_stage is
         instr_i       : in  std_logic_vector(XLEN-1 downto 0);
         fault_i       : in  std_logic;
         valid_i       : in  std_logic;
-        inst_adr_i    : in  std_logic_vector(XLEN-1 downto 2);
-        branch_i      : in  std_logic;
-        dmls_ready_i  : in  std_logic;
         func3_o       : out std_logic_vector(2  downto 0);
         jmp_o         : out std_logic;
         br_en_o       : out std_logic;
@@ -60,8 +57,8 @@ entity id_stage is
         opd0_pass_o    : out std_logic;
         opd1_pass_o    : out std_logic;
         pc_o          : out std_logic_vector(XLEN-1 downto 2);
-        retire_o      : out std_logic;
-        ready_o       : out std_logic;
+        wfi_o         : out std_logic;
+        int_taken_o   : out std_logic;
         pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity id_stage;
@@ -97,8 +94,6 @@ architecture rtl of id_stage is
     signal pc_full     : std_logic_vector(XLEN-1 downto 0);
     signal next_pc_full : std_logic_vector(XLEN-1 downto 0);
 
-    signal main_ctrl_ready : std_logic;
-
     signal exc_taken   : std_logic;
     signal int_taken   : std_logic;
     signal exi_taken   : std_logic;
@@ -120,13 +115,9 @@ begin
     next_pc_full <= next_pc_i & b"00";
 
     pc_o    <= pc_i;
-    retire_o <= main_ctrl_ready and valid_i;
     pc_full_o <= pc_full;
-    ready_o <= main_ctrl_ready;
 
     id_stage_main_ctrl: main_ctrl port map (
-        clk_i          => clk_i,
-        reset_i        => reset_i,
         imrd_malgn_i   => imrd_malgn_i,
         imrd_fault_i   => fault_i,
         dmld_malgn_i   => dmld_malgn_i,
@@ -135,8 +126,6 @@ begin
         dmst_fault_i   => dmst_fault_i,
         instr_i        => instr_i,
         valid_i        => valid_i,
-        branch_i       => branch_i,
-        dmls_ready_i   => dmls_ready_i,
         mip_meip_i     => mip_meip,
         mip_msip_i     => mip_msip,
         mip_mtip_i     => mip_mtip,
@@ -175,8 +164,7 @@ begin
         tmi_taken_o    => tmi_taken,
         swi_taken_o    => swi_taken,
         trap_taken_o   => trap_taken_o,
-        trap_target_o  => trap_target_o,
-        ready_o        => main_ctrl_ready
+        trap_target_o  => trap_target_o
     );
 
     id_stage_reg_file: reg_file generic map (
@@ -255,5 +243,8 @@ begin
     opd0_pass_o    <= opd0_pass;
     opd1_pass_o    <= opd1_pass;
     imm_o          <= imm;
+
+    wfi_o       <= wfi;
+    int_taken_o <= int_taken;
 
 end architecture rtl;
