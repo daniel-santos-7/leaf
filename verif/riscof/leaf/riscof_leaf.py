@@ -72,7 +72,7 @@ class leaf(pluginTemplate):
         # Note the march is not hardwired here, because it will change for each
         # test. Similarly the output elf name and compile macros will be assigned later in the
         # runTests function
-        self.objdump_cmd = 'riscv{1}-unknown-elf-objdump -D {0} > {2}'
+        self.objdump_cmd = "riscv{1}-unknown-elf-objdump -D {0} > {2}"
         self.compile_cmd = (
             "riscv{1}-unknown-elf-gcc -march={0} \
          -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g\
@@ -173,7 +173,7 @@ class leaf(pluginTemplate):
             if self.target_run:
                 # set up the simulation command. Template is for spike. Please change.
                 # sim_cmd = self.dut_exe + ' --isa={0} +signature={1} +signature-granularity=4 {2}'.format(self.isa, sig_file, elf)
-                sim_cmd = "make --no-print-directory -sC ~/projects/leaf run PROGRAM={0}/out.bin DUMP_FILE={1} SIMXOPTS=--ieee-asserts=disable".format(
+                sim_cmd = "make --no-print-directory -sC ~/projects/leaf run PROGRAM={0}/out.bin DUMP_FILE={1} SIMXOPTS=\"--ieee-asserts=disable --stop-time=10ms\"".format(
                     test_dir, sig_file
                 )
             else:
