@@ -164,7 +164,7 @@ begin
                     dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_I_TYPE;
-            branch_op_o    <= BR_JUMP;
+                    branch_op_o    <= BR_JUMP;
                     opd0_src_sel_o <= '0';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -206,7 +206,7 @@ begin
                     dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_B_TYPE;
-            branch_op_o    <= BR_BRANCH;
+                    branch_op_o    <= BR_BRANCH;
                     opd0_src_sel_o <= '1';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
@@ -248,7 +248,7 @@ begin
                     dmls_ctrl_o    <= DMLS_IDLE;
                     instr_err      <= '0';
                     imm_type       <= IMM_J_TYPE;
-            branch_op_o    <= BR_JUMP;
+                    branch_op_o    <= BR_JUMP;
                     opd0_src_sel_o <= '1';
                     opd1_src_sel_o <= '1';
                     opd0_pass_o    <= '1';
