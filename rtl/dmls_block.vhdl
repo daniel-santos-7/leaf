@@ -277,7 +277,7 @@ begin
     data_dat_o   <= data_dat_reg;
     data_sel_o   <= data_sel_reg;
     data_adr_o   <= data_adr_reg(XLEN-1 downto 2);
-    dmls_ready_o <= '1' when state = DONE or (state = IDLE and dmrd_en = '0' and dmwr_en = '0' and dmls_ctrl_i /= DMLS_IDLE) else '0';
+    dmls_ready_o <= '1' when state = DONE or (state = IDLE and dmrd_en = '0' and dmwr_en = '0') else '0';
     dmld_data_o  <= dmld_data_reg;
 
 end architecture dmls_block_arch;

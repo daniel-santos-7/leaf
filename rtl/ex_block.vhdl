@@ -46,8 +46,6 @@ entity ex_block is
         dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
         taken_o  : out std_logic;
         target_o : out std_logic_vector(XLEN-1 downto 0);
-        wfi_i         : in  std_logic;
-        int_taken_i   : in  std_logic;
         ready_o       : out std_logic;
         branch_o      : out std_logic;
         res_o         : out std_logic_vector(XLEN-1 downto 0);
@@ -136,7 +134,7 @@ begin
     data_adr_o <= dmls_adr;
     data_sel_o <= dmls_sel;
     data_we_o  <= dmls_we;
-    res_o       <= alu_res;
-    ready_o <= '0' when (dmls_ctrl_i /= DMLS_IDLE and dmls_ready = '0') or (wfi_i = '1' and int_taken_i = '0') else '1';
+    res_o      <= alu_res;
+    ready_o    <= dmls_ready;
 
 end architecture ex_block_arch;

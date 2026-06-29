@@ -54,10 +54,9 @@ entity id_stage is
         opd1_src_sel_o : out std_logic;
         opd0_pass_o    : out std_logic;
         opd1_pass_o    : out std_logic;
-        pc_o          : out std_logic_vector(XLEN-1 downto 2);
-        wfi_o         : out std_logic;
-        int_taken_o   : out std_logic;
-        pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
+        pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
+        ready_i       : in  std_logic;
+        ready_o       : out std_logic
     );
 end entity id_stage;
 
@@ -75,8 +74,6 @@ architecture rtl of id_stage is
     signal regrd_addr0 : std_logic_vector(4  downto 0);
     signal regrd_addr1 : std_logic_vector(4  downto 0);
     signal regwr_sel   : std_logic_vector(1  downto 0);
-    signal regrd_data0 : std_logic_vector(XLEN-1 downto 0);
-    signal regrd_data1 : std_logic_vector(XLEN-1 downto 0);
 
     signal csrwr_en     : std_logic;
     signal csrrd_data : std_logic_vector(XLEN-1 downto 0);
@@ -104,7 +101,6 @@ begin
     pc_full     <= pc_i & b"00";
     next_pc_full <= next_pc_i & b"00";
 
-    pc_o    <= pc_i;
     pc_full_o <= pc_full;
 
     id_stage_main_ctrl: main_ctrl port map (
@@ -146,6 +142,8 @@ begin
         regrd_addr0_o  => regrd_addr0,
         regrd_addr1_o  => regrd_addr1,
         csrs_addr_o    => csrs_addr,
+        ready_i        => ready_i,
+        ready_o        => ready_o,
         exc_taken_o    => exc_taken,
         int_taken_o    => int_taken,
         exi_taken_o    => exi_taken,
@@ -168,8 +166,8 @@ begin
         wr_data3_i => csrrd_data,
         rd_addr0_i => regrd_addr0,
         rd_addr1_i => regrd_addr1,
-        rd_data0_o => regrd_data0,
-        rd_data1_o => regrd_data1
+        rd_data0_o => rd_data0_o,
+        rd_data1_o => rd_data1_o
     );
 
 
@@ -222,11 +220,6 @@ begin
         rd_data_o    => csrrd_data
     );
 
-    rd_data0_o     <= regrd_data0;
-    rd_data1_o     <= regrd_data1;
     csrrd_data_o   <= csrrd_data;
-
-    wfi_o       <= wfi;
-    int_taken_o <= int_taken;
 
 end architecture rtl;
