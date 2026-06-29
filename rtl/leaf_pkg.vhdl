@@ -165,6 +165,8 @@ package leaf_pkg is
             regrd_addr0_o  : out std_logic_vector(4  downto 0);
             regrd_addr1_o  : out std_logic_vector(4  downto 0);
             csrs_addr_o    : out std_logic_vector(11 downto 0);
+            ready_i        : in  std_logic;
+            ready_o        : out std_logic;
             exc_taken_o   : out std_logic;
             int_taken_o   : out std_logic;
             exi_taken_o   : out std_logic;
@@ -302,10 +304,9 @@ package leaf_pkg is
             opd1_src_sel_o : out std_logic;
             opd0_pass_o    : out std_logic;
             opd1_pass_o    : out std_logic;
-            pc_o          : out std_logic_vector(XLEN-1 downto 2);
-            wfi_o         : out std_logic;
-            int_taken_o   : out std_logic;
-            pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
+            pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
+            ready_i       : in  std_logic;
+            ready_o       : out std_logic
         );
     end component id_stage;
 
@@ -372,8 +373,6 @@ package leaf_pkg is
             dmld_data_o   : out std_logic_vector(XLEN-1 downto 0);
             taken_o  : out std_logic;
             target_o : out std_logic_vector(XLEN-1 downto 0);
-            wfi_i         : in  std_logic;
-            int_taken_i   : in  std_logic;
             ready_o       : out std_logic;
             branch_o      : out std_logic;
             res_o         : out std_logic_vector(XLEN-1 downto 0);

@@ -52,10 +52,9 @@ architecture rtl of core is
     -- internal signals --
 
     signal ex_ready            : std_logic;
+    signal id_ready            : std_logic;
     signal ex_taken            : std_logic;
     signal ex_target           : std_logic_vector(XLEN-1 downto 0);
-    signal ex_branch           : std_logic;
-    signal id_wfi, id_int_taken : std_logic;
 
     -- IF stage combinatorial outputs (before pipeline register)
     signal if_pc      : std_logic_vector(XLEN-1 downto 2);
@@ -101,7 +100,7 @@ begin
     ) port map (
         clk_i        => clk_i,
         reset_i      => reset_i,
-        ready_i      => ex_ready,
+        ready_i      => id_ready,
         inst_ack_i   => inst_ack_i,
         inst_err_i   => inst_err_i,
         taken_i      => ex_taken,
@@ -163,9 +162,9 @@ begin
         opd1_src_sel_o => id_opd1_src_sel,
         opd0_pass_o    => id_opd0_pass,
         opd1_pass_o    => id_opd1_pass,
-        wfi_o         => id_wfi,
-        int_taken_o   => id_int_taken,
-        pc_full_o     => id_pc_full
+        pc_full_o     => id_pc_full,
+        ready_i       => ex_ready,
+        ready_o       => id_ready
     );
 
     core_ex_block: ex_block port map (
@@ -196,13 +195,10 @@ begin
         dmld_data_o    => ex_dmld_data,
         taken_o        => ex_taken,
         target_o       => ex_target,
-        branch_o       => ex_branch,
         res_o          => ex_res,
         csrrd_data_i   => id_csrrd_data,
         immwr_data_i   => id_imm,
         csrwr_data_o   => ex_csrwr_data,
-        wfi_i          => id_wfi,
-        int_taken_i    => id_int_taken,
         ready_o        => ex_ready,
         pc_i           => id_pc_full,
         opd0_src_sel_i => id_opd0_src_sel,

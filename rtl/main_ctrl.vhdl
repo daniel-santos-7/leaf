@@ -50,6 +50,8 @@ entity main_ctrl is
         regrd_addr0_o  : out std_logic_vector(4  downto 0);
         regrd_addr1_o  : out std_logic_vector(4  downto 0);
         csrs_addr_o    : out std_logic_vector(11 downto 0);
+        ready_i        : in  std_logic;
+        ready_o        : out std_logic;
         exc_taken_o   : out std_logic;
         int_taken_o   : out std_logic;
         exi_taken_o   : out std_logic;
@@ -369,5 +371,6 @@ begin
     ebreak_o      <= ebreak;
     mret_o        <= mret;
     wfi_o         <= wfi;
+    ready_o       <= int_taken when wfi = '1' else ready_i;
 
 end architecture rtl;
