@@ -70,9 +70,6 @@ architecture rtl of id_stage is
     signal wfi       : std_logic;
     signal csrs_addr : std_logic_vector(11 downto 0);
 
-    signal imm   : std_logic_vector(XLEN-1 downto 0);
-    signal func3 : std_logic_vector(2  downto 0);
-
     signal regwr_en    : std_logic;
     signal regwr_addr  : std_logic_vector(4  downto 0);
     signal regrd_addr0 : std_logic_vector(4  downto 0);
@@ -83,11 +80,6 @@ architecture rtl of id_stage is
 
     signal csrwr_en     : std_logic;
     signal csrrd_data : std_logic_vector(XLEN-1 downto 0);
-
-    signal opd0_src_sel : std_logic;
-    signal opd1_src_sel : std_logic;
-    signal opd0_pass    : std_logic;
-    signal opd1_pass    : std_logic;
 
     signal pc_full     : std_logic_vector(XLEN-1 downto 0);
     signal next_pc_full : std_logic_vector(XLEN-1 downto 0);
@@ -143,13 +135,13 @@ begin
         regwr_sel_o    => regwr_sel,
         dmls_ctrl_o    => dmls_ctrl_o,
         branch_op_o    => branch_op_o,
-        opd0_src_sel_o => opd0_src_sel,
-        opd1_src_sel_o => opd1_src_sel,
-        opd0_pass_o    => opd0_pass,
-        opd1_pass_o    => opd1_pass,
+        opd0_src_sel_o => opd0_src_sel_o,
+        opd1_src_sel_o => opd1_src_sel_o,
+        opd0_pass_o    => opd0_pass_o,
+        opd1_pass_o    => opd1_pass_o,
         alu_op_o       => alu_op_o,
-        imm_o          => imm,
-        func3_o        => func3,
+        imm_o          => imm_o,
+        func3_o        => func3_o,
         regwr_addr_o   => regwr_addr,
         regrd_addr0_o  => regrd_addr0,
         regrd_addr1_o  => regrd_addr1,
@@ -230,15 +222,9 @@ begin
         rd_data_o    => csrrd_data
     );
 
-    func3_o        <= func3;
     rd_data0_o     <= regrd_data0;
     rd_data1_o     <= regrd_data1;
     csrrd_data_o   <= csrrd_data;
-    opd0_src_sel_o <= opd0_src_sel;
-    opd1_src_sel_o <= opd1_src_sel;
-    opd0_pass_o    <= opd0_pass;
-    opd1_pass_o    <= opd1_pass;
-    imm_o          <= imm;
 
     wfi_o       <= wfi;
     int_taken_o <= int_taken;
