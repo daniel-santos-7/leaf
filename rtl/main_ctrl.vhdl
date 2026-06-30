@@ -83,6 +83,7 @@ architecture rtl of main_ctrl is
     signal ebreak    : std_logic;
     signal mret      : std_logic;
     signal wfi       : std_logic;
+    signal trap_inhibit : std_logic;
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -114,11 +115,16 @@ begin
     mret   <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
     wfi    <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
 
+    -- Trap inhibit: gates control outputs when trap is taken (no instr_err to break loop)
+    trap_inhibit <= imrd_malgn_i or imrd_fault_i or
+                    dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i or
+                    ((ecall or ebreak) and valid_i) or int_taken;
+
     -- Decode process (opcode-based) --
 
-    main_ctrl_proc: process(opcode, instr_i, valid_i)
+    main_ctrl_proc: process(opcode, instr_i, valid_i, mret, trap_inhibit)
     begin
-        if valid_i = '0' then
+        if valid_i = '0' or trap_inhibit = '1' or mret = '1' then
             dmls_ctrl_o    <= DMLS_IDLE;
             instr_err      <= '0';
             imm_type       <= (others => '-');
@@ -354,9 +360,7 @@ begin
     tmi_taken     <= mie_mtie_i and mip_mtip_i;
     swi_taken     <= mie_msie_i and mip_msip_i;
     int_taken     <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_i;
-    exc_taken     <= imrd_malgn_i or imrd_fault_i or instr_err or
-                     dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i or
-                     ((ecall or ebreak) and valid_i) or int_taken;
+    exc_taken     <= trap_inhibit or instr_err;
     exc_taken_o   <= exc_taken;
     exi_taken_o   <= exi_taken;
     tmi_taken_o   <= tmi_taken;
