@@ -1,10 +1,3 @@
-----------------------------------------------------------------------
--- Leaf project
--- developed by: Daniel Santos
--- module: cpu core
--- 2026
-----------------------------------------------------------------------
-
 library IEEE;
 use IEEE.std_logic_1164.all;
 use work.leaf_pkg.all;
@@ -49,47 +42,44 @@ end entity core;
 
 architecture rtl of core is
 
-    -- internal signals --
-
     signal ex_ready            : std_logic;
     signal id_ready            : std_logic;
     signal ex_taken            : std_logic;
     signal ex_target           : std_logic_vector(XLEN-1 downto 0);
 
-    -- IF stage combinatorial outputs (before pipeline register)
+    -- IF stage outputs
     signal if_pc      : std_logic_vector(XLEN-1 downto 2);
     signal if_next_pc : std_logic_vector(XLEN-1 downto 2);
     signal if_instr   : std_logic_vector(XLEN-1 downto 0);
     signal if_imrd_fault : std_logic;
     signal if_valid   : std_logic;
 
-    signal id_pc_full : std_logic_vector(XLEN-1 downto 0);
-    signal id_func3      : std_logic_vector(2  downto 0);
-    signal id_branch_op  : std_logic_vector(1  downto 0);
-    signal id_alu_op     : std_logic_vector(5  downto 0);
-    signal id_dmls_ctrl  : std_logic_vector(1  downto 0);
+    -- ID stage -> EX stage (pipeline register inside id_stage)
+    signal ex_func3       : std_logic_vector(2  downto 0);
+    signal ex_branch_op   : std_logic_vector(1  downto 0);
+    signal ex_alu_op      : std_logic_vector(5  downto 0);
+    signal ex_dmls_ctrl   : std_logic_vector(1  downto 0);
+    signal ex_trap_taken  : std_logic;
+    signal ex_trap_target : std_logic_vector(XLEN-1 downto 0);
+    signal ex_rd0         : std_logic_vector(XLEN-1 downto 0);
+    signal ex_rd1         : std_logic_vector(XLEN-1 downto 0);
+    signal ex_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
+    signal ex_imm         : std_logic_vector(XLEN-1 downto 0);
+    signal ex_opd0_src_sel : std_logic;
+    signal ex_opd1_src_sel : std_logic;
+    signal ex_opd0_pass    : std_logic;
+    signal ex_opd1_pass    : std_logic;
+    signal ex_pc_full     : std_logic_vector(XLEN-1 downto 0);
 
-    signal id_trap_taken  : std_logic;
-    signal id_trap_target : std_logic_vector(XLEN-1 downto 0);
-
-    signal id_rd0      : std_logic_vector(XLEN-1 downto 0);
-    signal id_rd1      : std_logic_vector(XLEN-1 downto 0);
-    signal ex_res      : std_logic_vector(XLEN-1 downto 0);
-    signal ex_dmld_data : std_logic_vector(XLEN-1 downto 0);
-
-    signal ex_imrd_malgn : std_logic;
-    signal ex_dmld_malgn : std_logic;
-    signal ex_dmld_fault : std_logic;
-    signal ex_dmst_malgn : std_logic;
-    signal ex_dmst_fault : std_logic;
-
-    signal id_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
-    signal id_imm         : std_logic_vector(XLEN-1 downto 0);
+    -- EX block outputs (loop back to ID stage)
+    signal ex_res         : std_logic_vector(XLEN-1 downto 0);
+    signal ex_dmld_data   : std_logic_vector(XLEN-1 downto 0);
+    signal ex_imrd_malgn  : std_logic;
+    signal ex_dmld_malgn  : std_logic;
+    signal ex_dmld_fault  : std_logic;
+    signal ex_dmst_malgn  : std_logic;
+    signal ex_dmst_fault  : std_logic;
     signal ex_csrwr_data  : std_logic_vector(XLEN-1 downto 0);
-    signal id_opd0_src_sel : std_logic;
-    signal id_opd1_src_sel : std_logic;
-    signal id_opd0_pass    : std_logic;
-    signal id_opd1_pass    : std_logic;
 
 begin
 
@@ -117,67 +107,69 @@ begin
         retire_o     => retire_o
     );
 
-    -- instruction decode and execute stage --
+    -- instruction decode stage (contains pipeline register internally) --
 
     core_id_stage: id_stage generic map (
         REG_FILE_SIZE => REG_FILE_SIZE,
         CSRS_MHART_ID => CSRS_MHART_ID
     ) port map (
-        clk_i         => clk_i,
-        reset_i       => reset_i,
-        ex_irq_i      => ex_irq_i,
-        sw_irq_i      => sw_irq_i,
-        tm_irq_i      => tm_irq_i,
-        imrd_malgn_i  => ex_imrd_malgn,
-        dmld_malgn_i  => ex_dmld_malgn,
-        dmld_fault_i  => ex_dmld_fault,
-        dmst_malgn_i  => ex_dmst_malgn,
-        dmst_fault_i  => ex_dmst_fault,
-        cycle_i       => cycle_i,
-        timer_i       => timer_i,
-        instret_i     => instret_i,
-        exec_res_i    => ex_res,
-        dmld_data_i   => ex_dmld_data,
-        pc_i          => if_pc,
-        next_pc_i     => if_next_pc,
-        instr_i       => if_instr,
-        fault_i       => if_imrd_fault,
-        valid_i       => if_valid,
-        func3_o       => id_func3,
-        branch_op_o   => id_branch_op,
-        alu_op_o      => id_alu_op,
-        dmls_ctrl_o   => id_dmls_ctrl,
-        cop_dat_i     => cop_dat_i,
-        cop_adr_o     => cop_adr_o,
-        cop_dat_o     => cop_dat_o,
-        cop_we_o      => cop_we_o,
-        trap_taken_o  => id_trap_taken,
-        trap_target_o => id_trap_target,
-        rd_data0_o    => id_rd0,
-        rd_data1_o    => id_rd1,
-        csrrd_data_o  => id_csrrd_data,
-        imm_o         => id_imm,
-        csrwr_data_i  => ex_csrwr_data,
-        opd0_src_sel_o => id_opd0_src_sel,
-        opd1_src_sel_o => id_opd1_src_sel,
-        opd0_pass_o    => id_opd0_pass,
-        opd1_pass_o    => id_opd1_pass,
-        pc_full_o     => id_pc_full,
-        ready_i       => ex_ready,
-        ready_o       => id_ready
+        clk_i          => clk_i,
+        reset_i        => reset_i,
+        ex_irq_i       => ex_irq_i,
+        sw_irq_i       => sw_irq_i,
+        tm_irq_i       => tm_irq_i,
+        imrd_malgn_i   => ex_imrd_malgn,
+        dmld_malgn_i   => ex_dmld_malgn,
+        dmld_fault_i   => ex_dmld_fault,
+        dmst_malgn_i   => ex_dmst_malgn,
+        dmst_fault_i   => ex_dmst_fault,
+        cycle_i        => cycle_i,
+        timer_i        => timer_i,
+        instret_i      => instret_i,
+        exec_res_i     => ex_res,
+        dmld_data_i    => ex_dmld_data,
+        pc_i           => if_pc,
+        next_pc_i      => if_next_pc,
+        instr_i        => if_instr,
+        fault_i        => if_imrd_fault,
+        valid_i        => if_valid,
+        cop_dat_i      => cop_dat_i,
+        cop_adr_o      => cop_adr_o,
+        cop_dat_o      => cop_dat_o,
+        cop_we_o       => cop_we_o,
+        csr_wr_data_i  => ex_csrwr_data,
+        ready_i        => ex_ready,
+        ready_o        => id_ready,
+        func3_o        => ex_func3,
+        branch_op_o    => ex_branch_op,
+        alu_op_o       => ex_alu_op,
+        dmls_ctrl_o    => ex_dmls_ctrl,
+        trap_taken_o   => ex_trap_taken,
+        trap_target_o  => ex_trap_target,
+        rd_data0_o     => ex_rd0,
+        rd_data1_o     => ex_rd1,
+        csrrd_data_o   => ex_csrrd_data,
+        imm_o          => ex_imm,
+        opd0_src_sel_o => ex_opd0_src_sel,
+        opd1_src_sel_o => ex_opd1_src_sel,
+        opd0_pass_o    => ex_opd0_pass,
+        opd1_pass_o    => ex_opd1_pass,
+        pc_full_o      => ex_pc_full
     );
+
+    -- execute stage --
 
     core_ex_block: ex_block port map (
         clk_i          => clk_i,
         reset_i        => reset_i,
-        trap_taken_i   => id_trap_taken,
-        trap_target_i  => id_trap_target,
-        func3_i        => id_func3,
-        reg0_i         => id_rd0,
-        reg1_i         => id_rd1,
-        branch_op_i    => id_branch_op,
-        alu_op_i       => id_alu_op,
-        dmls_ctrl_i    => id_dmls_ctrl,
+        trap_taken_i   => ex_trap_taken,
+        trap_target_i  => ex_trap_target,
+        func3_i        => ex_func3,
+        reg0_i         => ex_rd0,
+        reg1_i         => ex_rd1,
+        branch_op_i    => ex_branch_op,
+        alu_op_i       => ex_alu_op,
+        dmls_ctrl_i    => ex_dmls_ctrl,
         data_dat_i     => data_dat_i,
         data_ack_i     => data_ack_i,
         data_err_i     => data_err_i,
@@ -196,15 +188,15 @@ begin
         taken_o        => ex_taken,
         target_o       => ex_target,
         res_o          => ex_res,
-        csrrd_data_i   => id_csrrd_data,
-        immwr_data_i   => id_imm,
+        csrrd_data_i   => ex_csrrd_data,
+        immwr_data_i   => ex_imm,
         csrwr_data_o   => ex_csrwr_data,
         ready_o        => ex_ready,
-        pc_i           => id_pc_full,
-        opd0_src_sel_i => id_opd0_src_sel,
-        opd1_src_sel_i => id_opd1_src_sel,
-        opd0_pass_i    => id_opd0_pass,
-        opd1_pass_i    => id_opd1_pass,
+        pc_i           => ex_pc_full,
+        opd0_src_sel_i => ex_opd0_src_sel,
+        opd1_src_sel_i => ex_opd1_src_sel,
+        opd0_pass_i    => ex_opd0_pass,
+        opd1_pass_i    => ex_opd1_pass,
         valid_i        => if_valid
     );
 
