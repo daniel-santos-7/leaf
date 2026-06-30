@@ -21,7 +21,8 @@ entity alu is
         opd0_pass_i    : in  std_logic;
         opd1_pass_i    : in  std_logic;
         op_i           : in  std_logic_vector(5        downto 0);
-        res_o          : out std_logic_vector(XLEN-1 downto 0)
+        res_o          : out std_logic_vector(XLEN-1 downto 0);
+        arith_res_o    : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity alu;
 
@@ -152,6 +153,7 @@ begin
         end case;
     end process shifter;
 
-    res_o <= shifter_res;
+    res_o       <= shifter_res;
+    arith_res_o <= arith_res;
 
 end architecture alu_arch;

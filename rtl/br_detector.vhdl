@@ -17,7 +17,7 @@ entity br_detector is
         mode_i       : in  std_logic_vector(2           downto 0);
         en_i         : in  std_logic;
         jmp_i        : in  std_logic;
-        alu_res_i    : in  std_logic_vector(XLEN-1 downto 0);
+        arith_res_i    : in  std_logic_vector(XLEN-1 downto 0);
         trap_taken_i : in  std_logic;
         trap_target_i: in  std_logic_vector(XLEN-1 downto 0);
         branch_o     : out std_logic;
@@ -58,10 +58,10 @@ begin
         end case;
     end process exec;
 
-    imrd_malgn_o <= alu_res_i(1) and ((branch_i and en_i) or jmp_i);
+    imrd_malgn_o <= arith_res_i(1) and ((branch_i and en_i) or jmp_i);
 
     taken_int   <= (branch_i and en_i) or jmp_i or trap_taken_i;
-    target_int  <= trap_target_i when trap_taken_i = '1' else alu_res_i(XLEN-1 downto 1) & b"0";
+    target_int  <= trap_target_i when trap_taken_i = '1' else arith_res_i(XLEN-1 downto 1) & b"0";
 
     branch_o <= branch_i and en_i;
     taken_o  <= taken_int;

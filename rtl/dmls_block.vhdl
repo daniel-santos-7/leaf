@@ -17,7 +17,7 @@ entity dmls_block is
         dmls_ctrl_i  : in  std_logic_vector(1           downto 0);
         dmls_dtype_i : in  std_logic_vector(2           downto 0);
         dmst_data_i  : in  std_logic_vector(XLEN-1      downto 0);
-        dmls_addr_i  : in  std_logic_vector(XLEN-1      downto 0);
+        arith_res_i  : in  std_logic_vector(XLEN-1      downto 0);
         data_dat_i  : in  std_logic_vector(XLEN-1      downto 0);
         data_ack_i  : in  std_logic;
         data_err_i  : in  std_logic;
@@ -66,8 +66,8 @@ begin
     dmem_rd <= dmls_ctrl_i(0);
     dmem_wr <= dmls_ctrl_i(1);
 
-    addr_base    <= data_adr_reg(1 downto 0) when state /= IDLE else dmls_addr_i(1 downto 0);
-    addr_base_wr <= dmls_addr_i(1 downto 0);
+    addr_base    <= data_adr_reg(1 downto 0) when state /= IDLE else arith_res_i(1 downto 0);
+    addr_base_wr <= arith_res_i(1 downto 0);
 
     read_dmem: process(dmem_rd, dmls_dtype_i, data_dat_i, addr_base)
     begin
@@ -252,7 +252,7 @@ begin
                         if dmwr_en = '1' or dmrd_en = '1' then
                             state        <= BUSY;
                             data_we_reg  <= dmwr_en;
-                            data_adr_reg <= dmls_addr_i;
+                            data_adr_reg <= arith_res_i;
                             data_dat_reg <= data_dat_int;
                             data_sel_reg <= data_sel_int;
                         end if;
