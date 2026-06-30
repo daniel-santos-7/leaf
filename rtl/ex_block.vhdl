@@ -55,7 +55,8 @@ end entity ex_block;
 
 architecture ex_block_arch of ex_block is
 
-    signal alu_res  : std_logic_vector(XLEN-1 downto 0);
+    signal alu_res       : std_logic_vector(XLEN-1 downto 0);
+    signal alu_arith_res : std_logic_vector(XLEN-1 downto 0);
 
     signal dmls_ready : std_logic;
 
@@ -78,7 +79,8 @@ begin
         opd0_pass_i    => opd0_pass_i,
         opd1_pass_i    => opd1_pass_i,
         op_i           => alu_op_i,
-        res_o          => alu_res
+        res_o          => alu_res,
+        arith_res_o    => alu_arith_res
     );
 
     exec_br_detector: entity work.br_detector port map (
@@ -87,7 +89,7 @@ begin
         mode_i        => func3_i,
         en_i          => branch_op_i(0),
         jmp_i         => branch_op_i(1),
-        alu_res_i     => alu_res,
+        arith_res_i   => alu_arith_res,
         trap_taken_i  => trap_taken_i,
         trap_target_i => trap_target_i,
         branch_o      => branch_o,
@@ -102,7 +104,7 @@ begin
         dmls_ctrl_i   => dmls_ctrl_i,
         dmls_dtype_i  => func3_i,
         dmst_data_i   => reg1_i,
-        dmls_addr_i   => alu_res,
+        arith_res_i   => alu_arith_res,
         data_dat_i    => data_dat_i,
         data_ack_i    => data_ack_i,
         data_err_i    => data_err_i,
