@@ -13,7 +13,7 @@ use std.textio.all;
 
 package leaf_tb_pkg is
 
-    constant CLK_PERIOD: time := 20 ns;
+    constant CLK_PERIOD: time := 10 ns;
 
     -- Reset address = 0x80000000 --
     constant RESET_ADDR : std_logic_vector(31 downto 0) := x"80000000";
