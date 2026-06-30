@@ -152,8 +152,6 @@ begin
 
     -- Combinatorial decode signals
     id_pc_full     <= pc_full;
-    id_trap_taken  <= exc_taken or mret;
-    id_trap_target <= mepc & b"00" when mret = '1' else mtvec_base & b"00";
 
     -- Exception inhibit: suppress write-back when an EX-stage exception fires
     exc_inhibit <= imrd_malgn_i or fault_i or dmld_malgn_i or
