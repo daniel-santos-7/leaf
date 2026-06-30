@@ -20,8 +20,8 @@ entity if_stage is
         ready_i      : in  std_logic;
         inst_ack_i   : in  std_logic;
         inst_err_i   : in  std_logic;
-        taken_i  : in  std_logic;
-        target_i : in  std_logic_vector(XLEN-1 downto 0);
+        taken_i      : in  std_logic;
+        target_i     : in  std_logic_vector(XLEN-1 downto 0);
         inst_dat_i   : in  std_logic_vector(XLEN-1 downto 0);
         inst_err_o   : out std_logic;
         inst_cyc_o   : out std_logic;
@@ -37,7 +37,7 @@ end entity if_stage;
 
 architecture rtl of if_stage is
 
-    type fetch_state is (FETCH, DONE, ERROR);
+    type fetch_state is (FETCH, DONE, HOLD, ERROR);
     
     signal state : fetch_state;
 
@@ -75,6 +75,13 @@ begin
                         end if;
                     when DONE =>
                         if ready_i = '1' then
+                            state        <= HOLD;
+                            req_reg      <= '0';
+                            valid_reg    <= '0';
+                            inst_err_reg <= '0';
+                        end if;
+                    when HOLD =>
+                        if ready_i = '1' then
                             state        <= FETCH;
                             req_reg      <= '1';
                             valid_reg    <= '0';
@@ -108,7 +115,7 @@ begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 pc_reg <= RESET_ADDR(XLEN-1 downto 2);
-            elsif ready_i = '1' and valid_reg = '1' then
+            elsif state = HOLD and ready_i = '1' then
                 if taken_i = '1' then
                     pc_reg <= target_i(XLEN-1 downto 2);
                 else
@@ -123,7 +130,7 @@ begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 next_pc_reg <= RESET_ADDR(XLEN-1 downto 2);
-            elsif ready_i = '1' and valid_reg = '1' and taken_i = '1' then
+            elsif state = HOLD and ready_i = '1' and taken_i = '1' then
                 next_pc_reg <= target_i(XLEN-1 downto 2);
             elsif state = FETCH and (inst_ack_i = '1' or inst_err_i = '1') then
                 next_pc_reg <= next_pc;

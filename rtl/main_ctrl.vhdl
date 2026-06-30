@@ -343,7 +343,7 @@ begin
 
     -- Outputs --
     func3_o       <= instr_i(14 downto 12);
-    regwr_en_o    <= regwr_en and not (imrd_malgn_i or dmld_malgn_i or dmld_fault_i);
+    regwr_en_o    <= regwr_en;
     regwr_addr_o  <= instr_i(11 downto  7);
     regrd_addr0_o <= instr_i(19 downto 15);
     regrd_addr1_o <= instr_i(24 downto 20);

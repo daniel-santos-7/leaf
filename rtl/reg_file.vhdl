@@ -75,8 +75,10 @@ begin
             end if;
         end process write_reg;
 
-        rd_data0_o <= regs(to_uint(rd_addr0_i));
-        rd_data1_o <= regs(to_uint(rd_addr1_i));
+        rd_data0_o <= wr_data when (we_i = '1' and wr_addr_i = rd_addr0_i and rd_addr0_i /= X0_ADDR)
+                      else regs(to_uint(rd_addr0_i));
+        rd_data1_o <= wr_data when (we_i = '1' and wr_addr_i = rd_addr1_i and rd_addr1_i /= X0_ADDR)
+                      else regs(to_uint(rd_addr1_i));
     end generate large_reg_file;
 
     small_reg_file: if (EMBEDDED = true) generate
@@ -92,8 +94,10 @@ begin
             end if;
         end process write_reg;
 
-        rd_data0_o <= regs(to_uint(rd_addr0_i(3 downto 0)));
-        rd_data1_o <= regs(to_uint(rd_addr1_i(3 downto 0)));
+        rd_data0_o <= wr_data when (we_i = '1' and wr_addr_i(3 downto 0) = rd_addr0_i(3 downto 0) and rd_addr0_i(3 downto 0) /= "0000")
+                      else regs(to_uint(rd_addr0_i(3 downto 0)));
+        rd_data1_o <= wr_data when (we_i = '1' and wr_addr_i(3 downto 0) = rd_addr1_i(3 downto 0) and rd_addr1_i(3 downto 0) /= "0000")
+                      else regs(to_uint(rd_addr1_i(3 downto 0)));
     end generate small_reg_file;
 
 end architecture reg_file_arch;
