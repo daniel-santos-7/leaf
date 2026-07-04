@@ -281,15 +281,15 @@ begin
         end if;
     end process write_mip;
 
-    mie_meie_o    <= mie_meie;
-    mie_mtie_o    <= mie_mtie;
-    mie_msie_o    <= mie_msie;
-    mstatus_mie_o <= mstatus_mie;
+    mie_meie_o    <= wr_data_i(11) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_meie;
+    mie_mtie_o    <= wr_data_i(7)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_mtie;
+    mie_msie_o    <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_msie;
+    mstatus_mie_o <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MSTATUS) else mstatus_mie;
     mip_meip_o    <= mip_meip;
     mip_mtip_o    <= mip_mtip;
     mip_msip_o    <= mip_msip;
-    mepc_o        <= mepc;
-    mtvec_base_o  <= mtvec_base;
+    mepc_o        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC) else mepc;
+    mtvec_base_o  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
     cop_we_o      <= wr_en_i and cop_sel;
     cop_adr_o     <= rw_addr_i(5 downto 0); -- read address (ID-stage CSR address)
     cop_dat_o     <= wr_data_i;

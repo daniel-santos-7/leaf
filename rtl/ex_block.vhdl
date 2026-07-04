@@ -13,8 +13,10 @@ entity ex_block is
     port (
         clk_i         : in  std_logic;
         reset_i       : in  std_logic;
-        trap_taken_i  : in  std_logic;
-        trap_target_i : in  std_logic_vector(XLEN-1 downto 0);
+        exc_taken_i   : in  std_logic;
+        mret_i        : in  std_logic;
+        mepc_i        : in  std_logic_vector(XLEN-1 downto 2);
+        mtvec_base_i  : in  std_logic_vector(XLEN-1 downto 2);
         func3_i       : in  std_logic_vector(2  downto 0);
         reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
@@ -29,6 +31,7 @@ entity ex_block is
         data_dat_i   : in  std_logic_vector(XLEN-1 downto 0);
         data_ack_i   : in  std_logic;
         data_err_i   : in  std_logic;
+        data_stall_i : in  std_logic;
         csrrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
         immwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
         csrwr_data_o  : out std_logic_vector(XLEN-1 downto 0);
@@ -49,7 +52,13 @@ entity ex_block is
         ready_o       : out std_logic;
         branch_o      : out std_logic;
         res_o         : out std_logic_vector(XLEN-1 downto 0);
-        valid_i       : in  std_logic
+        valid_i       : in  std_logic;
+        fault_i       : in  std_logic;
+        regwr_en_i    : in  std_logic;
+        csrwr_en_i    : in  std_logic;
+        exc_fault_o   : out std_logic;
+        rf_we_o       : out std_logic;
+        csr_we_o      : out std_logic
     );
 end entity ex_block;
 
@@ -66,6 +75,18 @@ architecture ex_block_arch of ex_block is
     signal dmls_dat : std_logic_vector(XLEN-1 downto 0);
     signal dmls_sel : std_logic_vector(3 downto 0);
     signal dmls_we  : std_logic;
+
+    signal imrd_malgn_int  : std_logic;
+    signal dmld_malgn_int  : std_logic;
+    signal dmld_fault_int  : std_logic;
+    signal dmst_malgn_int  : std_logic;
+    signal dmst_fault_int  : std_logic;
+
+    signal ex_trap_taken  : std_logic;
+    signal ex_trap_target : std_logic_vector(XLEN-1 downto 0);
+
+    signal exc_fault      : std_logic;
+    signal exc_inhibit    : std_logic;
 
 begin
 
@@ -90,12 +111,12 @@ begin
         en_i          => branch_op_i(0),
         jmp_i         => branch_op_i(1),
         arith_res_i   => alu_arith_res,
-        trap_taken_i  => trap_taken_i,
-        trap_target_i => trap_target_i,
+        trap_taken_i  => ex_trap_taken,
+        trap_target_i => ex_trap_target,
         branch_o      => branch_o,
         taken_o       => taken_o,
         target_o      => target_o,
-        imrd_malgn_o  => imrd_malgn_o
+        imrd_malgn_o  => imrd_malgn_int
     );
 
     exec_dmls_block: dmls_block port map (
@@ -108,6 +129,7 @@ begin
         data_dat_i    => data_dat_i,
         data_ack_i    => data_ack_i,
         data_err_i    => data_err_i,
+        data_stall_i  => data_stall_i,
         data_cyc_o    => dmls_cyc,
         data_stb_o    => dmls_stb,
         data_dat_o    => dmls_dat,
@@ -115,10 +137,10 @@ begin
         data_sel_o    => dmls_sel,
         data_we_o     => dmls_we,
         dmls_ready_o  => dmls_ready,
-        dmld_malgn_o  => dmld_malgn_o,
-        dmld_fault_o  => dmld_fault_o,
-        dmst_malgn_o  => dmst_malgn_o,
-        dmst_fault_o  => dmst_fault_o,
+        dmld_malgn_o  => dmld_malgn_int,
+        dmld_fault_o  => dmld_fault_int,
+        dmst_malgn_o  => dmst_malgn_int,
+        dmst_fault_o  => dmst_fault_int,
         dmld_data_o   => dmld_data_o
     );
 
@@ -129,6 +151,26 @@ begin
         immwr_data_i => immwr_data_i,
         csrwr_data_o => csrwr_data_o
     );
+
+    imrd_malgn_o <= imrd_malgn_int;
+    dmld_malgn_o <= dmld_malgn_int;
+    dmld_fault_o <= dmld_fault_int;
+    dmst_malgn_o <= dmst_malgn_int;
+    dmst_fault_o <= dmst_fault_int;
+
+    -- EX-stage faults (for pipeline reg suppression, write-back inhibit, and CSR update)
+    exc_fault       <= imrd_malgn_int or dmld_malgn_int or dmld_fault_int or dmst_malgn_int or dmst_fault_int;
+
+    -- Exception inhibit: suppress write-back when an EX-stage exception fires
+    exc_inhibit <= exc_fault or fault_i;
+    rf_we_o      <= regwr_en_i and not exc_inhibit;
+    csr_we_o     <= csrwr_en_i and not exc_inhibit;
+    exc_fault_o  <= exc_fault;
+
+    ex_trap_taken  <= exc_taken_i or mret_i or
+                      imrd_malgn_int or dmld_malgn_int or dmst_malgn_int or
+                      dmld_fault_int or dmst_fault_int;
+    ex_trap_target <= mepc_i & b"00" when mret_i = '1' else mtvec_base_i & b"00";
 
     data_cyc_o <= dmls_cyc;
     data_stb_o <= dmls_stb;

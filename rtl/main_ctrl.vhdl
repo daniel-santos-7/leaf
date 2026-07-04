@@ -12,12 +12,7 @@ use work.leaf_pkg.all;
 
 entity main_ctrl is
     port (
-        imrd_malgn_i   : in  std_logic;
         imrd_fault_i   : in  std_logic;
-        dmld_malgn_i   : in  std_logic;
-        dmld_fault_i   : in  std_logic;
-        dmst_malgn_i   : in  std_logic;
-        dmst_fault_i   : in  std_logic;
         instr_i        : in  std_logic_vector(XLEN-1 downto 0);
         valid_i        : in  std_logic;
         mip_meip_i     : in  std_logic;
@@ -52,13 +47,11 @@ entity main_ctrl is
         csrs_addr_o    : out std_logic_vector(11 downto 0);
         ready_i        : in  std_logic;
         ready_o        : out std_logic;
-        exc_taken_o   : out std_logic;
-        int_taken_o   : out std_logic;
-        exi_taken_o   : out std_logic;
-        tmi_taken_o   : out std_logic;
-        swi_taken_o   : out std_logic;
-        trap_taken_o   : out std_logic;
-        trap_target_o  : out std_logic_vector(XLEN-1 downto 0)
+            exc_taken_o   : out std_logic;
+            int_taken_o   : out std_logic;
+            exi_taken_o   : out std_logic;
+            tmi_taken_o   : out std_logic;
+            swi_taken_o   : out std_logic
     );
 end entity main_ctrl;
 
@@ -107,18 +100,6 @@ begin
             when others     => imm_o <= (XLEN-1 downto 0 => '-');
         end case;
     end process gen;
-
-    -- system instruction decode
-
-    ecall  <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"000" else '0';
-    ebreak <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"001" else '0';
-    mret   <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
-    wfi    <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
-
-    -- Trap inhibit: gates control outputs when trap is taken (no instr_err to break loop)
-    trap_inhibit <= imrd_malgn_i or imrd_fault_i or
-                    dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i or
-                    ((ecall or ebreak) and valid_i) or int_taken;
 
     -- Decode process (opcode-based) --
 
@@ -356,18 +337,26 @@ begin
     csrs_addr_o   <= instr_i(31 downto 20);
 
     -- Trap logic --
+    -- system instruction decode
+
+    ecall  <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"000" else '0';
+    ebreak <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"001" else '0';
+    mret   <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
+    wfi    <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
+
+    -- Trap inhibit: gates control outputs when trap is taken (no instr_err to break loop)
+    trap_inhibit <= imrd_fault_i or ((ecall or ebreak) and valid_i) or int_taken;
+    exc_taken     <= trap_inhibit or instr_err;
     exi_taken     <= mie_meie_i and mip_meip_i;
     tmi_taken     <= mie_mtie_i and mip_mtip_i;
     swi_taken     <= mie_msie_i and mip_msip_i;
     int_taken     <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_i;
-    exc_taken     <= trap_inhibit or instr_err;
+
     exc_taken_o   <= exc_taken;
     exi_taken_o   <= exi_taken;
     tmi_taken_o   <= tmi_taken;
     swi_taken_o   <= swi_taken;
     int_taken_o   <= int_taken;
-    trap_taken_o  <= exc_taken or mret;
-    trap_target_o <= mepc_i & b"00" when mret = '1' else mtvec_base_i & b"00";
 
     -- Output port assignments from internal signals --
     instr_err_o   <= instr_err;
