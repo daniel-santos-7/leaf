@@ -21,6 +21,7 @@ entity dmls_block is
         data_dat_i  : in  std_logic_vector(XLEN-1      downto 0);
         data_ack_i  : in  std_logic;
         data_err_i  : in  std_logic;
+        data_stall_i : in  std_logic;
         data_cyc_o   : out std_logic;
         data_stb_o   : out std_logic;
         dmld_malgn_o : out std_logic;
@@ -38,8 +39,11 @@ end entity dmls_block;
 
 architecture dmls_block_arch of dmls_block is
 
-    type state_t is (IDLE, BUSY, DONE);
+    type state_t is (IDLE, REQUEST, WACCESS, DONE);
     signal state : state_t;
+
+    signal cyc_reg : std_logic;
+    signal stb_reg : std_logic;
 
     signal dmem_rd : std_logic;
     signal dmem_wr : std_logic;
@@ -241,6 +245,8 @@ begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 state         <= IDLE;
+                cyc_reg       <= '0';
+                stb_reg       <= '0';
                 data_we_reg   <= '0';
                 data_dat_reg  <= (others => '0');
                 data_adr_reg  <= (others => '0');
@@ -250,15 +256,35 @@ begin
                 case state is
                     when IDLE =>
                         if dmwr_en = '1' or dmrd_en = '1' then
-                            state        <= BUSY;
+                            state        <= REQUEST;
+                            cyc_reg      <= '1';
+                            stb_reg      <= '1';
                             data_we_reg  <= dmwr_en;
                             data_adr_reg <= arith_res_i;
                             data_dat_reg <= data_dat_int;
                             data_sel_reg <= data_sel_int;
                         end if;
-                    when BUSY =>
-                        if data_ack_i = '1' or data_err_i = '1' then
+                    when REQUEST =>
+                        if data_ack_i = '1' then
                             state         <= DONE;
+                            cyc_reg       <= '0';
+                            stb_reg       <= '0';
+                            dmld_data_reg <= dmld_data_comb;
+                        elsif data_stall_i = '0' then
+                            state <= WACCESS;
+                            cyc_reg <= '1';
+                            stb_reg <= '0';
+                        end if;
+                    when WACCESS =>
+                        if data_ack_i = '1' then
+                            state         <= DONE;
+                            cyc_reg       <= '0';
+                            stb_reg       <= '0';
+                            dmld_data_reg <= dmld_data_comb;
+                        elsif data_err_i = '1' then
+                            state         <= DONE;
+                            cyc_reg       <= '0';
+                            stb_reg       <= '0';
                             dmld_data_reg <= dmld_data_comb;
                         end if;
                     when DONE =>
@@ -271,8 +297,8 @@ begin
     dmld_fault_o <= data_err_i and dmem_rd;
     dmst_fault_o <= data_err_i and dmem_wr;
 
-    data_cyc_o   <= '1' when state = BUSY else '0';
-    data_stb_o   <= '1' when state = BUSY else '0';
+    data_cyc_o   <= cyc_reg;
+    data_stb_o   <= stb_reg;
     data_we_o    <= data_we_reg;
     data_dat_o   <= data_dat_reg;
     data_sel_o   <= data_sel_reg;

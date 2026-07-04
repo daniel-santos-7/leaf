@@ -20,6 +20,7 @@ entity if_stage is
         ready_i      : in  std_logic;
         inst_ack_i   : in  std_logic;
         inst_err_i   : in  std_logic;
+        inst_stall_i : in  std_logic;
         taken_i      : in  std_logic;
         target_i     : in  std_logic_vector(XLEN-1 downto 0);
         inst_dat_i   : in  std_logic_vector(XLEN-1 downto 0);
@@ -37,17 +38,22 @@ end entity if_stage;
 
 architecture rtl of if_stage is
 
-    type fetch_state is (FETCH, DONE, HOLD, ERROR);
-    
+    type fetch_state is (REQUEST, WFETCH, IDLE);
+
     signal state : fetch_state;
 
-    signal req_reg      : std_logic;
+    signal cyc_reg      : std_logic;
+    signal stb_reg      : std_logic;
     signal valid_reg    : std_logic;
     signal inst_reg     : std_logic_vector(XLEN-1 downto 0);
     signal inst_err_reg : std_logic;
     signal pc_reg       : std_logic_vector(XLEN-1 downto 2);
-    signal next_pc_reg  : std_logic_vector(XLEN-1 downto 2);
-    signal next_pc      : std_logic_vector(XLEN-1 downto 2);
+    signal adr_reg      : std_logic_vector(XLEN-1 downto 2);
+    signal taken_reg    : std_logic;
+    signal target_reg   : std_logic_vector(XLEN-1 downto 2);
+    signal taken        : std_logic;
+    signal target       : std_logic_vector(XLEN-1 downto 2);
+    signal next_adr     : std_logic_vector(XLEN-1 downto 2);
 
 begin
 
@@ -55,99 +61,133 @@ begin
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
-                state        <= FETCH;
-                req_reg      <= '1';
-                valid_reg    <= '0';
-                inst_err_reg <= '0';
+                state   <= REQUEST;
+                cyc_reg <= '1';
+                stb_reg <= '1';
             else
                 case state is
-                    when FETCH =>
-                        if inst_ack_i = '1' then
-                            state        <= DONE;
-                            req_reg      <= '0';
-                            valid_reg    <= '1';
-                            inst_err_reg <= '0';
-                        elsif inst_err_i = '1' then
-                            state        <= ERROR;
-                            req_reg      <= '0';
-                            valid_reg    <= '1';
-                            inst_err_reg <= '1';
+                    when REQUEST =>
+                        if inst_ack_i = '1' or inst_err_i = '1' then
+                            if ready_i = '1' then
+                                state <= REQUEST;
+                            else
+                                state   <= IDLE;
+                                cyc_reg <= '0';
+                                stb_reg <= '0';
+                            end if;
+                        elsif inst_stall_i = '0' then
+                            state   <= WFETCH;
+                            stb_reg <= '0';
                         end if;
-                    when DONE =>
-                        if ready_i = '1' then
-                            state        <= HOLD;
-                            req_reg      <= '0';
-                            valid_reg    <= '0';
-                            inst_err_reg <= '0';
+                    when WFETCH =>
+                        if inst_ack_i = '1' or inst_err_i = '1' then
+                            if ready_i = '1' then
+                                state   <= REQUEST;
+                                stb_reg <= '1';
+                            else
+                                state   <= IDLE;
+                                cyc_reg <= '0';
+                                stb_reg <= '0';
+                            end if;
                         end if;
-                    when HOLD =>
+                    when IDLE =>
                         if ready_i = '1' then
-                            state        <= FETCH;
-                            req_reg      <= '1';
-                            valid_reg    <= '0';
-                            inst_err_reg <= '0';
-                        end if;
-                    when ERROR =>
-                        if ready_i = '1' then
-                            state        <= FETCH;
-                            req_reg      <= '1';
-                            valid_reg    <= '0';
-                            inst_err_reg <= '0';
+                            state   <= REQUEST;
+                            cyc_reg <= '1';
+                            stb_reg <= '1';
                         end if;
                 end case;
             end if;
         end if;
     end process fsm_proc;
 
-    inst_reg_proc: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if reset_i = '1' then
-                inst_reg <= (others => '0');
-            elsif inst_ack_i = '1' and req_reg = '1' then
-                inst_reg <= inst_dat_i;
-            end if;
-        end if;
-    end process inst_reg_proc;
+    next_adr <= std_logic_vector(unsigned(adr_reg) + 1);
 
     pc_reg_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
-                pc_reg <= RESET_ADDR(XLEN-1 downto 2);
-            elsif state = HOLD and ready_i = '1' then
-                if taken_i = '1' then
-                    pc_reg <= target_i(XLEN-1 downto 2);
-                else
-                    pc_reg <= next_pc_reg;
-                end if;
+                pc_reg      <= (others => '0');
+                adr_reg <= RESET_ADDR(XLEN-1 downto 2);
+                inst_reg    <= (others => '0');
+                inst_err_reg <= '0';
+                valid_reg   <= '0';
+            else
+                case state is
+                    when REQUEST | WFETCH =>
+                        if inst_ack_i = '1' or inst_err_i = '1' then
+                            if ready_i = '1' then
+                                if taken = '1' then
+                                    pc_reg      <= adr_reg;
+                                    adr_reg <= target;
+                                    inst_reg    <= (others => '0');
+                                    inst_err_reg <= '0';
+                                    valid_reg    <= '0';
+                                else
+                                    pc_reg      <= adr_reg;
+                                    adr_reg <= next_adr;
+                                    inst_reg    <= inst_dat_i;
+                                    inst_err_reg <= inst_err_i;
+                                    valid_reg   <= '1';
+                                end if;
+                            else
+                                pc_reg       <= adr_reg;
+                                adr_reg  <= next_adr;
+                                inst_reg     <= inst_dat_i;
+                                inst_err_reg <= inst_err_i;
+                                valid_reg    <= '1';
+                            end if;
+                        else
+                            inst_reg     <= (others => '0');
+                            inst_err_reg <= '0';
+                            valid_reg    <= '0';
+                        end if;
+                    when IDLE =>
+                        if ready_i = '1' then
+                            if taken = '1' then
+                                pc_reg      <= adr_reg;
+                                adr_reg <= target;
+                            end if;
+                            inst_reg <= (others => '0');
+                            inst_err_reg <= '0';
+                            valid_reg   <= '0';
+                        end if;
+                end case;
             end if;
         end if;
     end process pc_reg_proc;
 
-    next_pc_reg_proc: process(clk_i)
+    taken_reg_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
-                next_pc_reg <= RESET_ADDR(XLEN-1 downto 2);
-            elsif state = HOLD and ready_i = '1' and taken_i = '1' then
-                next_pc_reg <= target_i(XLEN-1 downto 2);
-            elsif state = FETCH and (inst_ack_i = '1' or inst_err_i = '1') then
-                next_pc_reg <= next_pc;
+                taken_reg  <= '0';
+                target_reg <= (others => '0');
+            elsif (inst_ack_i = '1' or inst_err_i = '1') and ready_i = '1' then
+                taken_reg  <= '0';
+                target_reg <= (others => '0');
+            elsif state = IDLE and ready_i = '1' then
+                taken_reg  <= '0';
+                target_reg <= (others => '0');
+            elsif taken_i = '1' then
+                taken_reg  <= '1';
+                target_reg <= target_i(XLEN-1 downto 2);
             end if;
         end if;
-    end process next_pc_reg_proc;
+    end process taken_reg_proc;
 
-    -- Outputs --
-    next_pc     <= std_logic_vector(unsigned(pc_reg) + 1);
-    inst_adr_o  <= pc_reg;
-    inst_err_o  <= inst_err_reg;
-    inst_cyc_o  <= req_reg;
-    inst_stb_o  <= req_reg;
-    valid_o     <= valid_reg;
-    pc_o        <= pc_reg;
-    next_pc_o   <= next_pc;
-    inst_o      <= inst_reg;
-    retire_o    <= valid_reg and ready_i;
+    taken  <= taken_i or taken_reg;
+    target <= target_i(XLEN-1 downto 2) when taken_i = '1' else target_reg;
+
+    -- Output assignments --
+    inst_cyc_o <= cyc_reg;
+    inst_stb_o <= stb_reg;
+    inst_adr_o <= adr_reg;
+    valid_o    <= valid_reg;
+    pc_o       <= pc_reg;
+    next_pc_o  <= adr_reg;
+    inst_o     <= inst_reg;
+    inst_err_o <= inst_err_reg;
+    retire_o   <= valid_reg and ready_i;
 
 end architecture rtl;

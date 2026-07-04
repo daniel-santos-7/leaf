@@ -16,6 +16,7 @@ entity core is
         tm_irq_i    : in  std_logic;
         inst_err_i  : in  std_logic;
         inst_ack_i  : in  std_logic;
+        inst_stall_i : in  std_logic;
         inst_dat_i  : in  std_logic_vector(XLEN-1 downto 0);
         inst_cyc_o  : out std_logic;
         inst_stb_o  : out std_logic;
@@ -23,6 +24,7 @@ entity core is
         data_dat_i : in  std_logic_vector(XLEN-1 downto 0);
         data_ack_i : in  std_logic;
         data_err_i : in  std_logic;
+        data_stall_i : in  std_logic;
         cycle_i     : in  std_logic_vector(63 downto 0);
         timer_i     : in  std_logic_vector(63 downto 0);
         instret_i   : in  std_logic_vector(63 downto 0);
@@ -59,8 +61,10 @@ architecture rtl of core is
     signal ex_branch_op   : std_logic_vector(1  downto 0);
     signal ex_alu_op      : std_logic_vector(5  downto 0);
     signal ex_dmls_ctrl   : std_logic_vector(1  downto 0);
-    signal ex_trap_taken  : std_logic;
-    signal ex_trap_target : std_logic_vector(XLEN-1 downto 0);
+    signal ex_exc_taken   : std_logic;
+    signal ex_mret        : std_logic;
+    signal ex_mepc        : std_logic_vector(XLEN-1 downto 2);
+    signal ex_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
     signal ex_rd0         : std_logic_vector(XLEN-1 downto 0);
     signal ex_rd1         : std_logic_vector(XLEN-1 downto 0);
     signal ex_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
@@ -70,6 +74,8 @@ architecture rtl of core is
     signal ex_opd0_pass    : std_logic;
     signal ex_opd1_pass    : std_logic;
     signal ex_pc_full     : std_logic_vector(XLEN-1 downto 0);
+    signal ex_regwr_en    : std_logic;
+    signal ex_csrwr_en    : std_logic;
 
     -- EX block outputs (loop back to ID stage)
     signal ex_res         : std_logic_vector(XLEN-1 downto 0);
@@ -80,6 +86,9 @@ architecture rtl of core is
     signal ex_dmst_malgn  : std_logic;
     signal ex_dmst_fault  : std_logic;
     signal ex_csrwr_data  : std_logic_vector(XLEN-1 downto 0);
+    signal ex_exc_fault   : std_logic;
+    signal ex_rf_we       : std_logic;
+    signal ex_csr_we      : std_logic;
 
 begin
 
@@ -93,6 +102,7 @@ begin
         ready_i      => id_ready,
         inst_ack_i   => inst_ack_i,
         inst_err_i   => inst_err_i,
+        inst_stall_i => inst_stall_i,
         taken_i      => ex_taken,
         target_i     => ex_target,
         inst_dat_i   => inst_dat_i,
@@ -139,13 +149,18 @@ begin
         cop_we_o       => cop_we_o,
         csr_wr_data_i  => ex_csrwr_data,
         ready_i        => ex_ready,
+        exc_fault_i    => ex_exc_fault,
+        rf_we_i        => ex_rf_we,
+        csr_we_i       => ex_csr_we,
         ready_o        => id_ready,
         func3_o        => ex_func3,
         branch_op_o    => ex_branch_op,
         alu_op_o       => ex_alu_op,
         dmls_ctrl_o    => ex_dmls_ctrl,
-        trap_taken_o   => ex_trap_taken,
-        trap_target_o  => ex_trap_target,
+        exc_taken_o    => ex_exc_taken,
+        mret_o         => ex_mret,
+        mepc_o         => ex_mepc,
+        mtvec_base_o   => ex_mtvec_base,
         rd_data0_o     => ex_rd0,
         rd_data1_o     => ex_rd1,
         csrrd_data_o   => ex_csrrd_data,
@@ -154,7 +169,9 @@ begin
         opd1_src_sel_o => ex_opd1_src_sel,
         opd0_pass_o    => ex_opd0_pass,
         opd1_pass_o    => ex_opd1_pass,
-        pc_full_o      => ex_pc_full
+        pc_full_o      => ex_pc_full,
+        ex_regwr_en_o  => ex_regwr_en,
+        ex_csrwr_en_o  => ex_csrwr_en
     );
 
     -- execute stage --
@@ -162,8 +179,10 @@ begin
     core_ex_block: ex_block port map (
         clk_i          => clk_i,
         reset_i        => reset_i,
-        trap_taken_i   => ex_trap_taken,
-        trap_target_i  => ex_trap_target,
+        exc_taken_i    => ex_exc_taken,
+        mret_i         => ex_mret,
+        mepc_i         => ex_mepc,
+            mtvec_base_i   => ex_mtvec_base,
         func3_i        => ex_func3,
         reg0_i         => ex_rd0,
         reg1_i         => ex_rd1,
@@ -173,6 +192,7 @@ begin
         data_dat_i     => data_dat_i,
         data_ack_i     => data_ack_i,
         data_err_i     => data_err_i,
+        data_stall_i   => data_stall_i,
         imrd_malgn_o   => ex_imrd_malgn,
         dmld_malgn_o   => ex_dmld_malgn,
         dmld_fault_o   => ex_dmld_fault,
@@ -197,7 +217,13 @@ begin
         opd1_src_sel_i => ex_opd1_src_sel,
         opd0_pass_i    => ex_opd0_pass,
         opd1_pass_i    => ex_opd1_pass,
-        valid_i        => if_valid
+        valid_i        => if_valid,
+        fault_i        => if_imrd_fault,
+        regwr_en_i     => ex_regwr_en,
+        csrwr_en_i     => ex_csrwr_en,
+        exc_fault_o    => ex_exc_fault,
+        rf_we_o        => ex_rf_we,
+        csr_we_o       => ex_csr_we
     );
 
 end architecture rtl;

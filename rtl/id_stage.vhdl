@@ -34,14 +34,19 @@ entity id_stage is
         cop_we_o      : out std_logic;
         csr_wr_data_i : in  std_logic_vector(XLEN-1 downto 0);
         ready_i       : in  std_logic;
+        exc_fault_i   : in  std_logic;
+        rf_we_i       : in  std_logic;
+        csr_we_i      : in  std_logic;
         ready_o       : out std_logic;
-        func3_o       : out std_logic_vector(2  downto 0);
-        branch_op_o   : out std_logic_vector(1  downto 0);
-        alu_op_o      : out std_logic_vector(5  downto 0);
-        dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-        trap_taken_o  : out std_logic;
-        trap_target_o : out std_logic_vector(XLEN-1 downto 0);
-        rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
+            func3_o       : out std_logic_vector(2  downto 0);
+            branch_op_o   : out std_logic_vector(1  downto 0);
+            alu_op_o      : out std_logic_vector(5  downto 0);
+            dmls_ctrl_o   : out std_logic_vector(1  downto 0);
+            exc_taken_o   : out std_logic;
+            mret_o        : out std_logic;
+            mepc_o        : out std_logic_vector(XLEN-1 downto 2);
+            mtvec_base_o  : out std_logic_vector(XLEN-1 downto 2);
+            rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
         rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
         csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
@@ -49,7 +54,9 @@ entity id_stage is
         opd1_src_sel_o : out std_logic;
         opd0_pass_o    : out std_logic;
         opd1_pass_o    : out std_logic;
-        pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
+        pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
+        ex_regwr_en_o : out std_logic;
+        ex_csrwr_en_o : out std_logic
     );
 end entity id_stage;
 
@@ -58,8 +65,9 @@ architecture rtl of id_stage is
     signal instr_err : std_logic;
     signal ecall     : std_logic;
     signal ebreak    : std_logic;
-    signal mret      : std_logic;
-    signal wfi       : std_logic;
+    signal mret        : std_logic;
+    signal wfi         : std_logic;
+    signal csrs_exc_taken : std_logic;
 
     signal regrd_addr0 : std_logic_vector(4  downto 0);
     signal regrd_addr1 : std_logic_vector(4  downto 0);
@@ -87,8 +95,6 @@ architecture rtl of id_stage is
     signal id_branch_op   : std_logic_vector(1  downto 0);
     signal id_alu_op      : std_logic_vector(5  downto 0);
     signal id_dmls_ctrl   : std_logic_vector(1  downto 0);
-    signal id_trap_taken  : std_logic;
-    signal id_trap_target : std_logic_vector(XLEN-1 downto 0);
     signal id_rd0         : std_logic_vector(XLEN-1 downto 0);
     signal id_rd1         : std_logic_vector(XLEN-1 downto 0);
     signal id_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
@@ -110,8 +116,10 @@ architecture rtl of id_stage is
     signal ex_branch_op_reg   : std_logic_vector(1  downto 0);
     signal ex_alu_op_reg      : std_logic_vector(5  downto 0);
     signal ex_dmls_ctrl_reg   : std_logic_vector(1  downto 0);
-    signal ex_trap_taken_reg  : std_logic;
-    signal ex_trap_target_reg : std_logic_vector(XLEN-1 downto 0);
+    signal ex_exc_taken_reg   : std_logic;
+    signal ex_mret_reg        : std_logic;
+    signal ex_mepc_reg        : std_logic_vector(XLEN-1 downto 2);
+    signal ex_mtvec_base_reg  : std_logic_vector(XLEN-1 downto 2);
     signal ex_rd0_reg         : std_logic_vector(XLEN-1 downto 0);
     signal ex_rd1_reg         : std_logic_vector(XLEN-1 downto 0);
     signal ex_csrrd_data_reg  : std_logic_vector(XLEN-1 downto 0);
@@ -130,10 +138,6 @@ architecture rtl of id_stage is
 
     signal id_ready     : std_logic;
 
-    signal exc_inhibit  : std_logic;
-    signal rf_we_gated  : std_logic;
-    signal csr_we_gated : std_logic;
-
     signal cop_adr : std_logic_vector(5 downto 0);
     signal cop_dat : std_logic_vector(XLEN-1 downto 0);
     signal cop_we  : std_logic;
@@ -146,19 +150,8 @@ begin
     -- Combinatorial decode signals
     id_pc_full     <= pc_full;
 
-    -- Exception inhibit: suppress write-back when an EX-stage exception fires
-    exc_inhibit <= imrd_malgn_i or fault_i or dmld_malgn_i or
-                   dmld_fault_i or dmst_malgn_i or dmst_fault_i;
-    rf_we_gated  <= ex_regwr_en_reg and not exc_inhibit;
-    csr_we_gated <= ex_csrwr_en_reg and not exc_inhibit;
-
     id_stage_main_ctrl: main_ctrl port map (
-        imrd_malgn_i   => imrd_malgn_i,
         imrd_fault_i   => fault_i,
-        dmld_malgn_i   => dmld_malgn_i,
-        dmld_fault_i   => dmld_fault_i,
-        dmst_malgn_i   => dmst_malgn_i,
-        dmst_fault_i   => dmst_fault_i,
         instr_i        => instr_i,
         valid_i        => valid_i,
         mip_meip_i     => mip_meip,
@@ -197,16 +190,14 @@ begin
         int_taken_o    => int_taken,
         exi_taken_o    => exi_taken,
         tmi_taken_o    => tmi_taken,
-        swi_taken_o    => swi_taken,
-        trap_taken_o   => id_trap_taken,
-        trap_target_o  => id_trap_target
+        swi_taken_o    => swi_taken
     );
 
     id_stage_reg_file: reg_file generic map (
         SIZE => REG_FILE_SIZE
     ) port map (
         clk_i      => clk_i,
-        we_i       => rf_we_gated,
+        we_i       => rf_we_i,
         wr_sel_i   => ex_regwr_sel_reg,
         wr_addr_i  => ex_regwr_addr_reg,
         wr_data0_i => exec_res_i,
@@ -219,6 +210,8 @@ begin
         rd_data1_o => id_rd1
     );
 
+
+    csrs_exc_taken <= exc_taken or exc_fault_i;
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -239,12 +232,12 @@ begin
         ebreak_i     => ebreak,
         mret_i       => mret,
         wfi_i        => wfi,
-        exc_taken_i  => exc_taken,
+        exc_taken_i  => csrs_exc_taken,
         int_taken_i  => int_taken,
         exi_taken_i  => exi_taken,
         tmi_taken_i  => tmi_taken,
         swi_taken_i  => swi_taken,
-        wr_en_i      => csr_we_gated,
+        wr_en_i      => csr_we_i,
         wr_addr_i    => ex_csrs_addr_reg,
         rw_addr_i    => id_csrs_addr,
         wr_data_i    => csr_wr_data_i,
@@ -281,8 +274,10 @@ begin
                 ex_branch_op_reg    <= BR_NONE;
                 ex_alu_op_reg       <= (others => '0');
                 ex_dmls_ctrl_reg    <= DMLS_IDLE;
-                ex_trap_taken_reg   <= '0';
-                ex_trap_target_reg  <= (others => '0');
+                ex_exc_taken_reg    <= '0';
+                ex_mret_reg         <= '0';
+                ex_mepc_reg         <= (others => '0');
+                ex_mtvec_base_reg   <= (others => '0');
                 ex_rd0_reg          <= (others => '0');
                 ex_rd1_reg          <= (others => '0');
                 ex_csrrd_data_reg   <= (others => '0');
@@ -300,11 +295,11 @@ begin
                 ex_next_pc_full_reg <= (others => '0');
             elsif id_ready = '1' then
                 ex_func3_reg        <= id_func3;
-                ex_branch_op_reg    <= id_branch_op;
                 ex_alu_op_reg       <= id_alu_op;
-                ex_dmls_ctrl_reg    <= id_dmls_ctrl;
-                ex_trap_taken_reg   <= id_trap_taken;
-                ex_trap_target_reg  <= id_trap_target;
+                ex_exc_taken_reg    <= exc_taken;
+                ex_mret_reg         <= mret;
+                ex_mepc_reg         <= mepc;
+                ex_mtvec_base_reg   <= mtvec_base;
                 ex_rd0_reg          <= id_rd0;
                 ex_rd1_reg          <= id_rd1;
                 ex_csrrd_data_reg   <= id_csrrd_data;
@@ -314,12 +309,21 @@ begin
                 ex_opd0_pass_reg    <= id_opd0_pass;
                 ex_opd1_pass_reg    <= id_opd1_pass;
                 ex_pc_full_reg      <= id_pc_full;
-                ex_regwr_en_reg     <= id_regwr_en;
                 ex_regwr_sel_reg    <= id_regwr_sel;
                 ex_regwr_addr_reg   <= id_regwr_addr;
-                ex_csrwr_en_reg     <= id_csrwr_en;
                 ex_csrs_addr_reg    <= id_csrs_addr;
                 ex_next_pc_full_reg <= id_next_pc_full;
+                if exc_fault_i = '1' then
+                    ex_branch_op_reg <= BR_NONE;
+                    ex_dmls_ctrl_reg <= DMLS_IDLE;
+                    ex_regwr_en_reg  <= '0';
+                    ex_csrwr_en_reg  <= '0';
+                else
+                    ex_branch_op_reg <= id_branch_op;
+                    ex_dmls_ctrl_reg <= id_dmls_ctrl;
+                    ex_regwr_en_reg  <= id_regwr_en;
+                    ex_csrwr_en_reg  <= id_csrwr_en;
+                end if;
             end if;
         end if;
     end process pipeline_reg;
@@ -328,8 +332,10 @@ begin
     cop_adr_o     <= cop_adr;
     cop_dat_o     <= cop_dat;
     cop_we_o      <= cop_we;
-    trap_taken_o  <= ex_trap_taken_reg or id_trap_taken;
-    trap_target_o <= id_trap_target when id_trap_taken = '1' else ex_trap_target_reg;
+    exc_taken_o   <= ex_exc_taken_reg;
+    mret_o        <= ex_mret_reg;
+    mepc_o        <= ex_mepc_reg;
+    mtvec_base_o  <= ex_mtvec_base_reg;
     func3_o       <= ex_func3_reg;
     branch_op_o   <= ex_branch_op_reg;
     alu_op_o      <= ex_alu_op_reg;
@@ -344,5 +350,7 @@ begin
     opd1_pass_o   <= ex_opd1_pass_reg;
     pc_full_o     <= ex_pc_full_reg;
     ready_o       <= id_ready;
+    ex_regwr_en_o <= ex_regwr_en_reg;
+    ex_csrwr_en_o <= ex_csrwr_en_reg;
 
 end architecture rtl;
