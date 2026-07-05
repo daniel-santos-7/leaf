@@ -83,16 +83,18 @@ architecture rtl of csrs is
     signal mip_mtip     : std_logic;
     signal mip_msip     : std_logic;
 
-    signal cop_sel  : std_logic;
+    signal cop_sel_rd    : std_logic;
+    signal cop_sel_wr : std_logic;
     signal rd_data_int : std_logic_vector(XLEN-1 downto 0);
 
 begin
 
-    cop_sel <= '1' when rw_addr_i(11 downto 6) = b"011111" else '0';
+    cop_sel_rd <= '1' when rw_addr_i(11 downto 6) = b"011111" else '0';
+    cop_sel_wr <= '1' when wr_addr_i(11 downto 6) = b"011111" else '0';
 
     runit: rd_data_o <= wr_data_i when (wr_en_i = '1' and wr_addr_i = rw_addr_i) else rd_data_int;
 
-    read_csr: process(rw_addr_i, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle_i, timer_i, instret_i, cop_sel, cop_dat_i)
+    read_csr: process(rw_addr_i, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle_i, timer_i, instret_i, cop_sel_rd, cop_dat_i)
     begin
         case rw_addr_i is
             when CSR_ADDR_MHARTID  => rd_data_int <= MHART_ID;
@@ -112,7 +114,7 @@ begin
             when CSR_ADDR_TIMEH    => rd_data_int <= timer_i(63 downto 32);
             when CSR_ADDR_INSTRETH => rd_data_int <= instret_i(63 downto 32);
             when others            =>
-                if cop_sel = '1' then
+                if cop_sel_rd = '1' then
                     rd_data_int <= cop_dat_i;
                 else
                     rd_data_int <= (others => '0');
@@ -290,8 +292,8 @@ begin
     mip_msip_o    <= mip_msip;
     mepc_o        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC) else mepc;
     mtvec_base_o  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
-    cop_we_o      <= wr_en_i and cop_sel;
-    cop_adr_o     <= rw_addr_i(5 downto 0); -- read address (ID-stage CSR address)
+    cop_we_o      <= wr_en_i and cop_sel_wr;
+    cop_adr_o     <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
     cop_dat_o     <= wr_data_i;
 
 end architecture rtl;
