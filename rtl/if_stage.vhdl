@@ -54,6 +54,7 @@ architecture rtl of if_stage is
     signal taken        : std_logic;
     signal target       : std_logic_vector(XLEN-1 downto 2);
     signal next_adr     : std_logic_vector(XLEN-1 downto 2);
+    signal pending_cnt  : unsigned(1 downto 0);
 
 begin
 
@@ -67,34 +68,41 @@ begin
             else
                 case state is
                     when REQUEST =>
-                        if inst_ack_i = '1' or inst_err_i = '1' then
+                        if inst_stall_i = '0' then
                             if ready_i = '1' then
-                                state <= REQUEST;
+                                if pending_cnt = 1 then
+                                    state <= WFETCH;
+                                    stb_reg <= '0';
+                                end if;
                             else
-                                state   <= IDLE;
-                                cyc_reg <= '0';
-                                stb_reg <= '0';
+                                if pending_cnt = 0 then
+                                    state <= IDLE;
+                                    cyc_reg <= '0';
+                                    stb_reg <= '0';
+                                else
+                                    state <= WFETCH;
+                                    stb_reg <= '0';
+                                end if;
                             end if;
-                        elsif inst_stall_i = '0' then
-                            state   <= WFETCH;
-                            stb_reg <= '0';
                         end if;
                     when WFETCH =>
                         if inst_ack_i = '1' or inst_err_i = '1' then
                             if ready_i = '1' then
-                                state   <= REQUEST;
+                                state <= REQUEST;
                                 stb_reg <= '1';
-                            else
-                                state   <= IDLE;
+                            elsif pending_cnt = 1 then
+                                state <= IDLE;
                                 cyc_reg <= '0';
                                 stb_reg <= '0';
                             end if;
                         end if;
                     when IDLE =>
                         if ready_i = '1' then
-                            state   <= REQUEST;
-                            cyc_reg <= '1';
-                            stb_reg <= '1';
+                            if pending_cnt = 0 then
+                                state   <= REQUEST;
+                                cyc_reg <= '1';
+                                stb_reg <= '1';
+                            end if;
                         end if;
                 end case;
             end if;
@@ -102,6 +110,19 @@ begin
     end process fsm_proc;
 
     next_adr <= std_logic_vector(unsigned(adr_reg) + 1);
+
+    pending_proc: process(clk_i)
+    begin
+        if rising_edge(clk_i) then
+            if reset_i = '1' then
+                pending_cnt <= (others => '0');
+            elsif (stb_reg = '1' and inst_stall_i = '0') and not (inst_ack_i = '1' or inst_err_i = '1') and pending_cnt /= 2 then
+                pending_cnt <= pending_cnt + 1;
+            elsif (inst_ack_i = '1' or inst_err_i = '1') and not ((stb_reg = '1' and inst_stall_i = '0') and pending_cnt /= 2) then
+                pending_cnt <= pending_cnt - 1;
+            end if;
+        end if;
+    end process pending_proc;
 
     pc_reg_proc: process(clk_i)
     begin
