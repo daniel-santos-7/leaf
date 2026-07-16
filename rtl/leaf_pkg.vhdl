@@ -118,6 +118,7 @@ package leaf_pkg is
             inst_cyc_o   : out std_logic;
             inst_stb_o   : out std_logic;
             valid_o      : out std_logic;
+            stale_o      : out std_logic;
             inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
             pc_o         : out std_logic_vector(XLEN-1 downto 2);
             next_pc_o    : out std_logic_vector(XLEN-1 downto 2);
@@ -131,6 +132,7 @@ package leaf_pkg is
             imrd_fault_i   : in std_logic;
             instr_i        : in  std_logic_vector(XLEN-1 downto 0);
             valid_i        : in  std_logic;
+            stale_i        : in  std_logic;
             mip_meip_i     : in  std_logic;
             mip_msip_i     : in  std_logic;
             mip_mtip_i     : in  std_logic;
@@ -162,6 +164,7 @@ package leaf_pkg is
             regrd_addr1_o  : out std_logic_vector(4  downto 0);
             csrs_addr_o    : out std_logic_vector(11 downto 0);
             ready_i        : in  std_logic;
+            flush_i        : in  std_logic;
             ready_o        : out std_logic;
             exc_taken_o   : out std_logic;
             int_taken_o   : out std_logic;
@@ -281,11 +284,13 @@ package leaf_pkg is
             instr_i       : in  std_logic_vector(XLEN-1 downto 0);
             fault_i       : in  std_logic;
             valid_i       : in  std_logic;
+            stale_i       : in  std_logic;
             cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
             cop_adr_o     : out std_logic_vector(5 downto 0);
             cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
             cop_we_o      : out std_logic;
             csr_wr_data_i : in  std_logic_vector(XLEN-1 downto 0);
+            flush_i       : in  std_logic;
             ready_i       : in  std_logic;
             exc_fault_i   : in  std_logic;
             rf_we_i       : in  std_logic;
@@ -381,6 +386,7 @@ package leaf_pkg is
             taken_o  : out std_logic;
             target_o : out std_logic_vector(XLEN-1 downto 0);
             ready_o       : out std_logic;
+            flush_o       : out std_logic;
             branch_o      : out std_logic;
             res_o         : out std_logic_vector(XLEN-1 downto 0);
             valid_i       : in  std_logic;
@@ -509,6 +515,22 @@ package leaf_pkg is
         );
     end component counters;
 
+    component skid_buffer is
+        generic (
+            DATA_WIDTH : positive
+        );
+        port (
+            clk_i    : in  std_logic;
+            reset_i  : in  std_logic;
+            data_i   : in  std_logic_vector(DATA_WIDTH-1 downto 0);
+            valid_i  : in  std_logic;
+            ready_o  : out std_logic;
+            data_o   : out std_logic_vector(DATA_WIDTH-1 downto 0);
+            valid_o  : out std_logic;
+            ready_i  : in  std_logic
+        );
+    end component skid_buffer;
+
     component wb_arbiter is
         port (
             clk_i    : in  std_logic;
@@ -539,7 +561,9 @@ package leaf_pkg is
             err_i   : in  std_logic;
             dat_i   : in  std_logic_vector(XLEN-1 downto 0);
             inst_dat_o : out std_logic_vector(XLEN-1 downto 0);
-            data_dat_o : out std_logic_vector(XLEN-1 downto 0)
+            data_dat_o : out std_logic_vector(XLEN-1 downto 0);
+            inst_stall_o : out std_logic;
+            data_stall_o : out std_logic
         );
     end component wb_arbiter;
 

@@ -38,8 +38,8 @@ architecture arch of wb_ram is
 
     signal addr : integer;
 
-    -- idle state --
-    signal idle : std_logic;
+    -- ack_reg state --
+    signal ack_reg : std_logic;
 
     -- enable signals --
     signal mem0_en : std_logic;
@@ -76,24 +76,22 @@ architecture arch of wb_ram is
 begin
 
     addr <= to_integer(unsigned(adr_i)-MEM_BASE_ADDR);
-    
-    idle_reg: process(clk_i)
+
+    ack_reg_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if rst_i = '1' then
-                idle <= '1';
-            elsif idle = '1' then
-                idle <= not (cyc_i and stb_i);
+                ack_reg <= '0';
             else
-                idle <= '1';
+                ack_reg <= (cyc_i and stb_i);
             end if;
         end if;
-    end process idle_reg;
+    end process ack_reg_reg;
 
-    mem0_en <= idle and cyc_i and stb_i and sel_i(0);
-    mem1_en <= idle and cyc_i and stb_i and sel_i(1);
-    mem2_en <= idle and cyc_i and stb_i and sel_i(2);
-    mem3_en <= idle and cyc_i and stb_i and sel_i(3);
+    mem0_en <= cyc_i and stb_i and sel_i(0);
+    mem1_en <= cyc_i and stb_i and sel_i(1);
+    mem2_en <= cyc_i and stb_i and sel_i(2);
+    mem3_en <= cyc_i and stb_i and sel_i(3);
 
     mem0_we <= mem0_en and we_i;
     mem1_we <= mem1_en and we_i;
@@ -156,6 +154,6 @@ begin
         end if;
     end process write_mem;
 
-    ack_o  <= not idle;
+    ack_o <= ack_reg;
 
 end architecture arch;

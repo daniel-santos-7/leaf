@@ -50,6 +50,7 @@ entity ex_block is
         taken_o  : out std_logic;
         target_o : out std_logic_vector(XLEN-1 downto 0);
         ready_o       : out std_logic;
+        flush_o       : out std_logic;
         branch_o      : out std_logic;
         res_o         : out std_logic_vector(XLEN-1 downto 0);
         valid_i       : in  std_logic;
@@ -88,6 +89,8 @@ architecture ex_block_arch of ex_block is
     signal exc_fault      : std_logic;
     signal exc_inhibit    : std_logic;
 
+    signal taken_int      : std_logic;
+
 begin
 
     exec_alu: entity work.alu port map (
@@ -114,7 +117,7 @@ begin
         trap_taken_i  => ex_trap_taken,
         trap_target_i => ex_trap_target,
         branch_o      => branch_o,
-        taken_o       => taken_o,
+        taken_o       => taken_int,
         target_o      => target_o,
         imrd_malgn_o  => imrd_malgn_int
     );
@@ -180,5 +183,7 @@ begin
     data_we_o  <= dmls_we;
     res_o      <= alu_res;
     ready_o    <= dmls_ready;
+    taken_o    <= taken_int;
+    flush_o    <= taken_int;
 
 end architecture ex_block_arch;

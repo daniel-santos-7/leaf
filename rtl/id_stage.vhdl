@@ -28,11 +28,13 @@ entity id_stage is
         instr_i       : in  std_logic_vector(XLEN-1 downto 0);
         fault_i       : in  std_logic;
         valid_i       : in  std_logic;
+        stale_i       : in  std_logic;
         cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
         cop_adr_o     : out std_logic_vector(5 downto 0);
         cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o      : out std_logic;
         csr_wr_data_i : in  std_logic_vector(XLEN-1 downto 0);
+        flush_i       : in  std_logic;
         ready_i       : in  std_logic;
         exc_fault_i   : in  std_logic;
         rf_we_i       : in  std_logic;
@@ -154,6 +156,7 @@ begin
         imrd_fault_i   => fault_i,
         instr_i        => instr_i,
         valid_i        => valid_i,
+        stale_i        => stale_i,
         mip_meip_i     => mip_meip,
         mip_msip_i     => mip_msip,
         mip_mtip_i     => mip_mtip,
@@ -185,6 +188,7 @@ begin
         regrd_addr1_o  => regrd_addr1,
         csrs_addr_o    => id_csrs_addr,
         ready_i        => ready_i,
+        flush_i        => flush_i,
         ready_o        => id_ready,
         exc_taken_o    => exc_taken,
         int_taken_o    => int_taken,

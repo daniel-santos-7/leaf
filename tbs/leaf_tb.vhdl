@@ -55,17 +55,6 @@ architecture leaf_tb_arch of leaf_tb is
     signal data_err : std_logic;
     signal data_stall : std_logic;
 
-    -- Arbiter -> wb_ram shared bus
-    signal arb_cyc  : std_logic;
-    signal arb_stb  : std_logic;
-    signal arb_adr  : std_logic_vector(31 downto 2);
-    signal arb_sel  : std_logic_vector(3 downto 0);
-    signal arb_we   : std_logic;
-    signal arb_dat  : std_logic_vector(31 downto 0);
-    signal arb_ack  : std_logic;
-    signal arb_err  : std_logic;
-    signal arb_dat_i : std_logic_vector(31 downto 0);
-
     -- Clock enable signal --
     signal clk_en : std_logic;
 
@@ -102,52 +91,28 @@ begin
         data_stall_i => data_stall
     );
     
-    inst_stall <= inst_cyc and not inst_ack;
-    data_stall <= data_cyc and not data_ack;
-    
-    arbiter: wb_arbiter port map (
-        clk_i      => clk_i,
-        rst_i      => rst_i,
+    mem: wb_ram_dual generic map (
+        PROGRAM  => PROGRAM,
+        DUMP_FILE => DUMP_FILE
+    ) port map (
+        clk_i    => clk_i,
+        rst_i    => rst_i,
+
         inst_cyc_i => inst_cyc,
         inst_stb_i => inst_stb,
         inst_adr_i => inst_adr,
+        inst_dat_o => inst_dat,
         inst_ack_o => inst_ack,
-        inst_err_o => inst_err,
+
         data_cyc_i => data_cyc,
         data_stb_i => data_stb,
         data_adr_i => data_adr,
         data_sel_i => data_sel,
         data_we_i  => data_we,
         data_dat_i => data_dat,
+        data_dat_o => data_dat_to_core,
         data_ack_o => data_ack,
-        data_err_o => data_err,
-        cyc_o      => arb_cyc,
-        stb_o      => arb_stb,
-        adr_o      => arb_adr,
-        sel_o      => arb_sel,
-        we_o       => arb_we,
-        dat_o      => arb_dat,
-        ack_i      => arb_ack,
-        err_i      => arb_err,
-        dat_i      => arb_dat_i,
-        inst_dat_o => inst_dat,
-        data_dat_o => data_dat_to_core
-    );
 
-    mem: wb_ram generic map (
-        PROGRAM  => PROGRAM,
-        DUMP_FILE => DUMP_FILE
-    ) port map (
-        clk_i    => clk_i,
-        rst_i    => rst_i,
-        dat_i    => arb_dat,
-        cyc_i    => arb_cyc,
-        stb_i    => arb_stb,
-        we_i     => arb_we,
-        sel_i    => arb_sel,
-        adr_i    => arb_adr,
-        ack_o    => arb_ack,
-        dat_o    => arb_dat_i,
         wr_mem_i => wr_mem_i,
         rd_mem_i => rd_mem_i,
         halt_o   => halt_o
@@ -158,7 +123,10 @@ begin
     ex_irq <= '0';
     sw_irq <= '0';
     tm_irq <= '0';
-    arb_err <= '0';
+    inst_err <= '0';
+    data_err <= '0';
+    inst_stall <= '0';
+    data_stall <= '0';
     cop_dat_i <= (others => '0');
 
     test: process

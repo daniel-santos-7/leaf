@@ -63,6 +63,36 @@ package leaf_tb_pkg is
         );
     end component wb_ram;
 
+    component wb_ram_dual is
+        generic (
+            PROGRAM   : string;
+            DUMP_FILE : string
+        );
+        port (
+            clk_i : in  std_logic;
+            rst_i : in  std_logic;
+
+            inst_cyc_i : in  std_logic;
+            inst_stb_i : in  std_logic;
+            inst_adr_i : in  std_logic_vector(31 downto 2);
+            inst_dat_o : out std_logic_vector(31 downto 0);
+            inst_ack_o : out std_logic;
+
+            data_cyc_i : in  std_logic;
+            data_stb_i : in  std_logic;
+            data_adr_i : in  std_logic_vector(31 downto 2);
+            data_sel_i : in  std_logic_vector(3 downto 0);
+            data_we_i  : in  std_logic;
+            data_dat_i : in  std_logic_vector(31 downto 0);
+            data_dat_o : out std_logic_vector(31 downto 0);
+            data_ack_o : out std_logic;
+
+            wr_mem_i : in std_logic;
+            rd_mem_i : in std_logic;
+            halt_o   : out std_logic
+        );
+    end component wb_ram_dual;
+
 end package leaf_tb_pkg;
 
 package body leaf_tb_pkg is
@@ -151,7 +181,7 @@ package body leaf_tb_pkg is
         variable data : std_logic_vector(31 downto 0);
 
     begin
-        file_open(dump, DUMP_FILE, write_mode);
+        file_open(dump, dump_file, write_mode);
         for addr in memory'range loop
             data := memory(addr);
             hwrite(word, data(31 downto 24));

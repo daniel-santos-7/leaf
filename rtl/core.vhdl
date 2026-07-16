@@ -48,6 +48,7 @@ architecture rtl of core is
     signal id_ready            : std_logic;
     signal ex_taken            : std_logic;
     signal ex_target           : std_logic_vector(XLEN-1 downto 0);
+    signal ex_flush            : std_logic;
 
     -- IF stage outputs
     signal if_pc      : std_logic_vector(XLEN-1 downto 2);
@@ -55,6 +56,7 @@ architecture rtl of core is
     signal if_instr   : std_logic_vector(XLEN-1 downto 0);
     signal if_imrd_fault : std_logic;
     signal if_valid   : std_logic;
+    signal if_stale   : std_logic;
 
     -- ID stage -> EX stage (pipeline register inside id_stage)
     signal ex_func3       : std_logic_vector(2  downto 0);
@@ -114,6 +116,7 @@ begin
         next_pc_o    => if_next_pc,
         inst_o       => if_instr,
         valid_o      => if_valid,
+        stale_o      => if_stale,
         retire_o     => retire_o
     );
 
@@ -143,11 +146,13 @@ begin
         instr_i        => if_instr,
         fault_i        => if_imrd_fault,
         valid_i        => if_valid,
+        stale_i        => if_stale,
         cop_dat_i      => cop_dat_i,
         cop_adr_o      => cop_adr_o,
         cop_dat_o      => cop_dat_o,
         cop_we_o       => cop_we_o,
         csr_wr_data_i  => ex_csrwr_data,
+        flush_i        => ex_flush,
         ready_i        => ex_ready,
         exc_fault_i    => ex_exc_fault,
         rf_we_i        => ex_rf_we,
@@ -223,7 +228,8 @@ begin
         csrwr_en_i     => ex_csrwr_en,
         exc_fault_o    => ex_exc_fault,
         rf_we_o        => ex_rf_we,
-        csr_we_o       => ex_csr_we
+        csr_we_o       => ex_csr_we,
+        flush_o        => ex_flush
     );
 
 end architecture rtl;

@@ -39,7 +39,9 @@ entity wb_arbiter is
         err_i   : in  std_logic;
         dat_i   : in  std_logic_vector(XLEN-1 downto 0);
         inst_dat_o : out std_logic_vector(XLEN-1 downto 0);
-        data_dat_o : out std_logic_vector(XLEN-1 downto 0)
+        data_dat_o : out std_logic_vector(XLEN-1 downto 0);
+        inst_stall_o : out std_logic;
+        data_stall_o : out std_logic
     );
 end entity wb_arbiter;
 
@@ -48,6 +50,8 @@ architecture rtl of wb_arbiter is
     type state_t is (INST_GRANT, DATA_GRANT);
 
     signal state : state_t;
+    signal inst_ack_int : std_logic;
+    signal data_ack_int : std_logic;
 
 begin
 
@@ -110,12 +114,18 @@ begin
         end case;
     end process out_proc;
 
-    inst_ack_o <= ack_i when state = INST_GRANT else '0';
+    inst_ack_int <= ack_i when state = INST_GRANT else '0';
+    inst_ack_o <= inst_ack_int;
     inst_err_o <= err_i when state = INST_GRANT else '0';
-    data_ack_o <= ack_i when state = DATA_GRANT else '0';
+    data_ack_int <= ack_i when state = DATA_GRANT else '0';
+    data_ack_o <= data_ack_int;
     data_err_o <= err_i when state = DATA_GRANT else '0';
 
     inst_dat_o <= dat_i when state = INST_GRANT else (others => '0');
     data_dat_o <= dat_i when state = DATA_GRANT else (others => '0');
+
+    --inst_stall_o <= inst_cyc_i and not inst_ack_int;
+    inst_stall_o <= '1' when state = DATA_GRANT else '0';
+    data_stall_o <= data_cyc_i and not data_ack_int;
 
 end architecture rtl;

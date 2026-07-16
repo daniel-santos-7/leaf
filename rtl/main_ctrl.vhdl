@@ -15,6 +15,7 @@ entity main_ctrl is
         imrd_fault_i   : in  std_logic;
         instr_i        : in  std_logic_vector(XLEN-1 downto 0);
         valid_i        : in  std_logic;
+        stale_i        : in  std_logic;
         mip_meip_i     : in  std_logic;
         mip_msip_i     : in  std_logic;
         mip_mtip_i     : in  std_logic;
@@ -46,6 +47,7 @@ entity main_ctrl is
         regrd_addr1_o  : out std_logic_vector(4  downto 0);
         csrs_addr_o    : out std_logic_vector(11 downto 0);
         ready_i        : in  std_logic;
+        flush_i        : in  std_logic;
         ready_o        : out std_logic;
             exc_taken_o   : out std_logic;
             int_taken_o   : out std_logic;
@@ -103,9 +105,9 @@ begin
 
     -- Decode process (opcode-based) --
 
-    main_ctrl_proc: process(opcode, instr_i, valid_i, mret, trap_inhibit)
+    main_ctrl_proc: process(opcode, instr_i, valid_i, stale_i, mret, trap_inhibit, flush_i)
     begin
-        if valid_i = '0' or trap_inhibit = '1' or mret = '1' then
+        if valid_i = '0' or stale_i = '1' or flush_i = '1' or trap_inhibit = '1' or mret = '1' then
             dmls_ctrl_o    <= DMLS_IDLE;
             instr_err      <= '0';
             imm_type       <= (others => '-');
