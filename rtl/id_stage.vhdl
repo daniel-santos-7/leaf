@@ -317,17 +317,10 @@ begin
                 ex_regwr_addr_reg   <= id_regwr_addr;
                 ex_csrs_addr_reg    <= id_csrs_addr;
                 ex_next_pc_full_reg <= id_next_pc_full;
-                if exc_fault_i = '1' then
-                    ex_branch_op_reg <= BR_NONE;
-                    ex_dmls_ctrl_reg <= DMLS_IDLE;
-                    ex_regwr_en_reg  <= '0';
-                    ex_csrwr_en_reg  <= '0';
-                else
-                    ex_branch_op_reg <= id_branch_op;
-                    ex_dmls_ctrl_reg <= id_dmls_ctrl;
-                    ex_regwr_en_reg  <= id_regwr_en;
-                    ex_csrwr_en_reg  <= id_csrwr_en;
-                end if;
+                ex_branch_op_reg <= id_branch_op;
+                ex_dmls_ctrl_reg <= id_dmls_ctrl;
+                ex_regwr_en_reg  <= id_regwr_en;
+                ex_csrwr_en_reg  <= id_csrwr_en;
             end if;
         end if;
     end process pipeline_reg;
