@@ -40,15 +40,15 @@ entity id_stage is
         rf_we_i       : in  std_logic;
         csr_we_i      : in  std_logic;
         ready_o       : out std_logic;
-            func3_o       : out std_logic_vector(2  downto 0);
-            branch_op_o   : out std_logic_vector(1  downto 0);
-            alu_op_o      : out std_logic_vector(5  downto 0);
-            dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-            exc_taken_o   : out std_logic;
-            mret_o        : out std_logic;
-            mepc_o        : out std_logic_vector(XLEN-1 downto 2);
-            mtvec_base_o  : out std_logic_vector(XLEN-1 downto 2);
-            rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
+        func3_o       : out std_logic_vector(2  downto 0);
+        branch_op_o   : out std_logic_vector(1  downto 0);
+        alu_op_o      : out std_logic_vector(5  downto 0);
+        dmls_ctrl_o   : out std_logic_vector(1  downto 0);
+        exc_taken_o   : out std_logic;
+        mret_o        : out std_logic;
+        mepc_o        : out std_logic_vector(XLEN-1 downto 2);
+        mtvec_base_o  : out std_logic_vector(XLEN-1 downto 2);
+        rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
         rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
         csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
@@ -64,54 +64,52 @@ end entity id_stage;
 
 architecture rtl of id_stage is
 
-    signal instr_err : std_logic;
-    signal ecall     : std_logic;
-    signal ebreak    : std_logic;
-    signal mret        : std_logic;
-    signal wfi         : std_logic;
+    signal main_ctrl_instr_err : std_logic;
+    signal main_ctrl_ecall     : std_logic;
+    signal main_ctrl_ebreak    : std_logic;
+    signal main_ctrl_mret      : std_logic;
+    signal main_ctrl_wfi       : std_logic;
     signal csrs_exc_taken : std_logic;
 
-    signal regrd_addr0 : std_logic_vector(4  downto 0);
-    signal regrd_addr1 : std_logic_vector(4  downto 0);
+    signal main_ctrl_regrd_addr0 : std_logic_vector(4  downto 0);
+    signal main_ctrl_regrd_addr1 : std_logic_vector(4  downto 0);
 
     signal pc_full     : std_logic_vector(XLEN-1 downto 0);
     signal next_pc_full : std_logic_vector(XLEN-1 downto 0);
 
-    signal exc_taken   : std_logic;
-    signal int_taken   : std_logic;
-    signal exi_taken   : std_logic;
-    signal tmi_taken   : std_logic;
-    signal swi_taken   : std_logic;
-    signal mie_meie    : std_logic;
-    signal mie_mtie    : std_logic;
-    signal mie_msie    : std_logic;
-    signal mstatus_mie : std_logic;
-    signal mip_meip    : std_logic;
-    signal mip_mtip    : std_logic;
-    signal mip_msip    : std_logic;
-    signal mepc        : std_logic_vector(XLEN-1 downto 2);
-    signal mtvec_base  : std_logic_vector(XLEN-1 downto 2);
+    signal main_ctrl_exc_taken : std_logic;
+    signal main_ctrl_int_taken : std_logic;
+    signal main_ctrl_exi_taken : std_logic;
+    signal main_ctrl_tmi_taken : std_logic;
+    signal main_ctrl_swi_taken : std_logic;
+    signal csrs_mie_meie    : std_logic;
+    signal csrs_mie_mtie    : std_logic;
+    signal csrs_mie_msie    : std_logic;
+    signal csrs_mstatus_mie : std_logic;
+    signal csrs_mip_meip    : std_logic;
+    signal csrs_mip_mtip    : std_logic;
+    signal csrs_mip_msip    : std_logic;
+    signal csrs_mepc        : std_logic_vector(XLEN-1 downto 2);
+    signal csrs_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
 
     -- Combinatorial decode outputs (to pipeline register)
-    signal id_func3       : std_logic_vector(2  downto 0);
-    signal id_branch_op   : std_logic_vector(1  downto 0);
-    signal id_alu_op      : std_logic_vector(5  downto 0);
-    signal id_dmls_ctrl   : std_logic_vector(1  downto 0);
-    signal id_rd0         : std_logic_vector(XLEN-1 downto 0);
-    signal id_rd1         : std_logic_vector(XLEN-1 downto 0);
-    signal id_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
-    signal id_imm         : std_logic_vector(XLEN-1 downto 0);
-    signal id_opd0_src_sel : std_logic;
-    signal id_opd1_src_sel : std_logic;
-    signal id_opd0_pass   : std_logic;
-    signal id_opd1_pass   : std_logic;
-    signal id_pc_full     : std_logic_vector(XLEN-1 downto 0);
-    signal id_regwr_en    : std_logic;
-    signal id_regwr_sel   : std_logic_vector(1 downto 0);
-    signal id_regwr_addr  : std_logic_vector(4 downto 0);
-    signal id_csrwr_en    : std_logic;
-    signal id_csrs_addr   : std_logic_vector(11 downto 0);
-    signal id_next_pc_full : std_logic_vector(XLEN-1 downto 0);
+    signal main_ctrl_func3       : std_logic_vector(2  downto 0);
+    signal main_ctrl_branch_op   : std_logic_vector(1  downto 0);
+    signal main_ctrl_alu_op      : std_logic_vector(5  downto 0);
+    signal main_ctrl_dmls_ctrl   : std_logic_vector(1  downto 0);
+    signal reg_file_rd0         : std_logic_vector(XLEN-1 downto 0);
+    signal reg_file_rd1         : std_logic_vector(XLEN-1 downto 0);
+    signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
+    signal main_ctrl_imm         : std_logic_vector(XLEN-1 downto 0);
+    signal main_ctrl_opd0_src_sel : std_logic;
+    signal main_ctrl_opd1_src_sel : std_logic;
+    signal main_ctrl_opd0_pass   : std_logic;
+    signal main_ctrl_opd1_pass   : std_logic;
+    signal main_ctrl_regwr_en    : std_logic;
+    signal main_ctrl_regwr_sel   : std_logic_vector(1 downto 0);
+    signal main_ctrl_regwr_addr  : std_logic_vector(4 downto 0);
+    signal main_ctrl_csrwr_en    : std_logic;
+    signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
 
     -- Pipeline register outputs (ID -> EX)
     signal ex_func3_reg       : std_logic_vector(2  downto 0);
@@ -138,63 +136,60 @@ architecture rtl of id_stage is
     signal ex_csrs_addr_reg   : std_logic_vector(11 downto 0);
     signal ex_next_pc_full_reg : std_logic_vector(XLEN-1 downto 0);
 
-    signal id_ready     : std_logic;
+    signal main_ctrl_ready : std_logic;
 
-    signal cop_adr : std_logic_vector(5 downto 0);
-    signal cop_dat : std_logic_vector(XLEN-1 downto 0);
-    signal cop_we  : std_logic;
+    signal csrs_cop_adr : std_logic_vector(5 downto 0);
+    signal csrs_cop_dat : std_logic_vector(XLEN-1 downto 0);
+    signal csrs_cop_we  : std_logic;
 
 begin
 
     pc_full     <= pc_i & b"00";
     next_pc_full <= next_pc_i & b"00";
 
-    -- Combinatorial decode signals
-    id_pc_full     <= pc_full;
-
     id_stage_main_ctrl: main_ctrl port map (
         imrd_fault_i   => fault_i,
         instr_i        => instr_i,
         valid_i        => valid_i,
         stale_i        => stale_i,
-        mip_meip_i     => mip_meip,
-        mip_msip_i     => mip_msip,
-        mip_mtip_i     => mip_mtip,
-        mie_meie_i     => mie_meie,
-        mie_mtie_i     => mie_mtie,
-        mie_msie_i     => mie_msie,
-        mstatus_mie_i  => mstatus_mie,
-        mepc_i         => mepc,
-        mtvec_base_i   => mtvec_base,
-        instr_err_o    => instr_err,
-        ecall_o        => ecall,
-        ebreak_o       => ebreak,
-        mret_o         => mret,
-        wfi_o          => wfi,
-        csrwr_en_o     => id_csrwr_en,
-        regwr_en_o     => id_regwr_en,
-        regwr_sel_o    => id_regwr_sel,
-        dmls_ctrl_o    => id_dmls_ctrl,
-        branch_op_o    => id_branch_op,
-        opd0_src_sel_o => id_opd0_src_sel,
-        opd1_src_sel_o => id_opd1_src_sel,
-        opd0_pass_o    => id_opd0_pass,
-        opd1_pass_o    => id_opd1_pass,
-        alu_op_o       => id_alu_op,
-        imm_o          => id_imm,
-        func3_o        => id_func3,
-        regwr_addr_o   => id_regwr_addr,
-        regrd_addr0_o  => regrd_addr0,
-        regrd_addr1_o  => regrd_addr1,
-        csrs_addr_o    => id_csrs_addr,
+        mip_meip_i     => csrs_mip_meip,
+        mip_msip_i     => csrs_mip_msip,
+        mip_mtip_i     => csrs_mip_mtip,
+        mie_meie_i     => csrs_mie_meie,
+        mie_mtie_i     => csrs_mie_mtie,
+        mie_msie_i     => csrs_mie_msie,
+        mstatus_mie_i  => csrs_mstatus_mie,
+        mepc_i         => csrs_mepc,
+        mtvec_base_i   => csrs_mtvec_base,
+        instr_err_o    => main_ctrl_instr_err,
+        ecall_o        => main_ctrl_ecall,
+        ebreak_o       => main_ctrl_ebreak,
+        mret_o         => main_ctrl_mret,
+        wfi_o          => main_ctrl_wfi,
+        csrwr_en_o     => main_ctrl_csrwr_en,
+        regwr_en_o     => main_ctrl_regwr_en,
+        regwr_sel_o    => main_ctrl_regwr_sel,
+        dmls_ctrl_o    => main_ctrl_dmls_ctrl,
+        branch_op_o    => main_ctrl_branch_op,
+        opd0_src_sel_o => main_ctrl_opd0_src_sel,
+        opd1_src_sel_o => main_ctrl_opd1_src_sel,
+        opd0_pass_o    => main_ctrl_opd0_pass,
+        opd1_pass_o    => main_ctrl_opd1_pass,
+        alu_op_o       => main_ctrl_alu_op,
+        imm_o          => main_ctrl_imm,
+        func3_o        => main_ctrl_func3,
+        regwr_addr_o   => main_ctrl_regwr_addr,
+        regrd_addr0_o  => main_ctrl_regrd_addr0,
+        regrd_addr1_o  => main_ctrl_regrd_addr1,
+        csrs_addr_o    => main_ctrl_csrs_addr,
         ready_i        => ready_i,
         flush_i        => flush_i,
-        ready_o        => id_ready,
-        exc_taken_o    => exc_taken,
-        int_taken_o    => int_taken,
-        exi_taken_o    => exi_taken,
-        tmi_taken_o    => tmi_taken,
-        swi_taken_o    => swi_taken
+        ready_o        => main_ctrl_ready,
+        exc_taken_o    => main_ctrl_exc_taken,
+        int_taken_o    => main_ctrl_int_taken,
+        exi_taken_o    => main_ctrl_exi_taken,
+        tmi_taken_o    => main_ctrl_tmi_taken,
+        swi_taken_o    => main_ctrl_swi_taken
     );
 
     id_stage_reg_file: reg_file generic map (
@@ -208,14 +203,14 @@ begin
         wr_data1_i => dmld_data_i,
         wr_data2_i => ex_next_pc_full_reg,
         wr_data3_i => ex_csrrd_data_reg,
-        rd_addr0_i => regrd_addr0,
-        rd_addr1_i => regrd_addr1,
-        rd_data0_o => id_rd0,
-        rd_data1_o => id_rd1
+        rd_addr0_i => main_ctrl_regrd_addr0,
+        rd_addr1_i => main_ctrl_regrd_addr1,
+        rd_data0_o => reg_file_rd0,
+        rd_data1_o => reg_file_rd1
     );
 
 
-    csrs_exc_taken <= exc_taken or exc_fault_i;
+    csrs_exc_taken <= main_ctrl_exc_taken or exc_fault_i;
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -227,23 +222,23 @@ begin
         tm_irq_i     => tm_irq_i,
         imrd_malgn_i => imrd_malgn_i,
         imrd_fault_i => fault_i,
-        instr_err_i  => instr_err,
+        instr_err_i  => main_ctrl_instr_err,
         dmld_malgn_i => dmld_malgn_i,
         dmld_fault_i => dmld_fault_i,
         dmst_malgn_i => dmst_malgn_i,
         dmst_fault_i => dmst_fault_i,
-        ecall_i      => ecall,
-        ebreak_i     => ebreak,
-        mret_i       => mret,
-        wfi_i        => wfi,
+        ecall_i      => main_ctrl_ecall,
+        ebreak_i     => main_ctrl_ebreak,
+        mret_i       => main_ctrl_mret,
+        wfi_i        => main_ctrl_wfi,
         exc_taken_i  => csrs_exc_taken,
-        int_taken_i  => int_taken,
-        exi_taken_i  => exi_taken,
-        tmi_taken_i  => tmi_taken,
-        swi_taken_i  => swi_taken,
+        int_taken_i  => main_ctrl_int_taken,
+        exi_taken_i  => main_ctrl_exi_taken,
+        tmi_taken_i  => main_ctrl_tmi_taken,
+        swi_taken_i  => main_ctrl_swi_taken,
         wr_en_i      => csr_we_i,
         wr_addr_i    => ex_csrs_addr_reg,
-        rw_addr_i    => id_csrs_addr,
+        rw_addr_i    => main_ctrl_csrs_addr,
         wr_data_i    => csr_wr_data_i,
         exec_res_i   => exec_res_i,
         pc_i         => pc_full,
@@ -253,22 +248,20 @@ begin
         timer_i      => timer_i,
         instret_i    => instret_i,
         cop_dat_i    => cop_dat_i,
-        cop_adr_o    => cop_adr,
-        cop_dat_o    => cop_dat,
-        cop_we_o     => cop_we,
-        mie_meie_o   => mie_meie,
-        mie_mtie_o   => mie_mtie,
-        mie_msie_o   => mie_msie,
-        mstatus_mie_o=> mstatus_mie,
-        mip_meip_o   => mip_meip,
-        mip_mtip_o   => mip_mtip,
-        mip_msip_o   => mip_msip,
-        mepc_o       => mepc,
-        mtvec_base_o => mtvec_base,
-        rd_data_o    => id_csrrd_data
+        cop_adr_o    => csrs_cop_adr,
+        cop_dat_o    => csrs_cop_dat,
+        cop_we_o     => csrs_cop_we,
+        mie_meie_o   => csrs_mie_meie,
+        mie_mtie_o   => csrs_mie_mtie,
+        mie_msie_o   => csrs_mie_msie,
+        mstatus_mie_o=> csrs_mstatus_mie,
+        mip_meip_o   => csrs_mip_meip,
+        mip_mtip_o   => csrs_mip_mtip,
+        mip_msip_o   => csrs_mip_msip,
+        mepc_o       => csrs_mepc,
+        mtvec_base_o => csrs_mtvec_base,
+        rd_data_o    => csrs_csrrd_data
     );
-
-    id_next_pc_full <= next_pc_full;
 
     pipeline_reg: process(clk_i)
     begin
@@ -297,38 +290,38 @@ begin
                 ex_csrwr_en_reg     <= '0';
                 ex_csrs_addr_reg    <= (others => '0');
                 ex_next_pc_full_reg <= (others => '0');
-            elsif id_ready = '1' then
-                ex_func3_reg        <= id_func3;
-                ex_alu_op_reg       <= id_alu_op;
-                ex_exc_taken_reg    <= exc_taken;
-                ex_mret_reg         <= mret;
-                ex_mepc_reg         <= mepc;
-                ex_mtvec_base_reg   <= mtvec_base;
-                ex_rd0_reg          <= id_rd0;
-                ex_rd1_reg          <= id_rd1;
-                ex_csrrd_data_reg   <= id_csrrd_data;
-                ex_imm_reg          <= id_imm;
-                ex_opd0_src_sel_reg <= id_opd0_src_sel;
-                ex_opd1_src_sel_reg <= id_opd1_src_sel;
-                ex_opd0_pass_reg    <= id_opd0_pass;
-                ex_opd1_pass_reg    <= id_opd1_pass;
-                ex_pc_full_reg      <= id_pc_full;
-                ex_regwr_sel_reg    <= id_regwr_sel;
-                ex_regwr_addr_reg   <= id_regwr_addr;
-                ex_csrs_addr_reg    <= id_csrs_addr;
-                ex_next_pc_full_reg <= id_next_pc_full;
-                ex_branch_op_reg <= id_branch_op;
-                ex_dmls_ctrl_reg <= id_dmls_ctrl;
-                ex_regwr_en_reg  <= id_regwr_en;
-                ex_csrwr_en_reg  <= id_csrwr_en;
+            elsif main_ctrl_ready = '1' then
+                ex_func3_reg        <= main_ctrl_func3;
+                ex_alu_op_reg       <= main_ctrl_alu_op;
+                ex_exc_taken_reg    <= main_ctrl_exc_taken;
+                ex_mret_reg         <= main_ctrl_mret;
+                ex_mepc_reg         <= csrs_mepc;
+                ex_mtvec_base_reg   <= csrs_mtvec_base;
+                ex_rd0_reg          <= reg_file_rd0;
+                ex_rd1_reg          <= reg_file_rd1;
+                ex_csrrd_data_reg   <= csrs_csrrd_data;
+                ex_imm_reg          <= main_ctrl_imm;
+                ex_opd0_src_sel_reg <= main_ctrl_opd0_src_sel;
+                ex_opd1_src_sel_reg <= main_ctrl_opd1_src_sel;
+                ex_opd0_pass_reg    <= main_ctrl_opd0_pass;
+                ex_opd1_pass_reg    <= main_ctrl_opd1_pass;
+                ex_pc_full_reg      <= pc_full;
+                ex_regwr_sel_reg    <= main_ctrl_regwr_sel;
+                ex_regwr_addr_reg   <= main_ctrl_regwr_addr;
+                ex_csrs_addr_reg    <= main_ctrl_csrs_addr;
+                ex_next_pc_full_reg <= next_pc_full;
+                ex_branch_op_reg    <= main_ctrl_branch_op;
+                ex_dmls_ctrl_reg    <= main_ctrl_dmls_ctrl;
+                ex_regwr_en_reg     <= main_ctrl_regwr_en;
+                ex_csrwr_en_reg     <= main_ctrl_csrwr_en;
             end if;
         end if;
     end process pipeline_reg;
 
     -- Output assignments at end
-    cop_adr_o     <= cop_adr;
-    cop_dat_o     <= cop_dat;
-    cop_we_o      <= cop_we;
+    cop_adr_o     <= csrs_cop_adr;
+    cop_dat_o     <= csrs_cop_dat;
+    cop_we_o      <= csrs_cop_we;
     exc_taken_o   <= ex_exc_taken_reg;
     mret_o        <= ex_mret_reg;
     mepc_o        <= ex_mepc_reg;
@@ -346,7 +339,7 @@ begin
     opd0_pass_o   <= ex_opd0_pass_reg;
     opd1_pass_o   <= ex_opd1_pass_reg;
     pc_full_o     <= ex_pc_full_reg;
-    ready_o       <= id_ready;
+    ready_o       <= main_ctrl_ready;
     ex_regwr_en_o <= ex_regwr_en_reg;
     ex_csrwr_en_o <= ex_csrwr_en_reg;
 
