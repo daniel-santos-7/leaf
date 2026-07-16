@@ -32,9 +32,7 @@ entity ex_block is
         data_ack_i   : in  std_logic;
         data_err_i   : in  std_logic;
         data_stall_i : in  std_logic;
-        csrrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
         immwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
-        csrwr_data_o  : out std_logic_vector(XLEN-1 downto 0);
         imrd_malgn_o  : out std_logic;
         dmld_malgn_o  : out std_logic;
         dmld_fault_o  : out std_logic;
@@ -145,14 +143,6 @@ begin
         dmst_malgn_o  => dmst_malgn_int,
         dmst_fault_o  => dmst_fault_int,
         dmld_data_o   => dmld_data_o
-    );
-
-    exec_csrs_logic: csrs_logic port map (
-        csrwr_mode_i => func3_i,
-        csrrd_data_i => csrrd_data_i,
-        regwr_data_i => reg0_i,
-        immwr_data_i => immwr_data_i,
-        csrwr_data_o => csrwr_data_o
     );
 
     imrd_malgn_o <= imrd_malgn_int;

@@ -289,7 +289,6 @@ package leaf_pkg is
             cop_adr_o     : out std_logic_vector(5 downto 0);
             cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
             cop_we_o      : out std_logic;
-            csr_wr_data_i : in  std_logic_vector(XLEN-1 downto 0);
             flush_i       : in  std_logic;
             ready_i       : in  std_logic;
             exc_fault_i   : in  std_logic;
@@ -306,7 +305,6 @@ package leaf_pkg is
             mtvec_base_o  : out std_logic_vector(XLEN-1 downto 2);
             rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
             rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
-            csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
             imm_o         : out std_logic_vector(XLEN-1 downto 0);
             opd0_src_sel_o : out std_logic;
             opd1_src_sel_o : out std_logic;
@@ -368,9 +366,7 @@ package leaf_pkg is
             data_ack_i   : in  std_logic;
             data_err_i   : in  std_logic;
             data_stall_i  : in  std_logic;
-            csrrd_data_i  : in  std_logic_vector(XLEN-1 downto 0);
             immwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
-            csrwr_data_o  : out std_logic_vector(XLEN-1 downto 0);
             imrd_malgn_o  : out std_logic;
             dmld_malgn_o  : out std_logic;
             dmld_fault_o  : out std_logic;

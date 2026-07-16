@@ -69,7 +69,6 @@ architecture rtl of core is
     signal ex_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
     signal ex_rd0         : std_logic_vector(XLEN-1 downto 0);
     signal ex_rd1         : std_logic_vector(XLEN-1 downto 0);
-    signal ex_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
     signal ex_imm         : std_logic_vector(XLEN-1 downto 0);
     signal ex_opd0_src_sel : std_logic;
     signal ex_opd1_src_sel : std_logic;
@@ -87,7 +86,6 @@ architecture rtl of core is
     signal ex_dmld_fault  : std_logic;
     signal ex_dmst_malgn  : std_logic;
     signal ex_dmst_fault  : std_logic;
-    signal ex_csrwr_data  : std_logic_vector(XLEN-1 downto 0);
     signal ex_exc_fault   : std_logic;
     signal ex_rf_we       : std_logic;
     signal ex_csr_we      : std_logic;
@@ -151,7 +149,6 @@ begin
         cop_adr_o      => cop_adr_o,
         cop_dat_o      => cop_dat_o,
         cop_we_o       => cop_we_o,
-        csr_wr_data_i  => ex_csrwr_data,
         flush_i        => ex_flush,
         ready_i        => ex_ready,
         exc_fault_i    => ex_exc_fault,
@@ -168,7 +165,6 @@ begin
         mtvec_base_o   => ex_mtvec_base,
         rd_data0_o     => ex_rd0,
         rd_data1_o     => ex_rd1,
-        csrrd_data_o   => ex_csrrd_data,
         imm_o          => ex_imm,
         opd0_src_sel_o => ex_opd0_src_sel,
         opd1_src_sel_o => ex_opd1_src_sel,
@@ -213,9 +209,7 @@ begin
         taken_o        => ex_taken,
         target_o       => ex_target,
         res_o          => ex_res,
-        csrrd_data_i   => ex_csrrd_data,
         immwr_data_i   => ex_imm,
-        csrwr_data_o   => ex_csrwr_data,
         ready_o        => ex_ready,
         pc_i           => ex_pc_full,
         opd0_src_sel_i => ex_opd0_src_sel,

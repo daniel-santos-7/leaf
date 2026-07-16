@@ -33,7 +33,6 @@ entity id_stage is
         cop_adr_o     : out std_logic_vector(5 downto 0);
         cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o      : out std_logic;
-        csr_wr_data_i : in  std_logic_vector(XLEN-1 downto 0);
         flush_i       : in  std_logic;
         ready_i       : in  std_logic;
         exc_fault_i   : in  std_logic;
@@ -50,7 +49,6 @@ entity id_stage is
         mtvec_base_o  : out std_logic_vector(XLEN-1 downto 2);
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
         rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
-        csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
         opd0_src_sel_o : out std_logic;
         opd1_src_sel_o : out std_logic;
@@ -137,6 +135,8 @@ architecture rtl of id_stage is
     signal ex_next_pc_full_reg : std_logic_vector(XLEN-1 downto 0);
 
     signal main_ctrl_ready : std_logic;
+
+    signal csrs_wr_data : std_logic_vector(XLEN-1 downto 0);
 
     signal csrs_cop_adr : std_logic_vector(5 downto 0);
     signal csrs_cop_dat : std_logic_vector(XLEN-1 downto 0);
@@ -239,7 +239,7 @@ begin
         wr_en_i      => csr_we_i,
         wr_addr_i    => ex_csrs_addr_reg,
         rw_addr_i    => main_ctrl_csrs_addr,
-        wr_data_i    => csr_wr_data_i,
+        wr_data_i    => csrs_wr_data,
         exec_res_i   => exec_res_i,
         pc_i         => pc_full,
         fault_pc_i   => ex_pc_full_reg,
@@ -318,6 +318,15 @@ begin
         end if;
     end process pipeline_reg;
 
+    -- CSR write data mux (uses post-pipeline register values, same timing as before)
+    id_stage_csrs_logic: entity work.csrs_logic port map (
+        csrwr_mode_i => ex_func3_reg,
+        csrrd_data_i => ex_csrrd_data_reg,
+        regwr_data_i => ex_rd0_reg,
+        immwr_data_i => ex_imm_reg,
+        csrwr_data_o => csrs_wr_data
+    );
+
     -- Output assignments at end
     cop_adr_o     <= csrs_cop_adr;
     cop_dat_o     <= csrs_cop_dat;
@@ -332,7 +341,6 @@ begin
     dmls_ctrl_o   <= ex_dmls_ctrl_reg;
     rd_data0_o    <= ex_rd0_reg;
     rd_data1_o    <= ex_rd1_reg;
-    csrrd_data_o  <= ex_csrrd_data_reg;
     imm_o         <= ex_imm_reg;
     opd0_src_sel_o <= ex_opd0_src_sel_reg;
     opd1_src_sel_o <= ex_opd1_src_sel_reg;
