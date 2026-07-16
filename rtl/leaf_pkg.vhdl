@@ -515,7 +515,7 @@ package leaf_pkg is
         );
     end component counters;
 
-    component skid_buffer is
+    component fifo_buffer is
         generic (
             DATA_WIDTH : positive
         );
@@ -529,7 +529,7 @@ package leaf_pkg is
             valid_o  : out std_logic;
             ready_i  : in  std_logic
         );
-    end component skid_buffer;
+    end component fifo_buffer;
 
     component wb_arbiter is
         port (

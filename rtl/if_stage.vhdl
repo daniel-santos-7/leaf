@@ -118,7 +118,7 @@ begin
     inst_data  <= inst_err_i & inst_dat_i;
     inst_valid <= (inst_ack_i or inst_err_i) and if_adr_buf_valid;
 
-    if_adr_buf: skid_buffer generic map (
+    if_adr_buf: fifo_buffer generic map (
         DATA_WIDTH => XLEN-1
     ) port map (
         clk_i   => clk_i,
@@ -131,7 +131,7 @@ begin
         ready_o => if_adr_buf_ready
     );
 
-    if_inst_buf: skid_buffer generic map (
+    if_inst_buf: fifo_buffer generic map (
         DATA_WIDTH => XLEN + 1
     ) port map (
         clk_i   => clk_i,
