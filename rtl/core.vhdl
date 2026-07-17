@@ -75,8 +75,6 @@ architecture rtl of core is
     signal ex_opd0_pass    : std_logic;
     signal ex_opd1_pass    : std_logic;
     signal ex_pc_full     : std_logic_vector(XLEN-1 downto 0);
-    signal ex_regwr_en    : std_logic;
-    signal ex_csrwr_en    : std_logic;
 
     -- EX block outputs (loop back to ID stage)
     signal ex_res         : std_logic_vector(XLEN-1 downto 0);
@@ -86,9 +84,6 @@ architecture rtl of core is
     signal ex_dmld_fault  : std_logic;
     signal ex_dmst_malgn  : std_logic;
     signal ex_dmst_fault  : std_logic;
-    signal ex_exc_fault   : std_logic;
-    signal ex_rf_we       : std_logic;
-    signal ex_csr_we      : std_logic;
 
 begin
 
@@ -151,9 +146,6 @@ begin
         cop_we_o       => cop_we_o,
         flush_i        => ex_flush,
         ready_i        => ex_ready,
-        exc_fault_i    => ex_exc_fault,
-        rf_we_i        => ex_rf_we,
-        csr_we_i       => ex_csr_we,
         ready_o        => id_ready,
         func3_o        => ex_func3,
         branch_op_o    => ex_branch_op,
@@ -170,9 +162,7 @@ begin
         opd1_src_sel_o => ex_opd1_src_sel,
         opd0_pass_o    => ex_opd0_pass,
         opd1_pass_o    => ex_opd1_pass,
-        pc_full_o      => ex_pc_full,
-        ex_regwr_en_o  => ex_regwr_en,
-        ex_csrwr_en_o  => ex_csrwr_en
+        pc_full_o      => ex_pc_full
     );
 
     -- execute stage --
@@ -183,7 +173,7 @@ begin
         exc_taken_i    => ex_exc_taken,
         mret_i         => ex_mret,
         mepc_i         => ex_mepc,
-            mtvec_base_i   => ex_mtvec_base,
+        mtvec_base_i   => ex_mtvec_base,
         func3_i        => ex_func3,
         reg0_i         => ex_rd0,
         reg1_i         => ex_rd1,
@@ -216,13 +206,6 @@ begin
         opd1_src_sel_i => ex_opd1_src_sel,
         opd0_pass_i    => ex_opd0_pass,
         opd1_pass_i    => ex_opd1_pass,
-        valid_i        => if_valid,
-        fault_i        => if_imrd_fault,
-        regwr_en_i     => ex_regwr_en,
-        csrwr_en_i     => ex_csrwr_en,
-        exc_fault_o    => ex_exc_fault,
-        rf_we_o        => ex_rf_we,
-        csr_we_o       => ex_csr_we,
         flush_o        => ex_flush
     );
 

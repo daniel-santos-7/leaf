@@ -35,9 +35,6 @@ entity id_stage is
         cop_we_o      : out std_logic;
         flush_i       : in  std_logic;
         ready_i       : in  std_logic;
-        exc_fault_i   : in  std_logic;
-        rf_we_i       : in  std_logic;
-        csr_we_i      : in  std_logic;
         ready_o       : out std_logic;
         func3_o       : out std_logic_vector(2  downto 0);
         branch_op_o   : out std_logic_vector(1  downto 0);
@@ -54,9 +51,7 @@ entity id_stage is
         opd1_src_sel_o : out std_logic;
         opd0_pass_o    : out std_logic;
         opd1_pass_o    : out std_logic;
-        pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
-        ex_regwr_en_o : out std_logic;
-        ex_csrwr_en_o : out std_logic
+        pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity id_stage;
 
@@ -138,6 +133,11 @@ architecture rtl of id_stage is
 
     signal csrs_wr_data : std_logic_vector(XLEN-1 downto 0);
 
+    signal exc_fault_int : std_logic;
+    signal exc_inhibit   : std_logic;
+    signal rf_we_int     : std_logic;
+    signal csr_we_int    : std_logic;
+
     signal csrs_cop_adr : std_logic_vector(5 downto 0);
     signal csrs_cop_dat : std_logic_vector(XLEN-1 downto 0);
     signal csrs_cop_we  : std_logic;
@@ -196,7 +196,7 @@ begin
         SIZE => REG_FILE_SIZE
     ) port map (
         clk_i      => clk_i,
-        we_i       => rf_we_i,
+        we_i       => rf_we_int,
         wr_sel_i   => ex_regwr_sel_reg,
         wr_addr_i  => ex_regwr_addr_reg,
         wr_data0_i => exec_res_i,
@@ -210,7 +210,11 @@ begin
     );
 
 
-    csrs_exc_taken <= main_ctrl_exc_taken or exc_fault_i;
+    exc_fault_int <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i;
+    csrs_exc_taken <= main_ctrl_exc_taken or exc_fault_int;
+    exc_inhibit <= exc_fault_int or fault_i;
+    rf_we_int <= ex_regwr_en_reg and not exc_inhibit;
+    csr_we_int <= ex_csrwr_en_reg and not exc_inhibit;
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -236,7 +240,7 @@ begin
         exi_taken_i  => main_ctrl_exi_taken,
         tmi_taken_i  => main_ctrl_tmi_taken,
         swi_taken_i  => main_ctrl_swi_taken,
-        wr_en_i      => csr_we_i,
+        wr_en_i      => csr_we_int,
         wr_addr_i    => ex_csrs_addr_reg,
         rw_addr_i    => main_ctrl_csrs_addr,
         wr_data_i    => csrs_wr_data,
@@ -319,7 +323,7 @@ begin
     end process pipeline_reg;
 
     -- CSR write data mux (uses post-pipeline register values, same timing as before)
-    id_stage_csrs_logic: entity work.csrs_logic port map (
+    id_stage_csrs_logic: csrs_logic port map (
         csrwr_mode_i => ex_func3_reg,
         csrrd_data_i => ex_csrrd_data_reg,
         regwr_data_i => ex_rd0_reg,
@@ -348,7 +352,5 @@ begin
     opd1_pass_o   <= ex_opd1_pass_reg;
     pc_full_o     <= ex_pc_full_reg;
     ready_o       <= main_ctrl_ready;
-    ex_regwr_en_o <= ex_regwr_en_reg;
-    ex_csrwr_en_o <= ex_csrwr_en_reg;
 
 end architecture rtl;

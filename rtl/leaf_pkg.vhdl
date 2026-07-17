@@ -291,9 +291,6 @@ package leaf_pkg is
             cop_we_o      : out std_logic;
             flush_i       : in  std_logic;
             ready_i       : in  std_logic;
-            exc_fault_i   : in  std_logic;
-            rf_we_i       : in  std_logic;
-            csr_we_i      : in  std_logic;
             ready_o       : out std_logic;
             func3_o       : out std_logic_vector(2  downto 0);
             branch_op_o   : out std_logic_vector(1  downto 0);
@@ -310,19 +307,23 @@ package leaf_pkg is
             opd1_src_sel_o : out std_logic;
             opd0_pass_o    : out std_logic;
             opd1_pass_o    : out std_logic;
-            pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
-            ex_regwr_en_o : out std_logic;
-            ex_csrwr_en_o : out std_logic
+            pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
         );
     end component id_stage;
 
     component alu is
         port(
-            opd0_i : in  std_logic_vector(XLEN-1 downto 0);
-            opd1_i : in  std_logic_vector(XLEN-1 downto 0);
-            op_i   : in  std_logic_vector(5          downto 0);
-            res_o  : out std_logic_vector(XLEN-1 downto 0);
-            arith_res_o : out std_logic_vector(XLEN-1 downto 0)
+            pc_i           : in  std_logic_vector(XLEN-1 downto 0);
+            reg0_i         : in  std_logic_vector(XLEN-1 downto 0);
+            reg1_i         : in  std_logic_vector(XLEN-1 downto 0);
+            immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+            opd0_src_sel_i : in  std_logic;
+            opd1_src_sel_i : in  std_logic;
+            opd0_pass_i    : in  std_logic;
+            opd1_pass_i    : in  std_logic;
+            op_i           : in  std_logic_vector(5        downto 0);
+            res_o          : out std_logic_vector(XLEN-1 downto 0);
+            arith_res_o    : out std_logic_vector(XLEN-1 downto 0)
         );
     end component alu;
 
@@ -383,15 +384,7 @@ package leaf_pkg is
             target_o : out std_logic_vector(XLEN-1 downto 0);
             ready_o       : out std_logic;
             flush_o       : out std_logic;
-            branch_o      : out std_logic;
-            res_o         : out std_logic_vector(XLEN-1 downto 0);
-            valid_i       : in  std_logic;
-            fault_i       : in  std_logic;
-            regwr_en_i    : in  std_logic;
-            csrwr_en_i    : in  std_logic;
-            exc_fault_o   : out std_logic;
-            rf_we_o       : out std_logic;
-            csr_we_o      : out std_logic
+            res_o         : out std_logic_vector(XLEN-1 downto 0)
         );
     end component ex_block;
 
