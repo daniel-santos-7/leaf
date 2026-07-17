@@ -54,19 +54,10 @@ architecture arch of wb_ram_dual is
     begin
         stop_val := memory(DUMP_STOP_ADDR);
         start_val := memory(DUMP_START_ADDR);
-        if is_x(stop_val) then
-            report "MEM_STOP contains X/U" severity note;
-        end if;
         dump_start := to_integer(unsigned(start_val(31 downto 2))-MEM_BASE_ADDR);
         dump_stop  := to_integer(unsigned(stop_val(31 downto 2))-MEM_BASE_ADDR) - 1;
-        report "dump_memory: start=" & integer'image(dump_start) & 
-               " stop=" & integer'image(dump_stop) & 
-               " file=" & file_path severity note;
         if dump_stop >= dump_start and dump_stop < MEM_SIZE/4 then
-            report "Writing memory..." severity note;
             write_memory(file_path, memory(dump_start to dump_stop));
-        else
-            report "Condition failed!" severity note;
         end if;
     end procedure;
 

@@ -289,6 +289,13 @@ begin
                         end if;
                     when DONE =>
                         state <= IDLE;
+                        cyc_reg       <= '0';
+                        stb_reg       <= '0';
+                        data_we_reg   <= '0';
+                        data_dat_reg  <= (others => '0');
+                        data_adr_reg  <= (others => '0');
+                        data_sel_reg  <= (others => '0');
+                        dmld_data_reg <= (others => '0');
                 end case;
             end if;
         end if;
