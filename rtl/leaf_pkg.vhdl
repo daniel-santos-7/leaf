@@ -285,6 +285,9 @@ package leaf_pkg is
             cop_adr_o     : out std_logic_vector(5 downto 0);
             cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
             cop_we_o      : out std_logic;
+            rf_wr_en_o    : out std_logic;
+            rf_wr_addr_o  : out std_logic_vector(4  downto 0);
+            rf_wr_data_o  : out std_logic_vector(XLEN-1 downto 0);
             csr_wr_data_i : in  std_logic_vector(XLEN-1 downto 0);
             ready_i       : in  std_logic;
             exc_fault_i   : in  std_logic;
@@ -450,6 +453,9 @@ package leaf_pkg is
         cop_adr_o   : out std_logic_vector(5 downto 0);
         cop_dat_o   : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o    : out std_logic;
+        rf_wr_en_o    : out std_logic;
+        rf_wr_addr_o  : out std_logic_vector(4  downto 0);
+        rf_wr_data_o  : out std_logic_vector(XLEN-1 downto 0);
         retire_o    : out std_logic;
         data_cyc_o  : out std_logic;
         data_stb_o  : out std_logic;
@@ -476,6 +482,9 @@ package leaf_pkg is
             cop_adr_o   : out std_logic_vector(5 downto 0);
             cop_dat_o   : out std_logic_vector(XLEN-1 downto 0);
             cop_we_o    : out std_logic;
+            rf_wr_en_o    : out std_logic;
+            rf_wr_addr_o  : out std_logic_vector(4  downto 0);
+            rf_wr_data_o  : out std_logic_vector(XLEN-1 downto 0);
 
             inst_cyc_o  : out std_logic;
             inst_stb_o  : out std_logic;

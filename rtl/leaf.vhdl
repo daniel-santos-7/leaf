@@ -25,6 +25,9 @@ entity leaf is
         cop_adr_o   : out std_logic_vector(5 downto 0);
         cop_dat_o   : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o    : out std_logic;
+        rf_wr_en_o    : out std_logic;
+        rf_wr_addr_o  : out std_logic_vector(4  downto 0);
+        rf_wr_data_o  : out std_logic_vector(XLEN-1 downto 0);
 
         -- Instruction Wishbone master
         inst_cyc_o  : out std_logic;
@@ -95,6 +98,9 @@ begin
         cop_adr_o   => cop_adr_o,
         cop_dat_o   => cop_dat_o,
         cop_we_o    => cop_we_o,
+        rf_wr_en_o    => rf_wr_en_o,
+        rf_wr_addr_o  => rf_wr_addr_o,
+        rf_wr_data_o  => rf_wr_data_o,
         retire_o    => retire,
         data_cyc_o  => data_cyc_o,
         data_stb_o  => data_stb_o,
