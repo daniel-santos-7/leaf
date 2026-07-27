@@ -49,6 +49,7 @@ entity main_ctrl is
         ready_i        : in  std_logic;
         flush_i        : in  std_logic;
         ready_o        : out std_logic;
+        retire_o       : out std_logic;
             exc_taken_o   : out std_logic;
             int_taken_o   : out std_logic;
             exi_taken_o   : out std_logic;
@@ -386,5 +387,11 @@ begin
     mret_o        <= mret and not kill;
     wfi_o         <= wfi_eff;
     ready_o       <= int_taken when wfi_eff = '1' else ready_i;
+
+    -- Retirement qualifier travelling with the instruction into EX: this slot
+    -- holds a real instruction that is going to commit. A killed slot never
+    -- commits, and neither does a trapping one -- except WFI, which retires
+    -- normally and hands the trap to its successor (see mepc in csrs).
+    retire_o      <= (not kill) and ((not exc_taken) or wfi_eff);
 
 end architecture rtl;

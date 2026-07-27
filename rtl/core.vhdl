@@ -109,8 +109,7 @@ begin
         next_pc_o    => if_next_pc,
         inst_o       => if_instr,
         valid_o      => if_valid,
-        stale_o      => if_stale,
-        retire_o     => retire_o
+        stale_o      => if_stale
     );
 
     -- instruction decode stage (contains pipeline register internally) --
@@ -162,7 +161,8 @@ begin
         opd1_src_sel_o => ex_opd1_src_sel,
         opd0_pass_o    => ex_opd0_pass,
         opd1_pass_o    => ex_opd1_pass,
-        pc_full_o      => ex_pc_full
+        pc_full_o      => ex_pc_full,
+        retire_o       => retire_o
     );
 
     -- execute stage --

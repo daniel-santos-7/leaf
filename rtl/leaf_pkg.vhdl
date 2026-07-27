@@ -122,8 +122,7 @@ package leaf_pkg is
             inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
             pc_o         : out std_logic_vector(XLEN-1 downto 2);
             next_pc_o    : out std_logic_vector(XLEN-1 downto 2);
-            inst_o       : out std_logic_vector(XLEN-1 downto 0);
-            retire_o     : out std_logic
+            inst_o       : out std_logic_vector(XLEN-1 downto 0)
         );
     end component if_stage;
 
@@ -166,6 +165,7 @@ package leaf_pkg is
             ready_i        : in  std_logic;
             flush_i        : in  std_logic;
             ready_o        : out std_logic;
+            retire_o       : out std_logic;
             exc_taken_o   : out std_logic;
             int_taken_o   : out std_logic;
             exi_taken_o   : out std_logic;
@@ -307,7 +307,8 @@ package leaf_pkg is
             opd1_src_sel_o : out std_logic;
             opd0_pass_o    : out std_logic;
             opd1_pass_o    : out std_logic;
-            pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
+            pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
+            retire_o      : out std_logic
         );
     end component id_stage;
 

@@ -51,7 +51,8 @@ entity id_stage is
         opd1_src_sel_o : out std_logic;
         opd0_pass_o    : out std_logic;
         opd1_pass_o    : out std_logic;
-        pc_full_o     : out std_logic_vector(XLEN-1 downto 0)
+        pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
+        retire_o      : out std_logic
     );
 end entity id_stage;
 
@@ -128,8 +129,10 @@ architecture rtl of id_stage is
     signal ex_csrwr_en_reg    : std_logic;
     signal ex_csrs_addr_reg   : std_logic_vector(11 downto 0);
     signal ex_next_pc_full_reg : std_logic_vector(XLEN-1 downto 0);
+    signal ex_retire_reg      : std_logic;
 
-    signal main_ctrl_ready : std_logic;
+    signal main_ctrl_ready  : std_logic;
+    signal main_ctrl_retire : std_logic;
 
     signal csrs_wr_data : std_logic_vector(XLEN-1 downto 0);
 
@@ -185,6 +188,7 @@ begin
         ready_i        => ready_i,
         flush_i        => flush_i,
         ready_o        => main_ctrl_ready,
+        retire_o       => main_ctrl_retire,
         exc_taken_o    => main_ctrl_exc_taken,
         int_taken_o    => main_ctrl_int_taken,
         exi_taken_o    => main_ctrl_exi_taken,
@@ -294,6 +298,7 @@ begin
                 ex_csrwr_en_reg     <= '0';
                 ex_csrs_addr_reg    <= (others => '0');
                 ex_next_pc_full_reg <= (others => '0');
+                ex_retire_reg       <= '0';
             elsif main_ctrl_ready = '1' then
                 ex_func3_reg        <= main_ctrl_func3;
                 ex_alu_op_reg       <= main_ctrl_alu_op;
@@ -318,6 +323,7 @@ begin
                 ex_dmls_ctrl_reg    <= main_ctrl_dmls_ctrl;
                 ex_regwr_en_reg     <= main_ctrl_regwr_en;
                 ex_csrwr_en_reg     <= main_ctrl_csrwr_en;
+                ex_retire_reg       <= main_ctrl_retire;
             end if;
         end if;
     end process pipeline_reg;
@@ -352,5 +358,9 @@ begin
     opd1_pass_o   <= ex_opd1_pass_reg;
     pc_full_o     <= ex_pc_full_reg;
     ready_o       <= main_ctrl_ready;
+
+    -- minstret: count at the commit point, one pulse per instruction as it
+    -- leaves EX. A fault detected in EX cancels the retirement.
+    retire_o      <= ex_retire_reg and ready_i and not exc_fault_int;
 
 end architecture rtl;

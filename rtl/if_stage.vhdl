@@ -32,8 +32,7 @@ entity if_stage is
         inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
         pc_o         : out std_logic_vector(XLEN-1 downto 2);
         next_pc_o    : out std_logic_vector(XLEN-1 downto 2);
-        inst_o       : out std_logic_vector(XLEN-1 downto 0);
-        retire_o     : out std_logic
+        inst_o       : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity if_stage;
 
@@ -154,6 +153,5 @@ begin
     valid_o    <= if_adr_buf_valid and if_inst_buf_valid;
     inst_err_o <= if_inst_buf_data(XLEN);
     inst_o     <= if_inst_buf_data(XLEN-1 downto 0);
-    retire_o   <= if_adr_buf_valid and if_inst_buf_valid and ready_i;
 
 end architecture rtl;
