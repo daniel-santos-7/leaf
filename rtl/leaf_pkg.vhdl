@@ -119,6 +119,7 @@ package leaf_pkg is
             inst_stb_o   : out std_logic;
             valid_o      : out std_logic;
             stale_o      : out std_logic;
+            redirect_ack_o : out std_logic;
             inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
             pc_o         : out std_logic_vector(XLEN-1 downto 2);
             next_pc_o    : out std_logic_vector(XLEN-1 downto 2);
@@ -330,6 +331,8 @@ package leaf_pkg is
 
     component br_detector is
         port (
+            clk_i        : in  std_logic;
+            reset_i      : in  std_logic;
             reg0_i       : in  std_logic_vector(XLEN-1 downto 0);
             reg1_i       : in  std_logic_vector(XLEN-1 downto 0);
             mode_i       : in  std_logic_vector(2           downto 0);
@@ -338,7 +341,7 @@ package leaf_pkg is
             arith_res_i    : in  std_logic_vector(XLEN-1 downto 0);
             trap_taken_i : in  std_logic;
             trap_target_i: in  std_logic_vector(XLEN-1 downto 0);
-            branch_o     : out std_logic;
+            redirect_ack_i : in  std_logic;
             taken_o      : out std_logic;
             target_o     : out std_logic_vector(XLEN-1 downto 0);
             imrd_malgn_o : out std_logic
@@ -368,6 +371,7 @@ package leaf_pkg is
             data_ack_i   : in  std_logic;
             data_err_i   : in  std_logic;
             data_stall_i  : in  std_logic;
+            redirect_ack_i : in  std_logic;
             immwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
             imrd_malgn_o  : out std_logic;
             dmld_malgn_o  : out std_logic;

@@ -29,6 +29,7 @@ entity if_stage is
         inst_stb_o   : out std_logic;
         valid_o      : out std_logic;
         stale_o      : out std_logic;
+        redirect_ack_o : out std_logic;
         inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
         pc_o         : out std_logic_vector(XLEN-1 downto 2);
         next_pc_o    : out std_logic_vector(XLEN-1 downto 2);
@@ -38,10 +39,9 @@ end entity if_stage;
 
 architecture rtl of if_stage is
 
-    signal taken_reg         : std_logic;
-    signal target_reg        : std_logic_vector(XLEN-1 downto 2);
-    signal taken             : std_logic;
-    signal target            : std_logic_vector(XLEN-1 downto 2);
+    -- The pending-redirect registers live in br_detector: taken_i/target_i stay
+    -- asserted until redirect_ack signals that this stage consumed them.
+    signal redirect_ack      : std_logic;
 
     -- Registers
     signal adr_reg           : std_logic_vector(XLEN-1 downto 2);
@@ -64,31 +64,16 @@ architecture rtl of if_stage is
 
 begin
 
-    taken_reg_proc: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if reset_i = '1' then
-                taken_reg  <= '0';
-                target_reg <= (others => '0');
-            elsif (if_adr_buf_ready = '1' and inst_stall_i = '0') then
-                taken_reg  <= '0';
-                target_reg <= (others => '0');
-            elsif taken_i = '1' then
-                taken_reg  <= '1';
-                target_reg <= target_i(XLEN-1 downto 2);
-            end if;
-        end if;
-    end process taken_reg_proc;
-
-    taken  <= taken_i or taken_reg;
-    target <= target_i(XLEN-1 downto 2) when taken_i = '1' else target_reg;
+    -- A redirect is consumed on the cycle the next fetch address is accepted by
+    -- the bus. Same condition guards epoch_reg and adr_reg below.
+    redirect_ack <= if_adr_buf_ready and not inst_stall_i;
 
     epoch_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 epoch_reg <= '0';
-            elsif (if_adr_buf_ready = '1' and inst_stall_i = '0') then
+            elsif redirect_ack = '1' then
                 if taken_i = '1' then
                     epoch_reg <= not epoch_reg;
                 end if;
@@ -101,9 +86,9 @@ begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 adr_reg <= RESET_ADDR(XLEN-1 downto 2);
-            elsif (if_adr_buf_ready = '1' and inst_stall_i = '0') then
-                if taken = '1' then
-                    adr_reg <= target;
+            elsif redirect_ack = '1' then
+                if taken_i = '1' then
+                    adr_reg <= target_i(XLEN-1 downto 2);
                 else
                     adr_reg <= std_logic_vector(unsigned(adr_reg) + 1);
                 end if;
@@ -147,11 +132,17 @@ begin
     inst_cyc_o <= if_inst_buf_ready;
     inst_stb_o <= if_adr_buf_ready;
     inst_adr_o <= adr_reg;
+    -- Only entries still tagged with the previous epoch, i.e. the wrong-path
+    -- ones left in the buffer after a redirect was consumed. The window before
+    -- that -- from the redirect resolving until the fetch accepts it -- is
+    -- covered by flush_i in main_ctrl, which is driven by the same held
+    -- taken signal and therefore spans the whole deferral.
     stale_o    <= if_adr_buf_valid and (if_adr_buf_data(XLEN-2) xor epoch_reg);
     next_pc_o  <= std_logic_vector(unsigned(if_adr_buf_data(XLEN-3 downto 0)) + 1);
     pc_o       <= if_adr_buf_data(XLEN-3 downto 0);
     valid_o    <= if_adr_buf_valid and if_inst_buf_valid;
     inst_err_o <= if_inst_buf_data(XLEN);
     inst_o     <= if_inst_buf_data(XLEN-1 downto 0);
+    redirect_ack_o <= redirect_ack;
 
 end architecture rtl;

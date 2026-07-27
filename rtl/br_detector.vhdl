@@ -12,6 +12,8 @@ use work.leaf_pkg.all;
 
 entity br_detector is
     port (
+        clk_i        : in  std_logic;
+        reset_i      : in  std_logic;
         reg0_i       : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i       : in  std_logic_vector(XLEN-1 downto 0);
         mode_i       : in  std_logic_vector(2           downto 0);
@@ -20,7 +22,7 @@ entity br_detector is
         arith_res_i    : in  std_logic_vector(XLEN-1 downto 0);
         trap_taken_i : in  std_logic;
         trap_target_i: in  std_logic_vector(XLEN-1 downto 0);
-        branch_o     : out std_logic;
+        redirect_ack_i : in  std_logic;
         taken_o      : out std_logic;
         target_o     : out std_logic_vector(XLEN-1 downto 0);
         imrd_malgn_o : out std_logic
@@ -36,6 +38,12 @@ architecture br_detector_arch of br_detector is
 
     signal taken_int  : std_logic;
     signal target_int : std_logic_vector(XLEN-1 downto 0);
+
+    -- Redirect held until the fetch stage can accept it. The bus may defer
+    -- acceptance for any number of cycles (Wishbone stall, address buffer
+    -- full), so taken_o/target_o stay asserted until redirect_ack_i arrives.
+    signal taken_reg  : std_logic;
+    signal target_reg : std_logic_vector(XLEN-1 downto 0);
 
 begin
 
@@ -63,8 +71,23 @@ begin
     taken_int   <= (branch_i and en_i) or jmp_i or trap_taken_i;
     target_int  <= trap_target_i when trap_taken_i = '1' else arith_res_i(XLEN-1 downto 1) & b"0";
 
-    branch_o <= branch_i and en_i;
-    taken_o  <= taken_int;
-    target_o <= target_int;
+    -- Clearing on the acknowledge takes priority over capturing: when a new
+    -- redirect resolves in the same cycle the fetch stage accepts the pending
+    -- one, taken_int still drives taken_o combinationally, so nothing is lost.
+    redirect_hold: process(clk_i)
+    begin
+        if rising_edge(clk_i) then
+            if reset_i = '1' or redirect_ack_i = '1' then
+                taken_reg  <= '0';
+                target_reg <= (others => '0');
+            elsif taken_int = '1' then
+                taken_reg  <= '1';
+                target_reg <= target_int;
+            end if;
+        end if;
+    end process redirect_hold;
+
+    taken_o  <= taken_int or taken_reg;
+    target_o <= target_int when taken_int = '1' else target_reg;
 
 end architecture br_detector_arch;

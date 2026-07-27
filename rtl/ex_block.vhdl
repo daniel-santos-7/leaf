@@ -32,6 +32,7 @@ entity ex_block is
         data_ack_i   : in  std_logic;
         data_err_i   : in  std_logic;
         data_stall_i : in  std_logic;
+        redirect_ack_i : in  std_logic;
         immwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
         imrd_malgn_o  : out std_logic;
         dmld_malgn_o  : out std_logic;
@@ -95,6 +96,9 @@ begin
     );
 
     exec_br_detector: br_detector port map (
+        clk_i         => clk_i,
+        reset_i       => reset_i,
+        redirect_ack_i => redirect_ack_i,
         reg0_i        => reg0_i,
         reg1_i        => reg1_i,
         mode_i        => func3_i,

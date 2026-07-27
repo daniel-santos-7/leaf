@@ -57,6 +57,7 @@ architecture rtl of core is
     signal if_imrd_fault : std_logic;
     signal if_valid   : std_logic;
     signal if_stale   : std_logic;
+    signal if_redirect_ack : std_logic;
 
     -- ID stage -> EX stage (pipeline register inside id_stage)
     signal ex_func3       : std_logic_vector(2  downto 0);
@@ -109,7 +110,8 @@ begin
         next_pc_o    => if_next_pc,
         inst_o       => if_instr,
         valid_o      => if_valid,
-        stale_o      => if_stale
+        stale_o      => if_stale,
+        redirect_ack_o => if_redirect_ack
     );
 
     -- instruction decode stage (contains pipeline register internally) --
@@ -184,6 +186,7 @@ begin
         data_ack_i     => data_ack_i,
         data_err_i     => data_err_i,
         data_stall_i   => data_stall_i,
+        redirect_ack_i => if_redirect_ack,
         imrd_malgn_o   => ex_imrd_malgn,
         dmld_malgn_o   => ex_dmld_malgn,
         dmld_fault_o   => ex_dmld_fault,
