@@ -216,7 +216,12 @@ begin
 
     exc_fault_int <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i;
     csrs_exc_taken <= main_ctrl_exc_taken or exc_fault_int;
-    exc_inhibit <= exc_fault_int or fault_i;
+    -- fault_i is combinational from the (possibly empty) instruction FIFO;
+    -- only meaningful when this cycle actually holds a real, in-order
+    -- instruction. Left ungated it can read 'U' and propagate through the
+    -- OR (no zero-dominance the way main_ctrl's kill-gated AND has),
+    -- silently disabling rf_we_int/csr_we_int.
+    exc_inhibit <= exc_fault_int or (fault_i and valid_i and not stale_i and not flush_i);
     rf_we_int <= ex_regwr_en_reg and not exc_inhibit;
     csr_we_int <= ex_csrwr_en_reg and not exc_inhibit;
 
