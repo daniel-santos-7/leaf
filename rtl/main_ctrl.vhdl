@@ -381,8 +381,8 @@ begin
 
     -- Output port assignments from internal signals --
     instr_err_o   <= instr_err;
-    ecall_o       <= ecall;
-    ebreak_o      <= ebreak;
+    ecall_o       <= ecall  and not kill;
+    ebreak_o      <= ebreak and not kill;
     mret_o        <= mret and not kill;
     wfi_o         <= wfi_eff;
     ready_o       <= int_taken when wfi_eff = '1' else ready_i;
