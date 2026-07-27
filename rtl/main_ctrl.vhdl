@@ -80,6 +80,13 @@ architecture rtl of main_ctrl is
     signal wfi       : std_logic;
     signal trap_inhibit : std_logic;
 
+    -- Empty slot or wrong-path instruction: nothing here may reach EX or stall
+    -- the pipeline. Must not include trap_inhibit or mret -- trap_inhibit
+    -- depends on ecall/ebreak, which are themselves qualified by kill, and
+    -- including it would close a combinational loop.
+    signal kill      : std_logic;
+    signal wfi_eff   : std_logic;   -- wfi that is actually going to execute
+
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
         return std_logic_vector(resize(signed(value), XLEN));
@@ -105,9 +112,9 @@ begin
 
     -- Decode process (opcode-based) --
 
-    main_ctrl_proc: process(opcode, instr_i, valid_i, stale_i, mret, trap_inhibit, flush_i)
+    main_ctrl_proc: process(opcode, instr_i, kill, mret, trap_inhibit)
     begin
-        if valid_i = '0' or stale_i = '1' or flush_i = '1' or trap_inhibit = '1' or mret = '1' then
+        if kill = '1' or trap_inhibit = '1' or mret = '1' then
             dmls_ctrl_o    <= DMLS_IDLE;
             instr_err      <= '0';
             imm_type       <= (others => '-');
@@ -346,8 +353,20 @@ begin
     mret   <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
     wfi    <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
 
+    -- A speculatively fetched system instruction must not stall the pipeline or
+    -- take a trap. valid_i='0' covers an empty instruction buffer (instr_i is
+    -- then stale FIFO output), flush_i the cycle a taken branch resolves in EX,
+    -- and stale_i the wrong-path entries still buffered after flush drops.
+    kill <= (not valid_i) or stale_i or flush_i;
+
+    wfi_eff <= wfi and not kill;
+
     -- Trap inhibit: gates control outputs when trap is taken (no instr_err to break loop)
-    trap_inhibit <= imrd_fault_i or ((ecall or ebreak) and valid_i) or int_taken;
+    -- int_taken is deliberately not gated by kill: a real interrupt is independent
+    -- of whichever instruction happens to occupy the slot.
+    trap_inhibit <= (imrd_fault_i and not kill)
+                 or ((ecall or ebreak) and valid_i and not kill)
+                 or int_taken;
     exc_taken     <= trap_inhibit or instr_err;
     exi_taken     <= mie_meie_i and mip_meip_i;
     tmi_taken     <= mie_mtie_i and mip_mtip_i;
@@ -364,8 +383,8 @@ begin
     instr_err_o   <= instr_err;
     ecall_o       <= ecall;
     ebreak_o      <= ebreak;
-    mret_o        <= mret;
-    wfi_o         <= wfi;
-    ready_o       <= int_taken when wfi = '1' else ready_i;
+    mret_o        <= mret and not kill;
+    wfi_o         <= wfi_eff;
+    ready_o       <= int_taken when wfi_eff = '1' else ready_i;
 
 end architecture rtl;
