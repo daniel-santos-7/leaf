@@ -40,10 +40,9 @@ entity csrs is
         wr_addr_i    : in  std_logic_vector(11 downto 0);
         rw_addr_i    : in  std_logic_vector(11 downto 0);
         wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
+        pipe_en_i    : in  std_logic;
         exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
         pc_i         : in  std_logic_vector(XLEN-1 downto 0);
-        fault_pc_i   : in  std_logic_vector(XLEN-1 downto 0);
-        next_pc_i    : in  std_logic_vector(XLEN-1 downto 0);
         cycle_i      : in  std_logic_vector(63 downto 0);
         timer_i      : in  std_logic_vector(63 downto 0);
         instret_i    : in  std_logic_vector(63 downto 0);
@@ -58,9 +57,12 @@ entity csrs is
         mip_meip_o   : out std_logic;
         mip_mtip_o   : out std_logic;
         mip_msip_o   : out std_logic;
-        mepc_o       : out std_logic_vector(XLEN-1 downto 2);
-        mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
-        rd_data_o    : out std_logic_vector(XLEN-1 downto 0)
+        id_mepc_o       : out std_logic_vector(XLEN-1 downto 2);
+        id_mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
+        mepc_o          : out std_logic_vector(XLEN-1 downto 2);
+        mtvec_base_o    : out std_logic_vector(XLEN-1 downto 2);
+        csrrd_data_o    : out std_logic_vector(XLEN-1 downto 0);
+        pc_o            : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity csrs;
 
@@ -86,13 +88,21 @@ architecture rtl of csrs is
     signal cop_sel_rd    : std_logic;
     signal cop_sel_wr : std_logic;
     signal rd_data_int : std_logic_vector(XLEN-1 downto 0);
+    signal rd_data_bypassed : std_logic_vector(XLEN-1 downto 0);
+    signal mepc_int       : std_logic_vector(XLEN-1 downto 2);
+    signal mtvec_base_int : std_logic_vector(XLEN-1 downto 2);
+
+    signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
+    signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
+    signal csrrd_data_reg : std_logic_vector(XLEN-1 downto 0);
+    signal pc_reg         : std_logic_vector(XLEN-1 downto 0);
 
 begin
 
     cop_sel_rd <= '1' when rw_addr_i(11 downto 6) = b"011111" else '0';
     cop_sel_wr <= '1' when wr_addr_i(11 downto 6) = b"011111" else '0';
 
-    runit: rd_data_o <= wr_data_i when (wr_en_i = '1' and wr_addr_i = rw_addr_i) else rd_data_int;
+    runit: rd_data_bypassed <= wr_data_i when (wr_en_i = '1' and wr_addr_i = rw_addr_i) else rd_data_int;
 
     read_csr: process(rw_addr_i, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle_i, timer_i, instret_i, cop_sel_rd, cop_dat_i)
     begin
@@ -185,9 +195,14 @@ begin
                 mepc <= (others => '0');
             elsif exc_taken_i = '1' then
                 if wfi_i = '1' then
-                    mepc <= next_pc_i(XLEN-1 downto 2);
+                    -- mepc must point past the WFI, so the handler's mret does
+                    -- not fall back into it and sleep again. pc_i is the
+                    -- ID-stage PC (the WFI itself); ex_block's link_o is the
+                    -- EX-stage one, a different instruction, so it cannot be
+                    -- reused here.
+                    mepc <= std_logic_vector(unsigned(pc_i(XLEN-1 downto 2)) + 1);
                 elsif (imrd_malgn_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i) = '1' then
-                    mepc <= fault_pc_i(XLEN-1 downto 2);
+                    mepc <= pc_reg(XLEN-1 downto 2);
                 else
                     mepc <= pc_i(XLEN-1 downto 2);
                 end if;
@@ -283,17 +298,40 @@ begin
         end if;
     end process write_mip;
 
-    mie_meie_o    <= wr_data_i(11) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_meie;
-    mie_mtie_o    <= wr_data_i(7)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_mtie;
-    mie_msie_o    <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_msie;
-    mstatus_mie_o <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MSTATUS) else mstatus_mie;
-    mip_meip_o    <= mip_meip;
-    mip_mtip_o    <= mip_mtip;
-    mip_msip_o    <= mip_msip;
-    mepc_o        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC) else mepc;
-    mtvec_base_o  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
-    cop_we_o      <= wr_en_i and cop_sel_wr;
-    cop_adr_o     <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
-    cop_dat_o     <= wr_data_i;
+    pipeline_reg: process(clk_i)
+    begin
+        if rising_edge(clk_i) then
+            if reset_i = '1' then
+                mepc_reg       <= (others => '0');
+                mtvec_base_reg <= (others => '0');
+                csrrd_data_reg <= (others => '0');
+                pc_reg         <= (others => '0');
+            elsif pipe_en_i = '1' then
+                mepc_reg       <= mepc_int;
+                mtvec_base_reg <= mtvec_base_int;
+                csrrd_data_reg <= rd_data_bypassed;
+                pc_reg         <= pc_i;
+            end if;
+        end if;
+    end process pipeline_reg;
+
+    mie_meie_o      <= wr_data_i(11) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_meie;
+    mie_mtie_o      <= wr_data_i(7)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_mtie;
+    mie_msie_o      <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_msie;
+    mstatus_mie_o   <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MSTATUS) else mstatus_mie;
+    mip_meip_o      <= mip_meip;
+    mip_mtip_o      <= mip_mtip;
+    mip_msip_o      <= mip_msip;
+    mepc_int        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC) else mepc;
+    id_mepc_o       <= mepc_int;
+    mtvec_base_int  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
+    id_mtvec_base_o <= mtvec_base_int;
+    cop_we_o        <= wr_en_i and cop_sel_wr;
+    cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
+    cop_dat_o       <= wr_data_i;
+    mepc_o          <= mepc_reg;
+    mtvec_base_o    <= mtvec_base_reg;
+    csrrd_data_o    <= csrrd_data_reg;
+    pc_o            <= pc_reg;
 
 end architecture rtl;

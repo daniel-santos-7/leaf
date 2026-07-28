@@ -52,7 +52,6 @@ architecture rtl of core is
 
     -- IF stage outputs
     signal if_pc      : std_logic_vector(XLEN-1 downto 2);
-    signal if_next_pc : std_logic_vector(XLEN-1 downto 2);
     signal if_instr   : std_logic_vector(XLEN-1 downto 0);
     signal if_imrd_fault : std_logic;
     signal if_valid   : std_logic;
@@ -79,6 +78,7 @@ architecture rtl of core is
 
     -- EX block outputs (loop back to ID stage)
     signal ex_res         : std_logic_vector(XLEN-1 downto 0);
+    signal ex_link        : std_logic_vector(XLEN-1 downto 0);
     signal ex_dmld_data   : std_logic_vector(XLEN-1 downto 0);
     signal ex_imrd_malgn  : std_logic;
     signal ex_dmld_malgn  : std_logic;
@@ -107,7 +107,6 @@ begin
         inst_err_o   => if_imrd_fault,
         inst_adr_o   => inst_adr_o,
         pc_o         => if_pc,
-        next_pc_o    => if_next_pc,
         inst_o       => if_instr,
         valid_o      => if_valid,
         stale_o      => if_stale,
@@ -134,9 +133,9 @@ begin
         timer_i        => timer_i,
         instret_i      => instret_i,
         exec_res_i     => ex_res,
+        link_i         => ex_link,
         dmld_data_i    => ex_dmld_data,
         pc_i           => if_pc,
-        next_pc_i      => if_next_pc,
         instr_i        => if_instr,
         fault_i        => if_imrd_fault,
         valid_i        => if_valid,
@@ -202,6 +201,7 @@ begin
         taken_o        => ex_taken,
         target_o       => ex_target,
         res_o          => ex_res,
+        link_o         => ex_link,
         immwr_data_i   => ex_imm,
         ready_o        => ex_ready,
         pc_i           => ex_pc_full,

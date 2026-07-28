@@ -16,6 +16,7 @@ entity reg_file is
     );
     port (
         clk_i      : in  std_logic;
+        reset_i    : in  std_logic;
         we_i       : in  std_logic;
         wr_sel_i   : in  std_logic_vector(1 downto 0);
         wr_addr_i  : in  std_logic_vector(4  downto 0);
@@ -25,6 +26,7 @@ entity reg_file is
         wr_data3_i : in  std_logic_vector(XLEN-1 downto 0);
         rd_addr0_i : in  std_logic_vector(4  downto 0);
         rd_addr1_i : in  std_logic_vector(4  downto 0);
+        re_i       : in  std_logic;
         rd_data0_o : out std_logic_vector(XLEN-1 downto 0);
         rd_data1_o : out std_logic_vector(XLEN-1 downto 0)
     );
@@ -39,6 +41,11 @@ architecture reg_file_arch of reg_file is
     signal regs: regs_array;
 
     signal wr_data: std_logic_vector(XLEN-1 downto 0);
+
+    signal rd_data0 : std_logic_vector(XLEN-1 downto 0);
+    signal rd_data1 : std_logic_vector(XLEN-1 downto 0);
+    signal rd_data0_reg : std_logic_vector(XLEN-1 downto 0);
+    signal rd_data1_reg : std_logic_vector(XLEN-1 downto 0);
 
     constant X0_ADDR: std_logic_vector(4  downto 0) := b"00000";
 
@@ -75,10 +82,10 @@ begin
             end if;
         end process write_reg;
 
-        rd_data0_o <= wr_data when (we_i = '1' and wr_addr_i = rd_addr0_i and rd_addr0_i /= X0_ADDR)
-                      else regs(to_uint(rd_addr0_i));
-        rd_data1_o <= wr_data when (we_i = '1' and wr_addr_i = rd_addr1_i and rd_addr1_i /= X0_ADDR)
-                      else regs(to_uint(rd_addr1_i));
+        rd_data0 <= wr_data when (we_i = '1' and wr_addr_i = rd_addr0_i and rd_addr0_i /= X0_ADDR)
+                  else regs(to_uint(rd_addr0_i));
+        rd_data1 <= wr_data when (we_i = '1' and wr_addr_i = rd_addr1_i and rd_addr1_i /= X0_ADDR)
+                  else regs(to_uint(rd_addr1_i));
     end generate large_reg_file;
 
     small_reg_file: if (EMBEDDED = true) generate
@@ -94,10 +101,26 @@ begin
             end if;
         end process write_reg;
 
-        rd_data0_o <= wr_data when (we_i = '1' and wr_addr_i(3 downto 0) = rd_addr0_i(3 downto 0) and rd_addr0_i(3 downto 0) /= "0000")
-                      else regs(to_uint(rd_addr0_i(3 downto 0)));
-        rd_data1_o <= wr_data when (we_i = '1' and wr_addr_i(3 downto 0) = rd_addr1_i(3 downto 0) and rd_addr1_i(3 downto 0) /= "0000")
-                      else regs(to_uint(rd_addr1_i(3 downto 0)));
+        rd_data0 <= wr_data when (we_i = '1' and wr_addr_i(3 downto 0) = rd_addr0_i(3 downto 0) and rd_addr0_i(3 downto 0) /= "0000")
+                  else regs(to_uint(rd_addr0_i(3 downto 0)));
+        rd_data1 <= wr_data when (we_i = '1' and wr_addr_i(3 downto 0) = rd_addr1_i(3 downto 0) and rd_addr1_i(3 downto 0) /= "0000")
+                  else regs(to_uint(rd_addr1_i(3 downto 0)));
     end generate small_reg_file;
+
+    pipeline_reg: process(clk_i)
+    begin
+        if rising_edge(clk_i) then
+            if reset_i = '1' then
+                rd_data0_reg <= X0_DATA;
+                rd_data1_reg <= X0_DATA;
+            elsif re_i = '1' then
+                rd_data0_reg <= rd_data0;
+                rd_data1_reg <= rd_data1;
+            end if;
+        end if;
+    end process pipeline_reg;
+
+    rd_data0_o <= rd_data0_reg;
+    rd_data1_o <= rd_data1_reg;
 
 end architecture reg_file_arch;

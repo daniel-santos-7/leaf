@@ -7,6 +7,7 @@
 
 library IEEE;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 use work.leaf_pkg.all;
 
 entity ex_block is
@@ -50,7 +51,11 @@ entity ex_block is
         target_o : out std_logic_vector(XLEN-1 downto 0);
         ready_o       : out std_logic;
         flush_o       : out std_logic;
-        res_o         : out std_logic_vector(XLEN-1 downto 0)
+        res_o         : out std_logic_vector(XLEN-1 downto 0);
+        -- JAL/JALR link address (pc+4). The ALU cannot produce it: its single
+        -- adder is already computing the jump target for those very
+        -- instructions, so the link needs its own incrementer.
+        link_o        : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity ex_block;
 
@@ -158,5 +163,7 @@ begin
     ready_o    <= dmls_ready;
     taken_o    <= taken_int;
     flush_o    <= taken_int;
+    -- pc_i is word-aligned, so +4 is an increment of the word address
+    link_o     <= std_logic_vector(unsigned(pc_i(XLEN-1 downto 2)) + 1) & b"00";
 
 end architecture ex_block_arch;

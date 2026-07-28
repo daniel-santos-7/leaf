@@ -32,7 +32,6 @@ entity if_stage is
         redirect_ack_o : out std_logic;
         inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
         pc_o         : out std_logic_vector(XLEN-1 downto 2);
-        next_pc_o    : out std_logic_vector(XLEN-1 downto 2);
         inst_o       : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity if_stage;
@@ -138,7 +137,6 @@ begin
     -- covered by flush_i in main_ctrl, which is driven by the same held
     -- taken signal and therefore spans the whole deferral.
     stale_o    <= if_adr_buf_valid and (if_adr_buf_data(XLEN-2) xor epoch_reg);
-    next_pc_o  <= std_logic_vector(unsigned(if_adr_buf_data(XLEN-3 downto 0)) + 1);
     pc_o       <= if_adr_buf_data(XLEN-3 downto 0);
     valid_o    <= if_adr_buf_valid and if_inst_buf_valid;
     inst_err_o <= if_inst_buf_data(XLEN);

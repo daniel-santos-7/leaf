@@ -22,9 +22,9 @@ entity id_stage is
         timer_i       : in  std_logic_vector(63 downto 0);
         instret_i     : in  std_logic_vector(63 downto 0);
         exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
+        link_i        : in  std_logic_vector(XLEN-1 downto 0);
         dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
         pc_i          : in  std_logic_vector(XLEN-1 downto 2);
-        next_pc_i     : in  std_logic_vector(XLEN-1 downto 2);
         instr_i       : in  std_logic_vector(XLEN-1 downto 0);
         fault_i       : in  std_logic;
         valid_i       : in  std_logic;
@@ -61,7 +61,7 @@ architecture rtl of id_stage is
     signal main_ctrl_instr_err : std_logic;
     signal main_ctrl_ecall     : std_logic;
     signal main_ctrl_ebreak    : std_logic;
-    signal main_ctrl_mret      : std_logic;
+    signal main_ctrl_id_mret   : std_logic;
     signal main_ctrl_wfi       : std_logic;
     signal csrs_exc_taken : std_logic;
 
@@ -69,31 +69,46 @@ architecture rtl of id_stage is
     signal main_ctrl_regrd_addr1 : std_logic_vector(4  downto 0);
 
     signal pc_full     : std_logic_vector(XLEN-1 downto 0);
-    signal next_pc_full : std_logic_vector(XLEN-1 downto 0);
 
-    signal main_ctrl_exc_taken : std_logic;
+    signal main_ctrl_id_exc_taken : std_logic;
     signal main_ctrl_int_taken : std_logic;
     signal main_ctrl_exi_taken : std_logic;
     signal main_ctrl_tmi_taken : std_logic;
     signal main_ctrl_swi_taken : std_logic;
-    signal csrs_mie_meie    : std_logic;
-    signal csrs_mie_mtie    : std_logic;
-    signal csrs_mie_msie    : std_logic;
-    signal csrs_mstatus_mie : std_logic;
-    signal csrs_mip_meip    : std_logic;
-    signal csrs_mip_mtip    : std_logic;
-    signal csrs_mip_msip    : std_logic;
-    signal csrs_mepc        : std_logic_vector(XLEN-1 downto 2);
-    signal csrs_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
+    signal csrs_mie_meie      : std_logic;
+    signal csrs_mie_mtie      : std_logic;
+    signal csrs_mie_msie      : std_logic;
+    signal csrs_mstatus_mie   : std_logic;
+    signal csrs_mip_meip      : std_logic;
+    signal csrs_mip_mtip      : std_logic;
+    signal csrs_mip_msip      : std_logic;
+    signal csrs_id_mepc       : std_logic_vector(XLEN-1 downto 2);
+    signal csrs_id_mtvec_base : std_logic_vector(XLEN-1 downto 2);
 
     -- Combinatorial decode outputs (to pipeline register)
+    signal main_ctrl_id_csrs_addr   : std_logic_vector(11 downto 0);
+
+    -- Registered outputs from reg_file/csrs (ID -> EX). csrs_mepc/
+    -- csrs_mtvec_base (registered) each have a same-cycle combinational twin
+    -- above (csrs_id_mepc/csrs_id_mtvec_base), hence the id_ prefix there
+    -- instead; reg_file_rd0/rd1, csrs_csrrd_data and csrs_pc have no such
+    -- twin reaching id_stage, so plain driver-prefixed names are enough.
+    -- csrs also owns the PC pipeline register: pc_full below is its
+    -- combinational (same-cycle) input.
+    signal reg_file_rd0    : std_logic_vector(XLEN-1 downto 0);
+    signal reg_file_rd1    : std_logic_vector(XLEN-1 downto 0);
+    signal csrs_mepc       : std_logic_vector(XLEN-1 downto 2);
+    signal csrs_mtvec_base : std_logic_vector(XLEN-1 downto 2);
+    signal csrs_csrrd_data : std_logic_vector(XLEN-1 downto 0);
+    signal csrs_pc         : std_logic_vector(XLEN-1 downto 0);
+
+    signal main_ctrl_ready  : std_logic;
+
+    -- main_ctrl registered (pipeline) outputs
     signal main_ctrl_func3       : std_logic_vector(2  downto 0);
     signal main_ctrl_branch_op   : std_logic_vector(1  downto 0);
     signal main_ctrl_alu_op      : std_logic_vector(5  downto 0);
     signal main_ctrl_dmls_ctrl   : std_logic_vector(1  downto 0);
-    signal reg_file_rd0         : std_logic_vector(XLEN-1 downto 0);
-    signal reg_file_rd1         : std_logic_vector(XLEN-1 downto 0);
-    signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
     signal main_ctrl_imm         : std_logic_vector(XLEN-1 downto 0);
     signal main_ctrl_opd0_src_sel : std_logic;
     signal main_ctrl_opd1_src_sel : std_logic;
@@ -103,36 +118,13 @@ architecture rtl of id_stage is
     signal main_ctrl_regwr_sel   : std_logic_vector(1 downto 0);
     signal main_ctrl_regwr_addr  : std_logic_vector(4 downto 0);
     signal main_ctrl_csrwr_en    : std_logic;
+    signal main_ctrl_retire      : std_logic;
+    -- main_ctrl_csrs_addr/exc_taken/mret (registered, EX-facing) each have a
+    -- same-cycle combinational twin above (main_ctrl_id_csrs_addr/id_exc_taken/
+    -- id_mret), hence the id_ prefix on the combinational side instead.
     signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
-
-    -- Pipeline register outputs (ID -> EX)
-    signal ex_func3_reg       : std_logic_vector(2  downto 0);
-    signal ex_branch_op_reg   : std_logic_vector(1  downto 0);
-    signal ex_alu_op_reg      : std_logic_vector(5  downto 0);
-    signal ex_dmls_ctrl_reg   : std_logic_vector(1  downto 0);
-    signal ex_exc_taken_reg   : std_logic;
-    signal ex_mret_reg        : std_logic;
-    signal ex_mepc_reg        : std_logic_vector(XLEN-1 downto 2);
-    signal ex_mtvec_base_reg  : std_logic_vector(XLEN-1 downto 2);
-    signal ex_rd0_reg         : std_logic_vector(XLEN-1 downto 0);
-    signal ex_rd1_reg         : std_logic_vector(XLEN-1 downto 0);
-    signal ex_csrrd_data_reg  : std_logic_vector(XLEN-1 downto 0);
-    signal ex_imm_reg         : std_logic_vector(XLEN-1 downto 0);
-    signal ex_opd0_src_sel_reg : std_logic;
-    signal ex_opd1_src_sel_reg : std_logic;
-    signal ex_opd0_pass_reg   : std_logic;
-    signal ex_opd1_pass_reg   : std_logic;
-    signal ex_pc_full_reg     : std_logic_vector(XLEN-1 downto 0);
-    signal ex_regwr_en_reg    : std_logic;
-    signal ex_regwr_sel_reg   : std_logic_vector(1 downto 0);
-    signal ex_regwr_addr_reg  : std_logic_vector(4 downto 0);
-    signal ex_csrwr_en_reg    : std_logic;
-    signal ex_csrs_addr_reg   : std_logic_vector(11 downto 0);
-    signal ex_next_pc_full_reg : std_logic_vector(XLEN-1 downto 0);
-    signal ex_retire_reg      : std_logic;
-
-    signal main_ctrl_ready  : std_logic;
-    signal main_ctrl_retire : std_logic;
+    signal main_ctrl_exc_taken   : std_logic;
+    signal main_ctrl_mret        : std_logic;
 
     signal csrs_wr_data : std_logic_vector(XLEN-1 downto 0);
 
@@ -148,9 +140,10 @@ architecture rtl of id_stage is
 begin
 
     pc_full     <= pc_i & b"00";
-    next_pc_full <= next_pc_i & b"00";
 
     id_stage_main_ctrl: main_ctrl port map (
+        clk_i          => clk_i,
+        reset_i        => reset_i,
         imrd_fault_i   => fault_i,
         instr_i        => instr_i,
         valid_i        => valid_i,
@@ -162,68 +155,74 @@ begin
         mie_mtie_i     => csrs_mie_mtie,
         mie_msie_i     => csrs_mie_msie,
         mstatus_mie_i  => csrs_mstatus_mie,
-        mepc_i         => csrs_mepc,
-        mtvec_base_i   => csrs_mtvec_base,
+        mepc_i         => csrs_id_mepc,
+        mtvec_base_i   => csrs_id_mtvec_base,
         instr_err_o    => main_ctrl_instr_err,
         ecall_o        => main_ctrl_ecall,
         ebreak_o       => main_ctrl_ebreak,
-        mret_o         => main_ctrl_mret,
+        id_mret_o      => main_ctrl_id_mret,
         wfi_o          => main_ctrl_wfi,
-        csrwr_en_o     => main_ctrl_csrwr_en,
-        regwr_en_o     => main_ctrl_regwr_en,
-        regwr_sel_o    => main_ctrl_regwr_sel,
-        dmls_ctrl_o    => main_ctrl_dmls_ctrl,
-        branch_op_o    => main_ctrl_branch_op,
-        opd0_src_sel_o => main_ctrl_opd0_src_sel,
-        opd1_src_sel_o => main_ctrl_opd1_src_sel,
-        opd0_pass_o    => main_ctrl_opd0_pass,
-        opd1_pass_o    => main_ctrl_opd1_pass,
-        alu_op_o       => main_ctrl_alu_op,
-        imm_o          => main_ctrl_imm,
-        func3_o        => main_ctrl_func3,
-        regwr_addr_o   => main_ctrl_regwr_addr,
         regrd_addr0_o  => main_ctrl_regrd_addr0,
         regrd_addr1_o  => main_ctrl_regrd_addr1,
-        csrs_addr_o    => main_ctrl_csrs_addr,
+        id_csrs_addr_o => main_ctrl_id_csrs_addr,
         ready_i        => ready_i,
         flush_i        => flush_i,
         ready_o        => main_ctrl_ready,
-        retire_o       => main_ctrl_retire,
-        exc_taken_o    => main_ctrl_exc_taken,
+        id_exc_taken_o => main_ctrl_id_exc_taken,
         int_taken_o    => main_ctrl_int_taken,
         exi_taken_o    => main_ctrl_exi_taken,
         tmi_taken_o    => main_ctrl_tmi_taken,
-        swi_taken_o    => main_ctrl_swi_taken
+        swi_taken_o    => main_ctrl_swi_taken,
+        -- registered (pipeline) outputs
+        func3_o       => main_ctrl_func3,
+        branch_op_o   => main_ctrl_branch_op,
+        alu_op_o      => main_ctrl_alu_op,
+        dmls_ctrl_o   => main_ctrl_dmls_ctrl,
+        imm_o         => main_ctrl_imm,
+        opd0_src_sel_o => main_ctrl_opd0_src_sel,
+        opd1_src_sel_o => main_ctrl_opd1_src_sel,
+        opd0_pass_o   => main_ctrl_opd0_pass,
+        opd1_pass_o   => main_ctrl_opd1_pass,
+        regwr_en_o    => main_ctrl_regwr_en,
+        regwr_sel_o   => main_ctrl_regwr_sel,
+        regwr_addr_o  => main_ctrl_regwr_addr,
+        csrwr_en_o    => main_ctrl_csrwr_en,
+        retire_o      => main_ctrl_retire,
+        csrs_addr_o    => main_ctrl_csrs_addr,
+        exc_taken_o    => main_ctrl_exc_taken,
+        mret_o         => main_ctrl_mret
     );
 
     id_stage_reg_file: reg_file generic map (
         SIZE => REG_FILE_SIZE
     ) port map (
         clk_i      => clk_i,
+        reset_i    => reset_i,
         we_i       => rf_we_int,
-        wr_sel_i   => ex_regwr_sel_reg,
-        wr_addr_i  => ex_regwr_addr_reg,
+        wr_sel_i   => main_ctrl_regwr_sel,
+        wr_addr_i  => main_ctrl_regwr_addr,
         wr_data0_i => exec_res_i,
         wr_data1_i => dmld_data_i,
-        wr_data2_i => ex_next_pc_full_reg,
-        wr_data3_i => ex_csrrd_data_reg,
+        wr_data2_i => link_i,
+        wr_data3_i => csrs_csrrd_data,
         rd_addr0_i => main_ctrl_regrd_addr0,
         rd_addr1_i => main_ctrl_regrd_addr1,
+        re_i       => main_ctrl_ready,
         rd_data0_o => reg_file_rd0,
         rd_data1_o => reg_file_rd1
     );
 
 
     exc_fault_int <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i;
-    csrs_exc_taken <= main_ctrl_exc_taken or exc_fault_int;
+    csrs_exc_taken <= main_ctrl_id_exc_taken or exc_fault_int;
     -- fault_i is combinational from the (possibly empty) instruction FIFO;
     -- only meaningful when this cycle actually holds a real, in-order
     -- instruction. Left ungated it can read 'U' and propagate through the
     -- OR (no zero-dominance the way main_ctrl's kill-gated AND has),
     -- silently disabling rf_we_int/csr_we_int.
     exc_inhibit <= exc_fault_int or (fault_i and valid_i and not stale_i and not flush_i);
-    rf_we_int <= ex_regwr_en_reg and not exc_inhibit;
-    csr_we_int <= ex_csrwr_en_reg and not exc_inhibit;
+    rf_we_int <= main_ctrl_regwr_en and not exc_inhibit;
+    csr_we_int <= main_ctrl_csrwr_en and not exc_inhibit;
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -242,7 +241,7 @@ begin
         dmst_fault_i => dmst_fault_i,
         ecall_i      => main_ctrl_ecall,
         ebreak_i     => main_ctrl_ebreak,
-        mret_i       => main_ctrl_mret,
+        mret_i       => main_ctrl_id_mret,
         wfi_i        => main_ctrl_wfi,
         exc_taken_i  => csrs_exc_taken,
         int_taken_i  => main_ctrl_int_taken,
@@ -250,13 +249,12 @@ begin
         tmi_taken_i  => main_ctrl_tmi_taken,
         swi_taken_i  => main_ctrl_swi_taken,
         wr_en_i      => csr_we_int,
-        wr_addr_i    => ex_csrs_addr_reg,
-        rw_addr_i    => main_ctrl_csrs_addr,
+        wr_addr_i    => main_ctrl_csrs_addr,
+        rw_addr_i    => main_ctrl_id_csrs_addr,
         wr_data_i    => csrs_wr_data,
+        pipe_en_i    => main_ctrl_ready,
         exec_res_i   => exec_res_i,
         pc_i         => pc_full,
-        fault_pc_i   => ex_pc_full_reg,
-        next_pc_i    => next_pc_full,
         cycle_i      => cycle_i,
         timer_i      => timer_i,
         instret_i    => instret_i,
@@ -271,74 +269,20 @@ begin
         mip_meip_o   => csrs_mip_meip,
         mip_mtip_o   => csrs_mip_mtip,
         mip_msip_o   => csrs_mip_msip,
-        mepc_o       => csrs_mepc,
-        mtvec_base_o => csrs_mtvec_base,
-        rd_data_o    => csrs_csrrd_data
+        id_mepc_o       => csrs_id_mepc,
+        id_mtvec_base_o => csrs_id_mtvec_base,
+        mepc_o          => csrs_mepc,
+        mtvec_base_o    => csrs_mtvec_base,
+        csrrd_data_o    => csrs_csrrd_data,
+        pc_o            => csrs_pc
     );
-
-    pipeline_reg: process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            if reset_i = '1' then
-                ex_func3_reg        <= (others => '0');
-                ex_branch_op_reg    <= BR_NONE;
-                ex_alu_op_reg       <= (others => '0');
-                ex_dmls_ctrl_reg    <= DMLS_IDLE;
-                ex_exc_taken_reg    <= '0';
-                ex_mret_reg         <= '0';
-                ex_mepc_reg         <= (others => '0');
-                ex_mtvec_base_reg   <= (others => '0');
-                ex_rd0_reg          <= (others => '0');
-                ex_rd1_reg          <= (others => '0');
-                ex_csrrd_data_reg   <= (others => '0');
-                ex_imm_reg          <= (others => '0');
-                ex_opd0_src_sel_reg <= '0';
-                ex_opd1_src_sel_reg <= '0';
-                ex_opd0_pass_reg    <= '0';
-                ex_opd1_pass_reg    <= '0';
-                ex_pc_full_reg      <= (others => '0');
-                ex_regwr_en_reg     <= '0';
-                ex_regwr_sel_reg    <= (others => '0');
-                ex_regwr_addr_reg   <= (others => '0');
-                ex_csrwr_en_reg     <= '0';
-                ex_csrs_addr_reg    <= (others => '0');
-                ex_next_pc_full_reg <= (others => '0');
-                ex_retire_reg       <= '0';
-            elsif main_ctrl_ready = '1' then
-                ex_func3_reg        <= main_ctrl_func3;
-                ex_alu_op_reg       <= main_ctrl_alu_op;
-                ex_exc_taken_reg    <= main_ctrl_exc_taken;
-                ex_mret_reg         <= main_ctrl_mret;
-                ex_mepc_reg         <= csrs_mepc;
-                ex_mtvec_base_reg   <= csrs_mtvec_base;
-                ex_rd0_reg          <= reg_file_rd0;
-                ex_rd1_reg          <= reg_file_rd1;
-                ex_csrrd_data_reg   <= csrs_csrrd_data;
-                ex_imm_reg          <= main_ctrl_imm;
-                ex_opd0_src_sel_reg <= main_ctrl_opd0_src_sel;
-                ex_opd1_src_sel_reg <= main_ctrl_opd1_src_sel;
-                ex_opd0_pass_reg    <= main_ctrl_opd0_pass;
-                ex_opd1_pass_reg    <= main_ctrl_opd1_pass;
-                ex_pc_full_reg      <= pc_full;
-                ex_regwr_sel_reg    <= main_ctrl_regwr_sel;
-                ex_regwr_addr_reg   <= main_ctrl_regwr_addr;
-                ex_csrs_addr_reg    <= main_ctrl_csrs_addr;
-                ex_next_pc_full_reg <= next_pc_full;
-                ex_branch_op_reg    <= main_ctrl_branch_op;
-                ex_dmls_ctrl_reg    <= main_ctrl_dmls_ctrl;
-                ex_regwr_en_reg     <= main_ctrl_regwr_en;
-                ex_csrwr_en_reg     <= main_ctrl_csrwr_en;
-                ex_retire_reg       <= main_ctrl_retire;
-            end if;
-        end if;
-    end process pipeline_reg;
 
     -- CSR write data mux (uses post-pipeline register values, same timing as before)
     id_stage_csrs_logic: csrs_logic port map (
-        csrwr_mode_i => ex_func3_reg,
-        csrrd_data_i => ex_csrrd_data_reg,
-        regwr_data_i => ex_rd0_reg,
-        immwr_data_i => ex_imm_reg,
+        csrwr_mode_i => main_ctrl_func3,
+        csrrd_data_i => csrs_csrrd_data,
+        regwr_data_i => reg_file_rd0,
+        immwr_data_i => main_ctrl_imm,
         csrwr_data_o => csrs_wr_data
     );
 
@@ -346,26 +290,26 @@ begin
     cop_adr_o     <= csrs_cop_adr;
     cop_dat_o     <= csrs_cop_dat;
     cop_we_o      <= csrs_cop_we;
-    exc_taken_o   <= ex_exc_taken_reg;
-    mret_o        <= ex_mret_reg;
-    mepc_o        <= ex_mepc_reg;
-    mtvec_base_o  <= ex_mtvec_base_reg;
-    func3_o       <= ex_func3_reg;
-    branch_op_o   <= ex_branch_op_reg;
-    alu_op_o      <= ex_alu_op_reg;
-    dmls_ctrl_o   <= ex_dmls_ctrl_reg;
-    rd_data0_o    <= ex_rd0_reg;
-    rd_data1_o    <= ex_rd1_reg;
-    imm_o         <= ex_imm_reg;
-    opd0_src_sel_o <= ex_opd0_src_sel_reg;
-    opd1_src_sel_o <= ex_opd1_src_sel_reg;
-    opd0_pass_o   <= ex_opd0_pass_reg;
-    opd1_pass_o   <= ex_opd1_pass_reg;
-    pc_full_o     <= ex_pc_full_reg;
+    exc_taken_o   <= main_ctrl_exc_taken;
+    mret_o        <= main_ctrl_mret;
+    mepc_o        <= csrs_mepc;
+    mtvec_base_o  <= csrs_mtvec_base;
+    func3_o       <= main_ctrl_func3;
+    branch_op_o   <= main_ctrl_branch_op;
+    alu_op_o      <= main_ctrl_alu_op;
+    dmls_ctrl_o   <= main_ctrl_dmls_ctrl;
+    rd_data0_o    <= reg_file_rd0;
+    rd_data1_o    <= reg_file_rd1;
+    imm_o         <= main_ctrl_imm;
+    opd0_src_sel_o <= main_ctrl_opd0_src_sel;
+    opd1_src_sel_o <= main_ctrl_opd1_src_sel;
+    opd0_pass_o   <= main_ctrl_opd0_pass;
+    opd1_pass_o   <= main_ctrl_opd1_pass;
+    pc_full_o     <= csrs_pc;
     ready_o       <= main_ctrl_ready;
 
     -- minstret: count at the commit point, one pulse per instruction as it
     -- leaves EX. A fault detected in EX cancels the retirement.
-    retire_o      <= ex_retire_reg and ready_i and not exc_fault_int;
+    retire_o      <= main_ctrl_retire and ready_i and not exc_fault_int;
 
 end architecture rtl;
