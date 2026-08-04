@@ -16,10 +16,9 @@ entity alu is
         reg0_i         : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i         : in  std_logic_vector(XLEN-1 downto 0);
         immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
-        opd0_src_sel_i : in  std_logic;
-        opd1_src_sel_i : in  std_logic;
-        opd0_pass_i    : in  std_logic;
-        opd1_pass_i    : in  std_logic;
+        -- One bit per operand: bit 0 selects/gates opd0, bit 1 opd1.
+        opd_src_sel_i  : in  std_logic_vector(1        downto 0);
+        opd_pass_i     : in  std_logic_vector(1        downto 0);
         op_i           : in  std_logic_vector(5        downto 0);
         res_o          : out std_logic_vector(XLEN-1 downto 0);
         arith_res_o    : out std_logic_vector(XLEN-1 downto 0)
@@ -60,10 +59,10 @@ architecture alu_arch of alu is
 
 begin
 
-    opd0 <= pc_i when opd0_src_sel_i = '1' else reg0_i;
-    opd1 <= immwr_data_i when opd1_src_sel_i = '1' else reg1_i;
-    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd0_pass_i);
-    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd1_pass_i);
+    opd0     <= pc_i         when opd_src_sel_i(0) = '1' else reg0_i;
+    opd1     <= immwr_data_i when opd_src_sel_i(1) = '1' else reg1_i;
+    gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd_pass_i(0));
+    gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd_pass_i(1));
 
     arith_op   <= op_i(4) or op_i(5);
     arith_opd0 <= gtd_opd0;

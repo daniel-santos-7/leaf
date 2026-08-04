@@ -70,10 +70,8 @@ architecture rtl of core is
     signal ex_rd0         : std_logic_vector(XLEN-1 downto 0);
     signal ex_rd1         : std_logic_vector(XLEN-1 downto 0);
     signal ex_imm         : std_logic_vector(XLEN-1 downto 0);
-    signal ex_opd0_src_sel : std_logic;
-    signal ex_opd1_src_sel : std_logic;
-    signal ex_opd0_pass    : std_logic;
-    signal ex_opd1_pass    : std_logic;
+    signal ex_opd_src_sel  : std_logic_vector(1 downto 0);
+    signal ex_opd_pass     : std_logic_vector(1 downto 0);
     signal ex_pc_full     : std_logic_vector(XLEN-1 downto 0);
 
     -- EX block outputs (loop back to ID stage)
@@ -158,10 +156,8 @@ begin
         rd_data0_o     => ex_rd0,
         rd_data1_o     => ex_rd1,
         imm_o          => ex_imm,
-        opd0_src_sel_o => ex_opd0_src_sel,
-        opd1_src_sel_o => ex_opd1_src_sel,
-        opd0_pass_o    => ex_opd0_pass,
-        opd1_pass_o    => ex_opd1_pass,
+        opd_src_sel_o  => ex_opd_src_sel,
+        opd_pass_o     => ex_opd_pass,
         pc_full_o      => ex_pc_full,
         retire_o       => retire_o
     );
@@ -205,10 +201,8 @@ begin
         immwr_data_i   => ex_imm,
         ready_o        => ex_ready,
         pc_i           => ex_pc_full,
-        opd0_src_sel_i => ex_opd0_src_sel,
-        opd1_src_sel_i => ex_opd1_src_sel,
-        opd0_pass_i    => ex_opd0_pass,
-        opd1_pass_i    => ex_opd1_pass,
+        opd_src_sel_i  => ex_opd_src_sel,
+        opd_pass_i     => ex_opd_pass,
         flush_o        => ex_flush
     );
 

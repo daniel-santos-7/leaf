@@ -47,10 +47,8 @@ entity id_stage is
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
         rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
-        opd0_src_sel_o : out std_logic;
-        opd1_src_sel_o : out std_logic;
-        opd0_pass_o    : out std_logic;
-        opd1_pass_o    : out std_logic;
+        opd_src_sel_o  : out std_logic_vector(1  downto 0);
+        opd_pass_o     : out std_logic_vector(1  downto 0);
         pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
         retire_o      : out std_logic
     );
@@ -105,10 +103,8 @@ architecture rtl of id_stage is
     signal main_ctrl_alu_op      : std_logic_vector(5  downto 0);
     signal main_ctrl_dmls_ctrl   : std_logic_vector(1  downto 0);
     signal main_ctrl_imm         : std_logic_vector(XLEN-1 downto 0);
-    signal main_ctrl_opd0_src_sel : std_logic;
-    signal main_ctrl_opd1_src_sel : std_logic;
-    signal main_ctrl_opd0_pass   : std_logic;
-    signal main_ctrl_opd1_pass   : std_logic;
+    signal main_ctrl_opd_src_sel : std_logic_vector(1 downto 0);
+    signal main_ctrl_opd_pass    : std_logic_vector(1 downto 0);
     signal main_ctrl_regwr_en    : std_logic;
     signal main_ctrl_regwr_sel   : std_logic_vector(1 downto 0);
     signal main_ctrl_regwr_addr  : std_logic_vector(4 downto 0);
@@ -172,10 +168,8 @@ begin
         alu_op_o      => main_ctrl_alu_op,
         dmls_ctrl_o   => main_ctrl_dmls_ctrl,
         imm_o         => main_ctrl_imm,
-        opd0_src_sel_o => main_ctrl_opd0_src_sel,
-        opd1_src_sel_o => main_ctrl_opd1_src_sel,
-        opd0_pass_o   => main_ctrl_opd0_pass,
-        opd1_pass_o   => main_ctrl_opd1_pass,
+        opd_src_sel_o => main_ctrl_opd_src_sel,
+        opd_pass_o    => main_ctrl_opd_pass,
         regwr_en_o    => main_ctrl_regwr_en,
         regwr_sel_o   => main_ctrl_regwr_sel,
         regwr_addr_o  => main_ctrl_regwr_addr,
@@ -292,10 +286,8 @@ begin
     rd_data0_o    <= reg_file_rd0;
     rd_data1_o    <= reg_file_rd1;
     imm_o         <= main_ctrl_imm;
-    opd0_src_sel_o <= main_ctrl_opd0_src_sel;
-    opd1_src_sel_o <= main_ctrl_opd1_src_sel;
-    opd0_pass_o   <= main_ctrl_opd0_pass;
-    opd1_pass_o   <= main_ctrl_opd1_pass;
+    opd_src_sel_o <= main_ctrl_opd_src_sel;
+    opd_pass_o    <= main_ctrl_opd_pass;
     pc_full_o     <= csrs_pc;
     ready_o       <= main_ctrl_ready;
 

@@ -22,10 +22,8 @@ entity ex_block is
         reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
         pc_i          : in  std_logic_vector(XLEN-1 downto 0);
-        opd0_src_sel_i : in  std_logic;
-        opd1_src_sel_i : in  std_logic;
-        opd0_pass_i    : in  std_logic;
-        opd1_pass_i    : in  std_logic;
+        opd_src_sel_i : in  std_logic_vector(1  downto 0);
+        opd_pass_i    : in  std_logic_vector(1  downto 0);
         branch_op_i   : in  std_logic_vector(1  downto 0);
         alu_op_i      : in  std_logic_vector(5  downto 0);
         dmls_ctrl_i   : in  std_logic_vector(1  downto 0);
@@ -91,10 +89,8 @@ begin
         reg0_i         => reg0_i,
         reg1_i         => reg1_i,
         immwr_data_i   => immwr_data_i,
-        opd0_src_sel_i => opd0_src_sel_i,
-        opd1_src_sel_i => opd1_src_sel_i,
-        opd0_pass_i    => opd0_pass_i,
-        opd1_pass_i    => opd1_pass_i,
+        opd_src_sel_i  => opd_src_sel_i,
+        opd_pass_i     => opd_pass_i,
         op_i           => alu_op_i,
         res_o          => alu_res,
         arith_res_o    => alu_arith_res
