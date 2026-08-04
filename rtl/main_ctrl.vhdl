@@ -25,8 +25,6 @@ entity main_ctrl is
         mie_mtie_i     : in  std_logic;
         mie_msie_i     : in  std_logic;
         mstatus_mie_i  : in  std_logic;
-        mepc_i         : in  std_logic_vector(XLEN-1 downto 2);
-        mtvec_base_i   : in  std_logic_vector(XLEN-1 downto 2);
         instr_err_o    : out std_logic;
         ecall_o        : out std_logic;
         ebreak_o       : out std_logic;

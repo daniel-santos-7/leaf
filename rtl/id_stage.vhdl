@@ -82,19 +82,14 @@ architecture rtl of id_stage is
     signal csrs_mip_meip      : std_logic;
     signal csrs_mip_mtip      : std_logic;
     signal csrs_mip_msip      : std_logic;
-    signal csrs_id_mepc       : std_logic_vector(XLEN-1 downto 2);
-    signal csrs_id_mtvec_base : std_logic_vector(XLEN-1 downto 2);
 
     -- Combinatorial decode outputs (to pipeline register)
     signal main_ctrl_id_csrs_addr   : std_logic_vector(11 downto 0);
 
-    -- Registered outputs from reg_file/csrs (ID -> EX). csrs_mepc/
-    -- csrs_mtvec_base (registered) each have a same-cycle combinational twin
-    -- above (csrs_id_mepc/csrs_id_mtvec_base), hence the id_ prefix there
-    -- instead; reg_file_rd0/rd1, csrs_csrrd_data and csrs_pc have no such
-    -- twin reaching id_stage, so plain driver-prefixed names are enough.
-    -- csrs also owns the PC pipeline register: pc_full below is its
-    -- combinational (same-cycle) input.
+    -- Registered outputs from reg_file/csrs (ID -> EX). None of these has a
+    -- same-cycle combinational twin reaching id_stage, so plain
+    -- driver-prefixed names are enough. csrs also owns the PC pipeline
+    -- register: pc_full below is its combinational (same-cycle) input.
     signal reg_file_rd0    : std_logic_vector(XLEN-1 downto 0);
     signal reg_file_rd1    : std_logic_vector(XLEN-1 downto 0);
     signal csrs_mepc       : std_logic_vector(XLEN-1 downto 2);
@@ -155,8 +150,6 @@ begin
         mie_mtie_i     => csrs_mie_mtie,
         mie_msie_i     => csrs_mie_msie,
         mstatus_mie_i  => csrs_mstatus_mie,
-        mepc_i         => csrs_id_mepc,
-        mtvec_base_i   => csrs_id_mtvec_base,
         instr_err_o    => main_ctrl_instr_err,
         ecall_o        => main_ctrl_ecall,
         ebreak_o       => main_ctrl_ebreak,
@@ -269,12 +262,10 @@ begin
         mip_meip_o   => csrs_mip_meip,
         mip_mtip_o   => csrs_mip_mtip,
         mip_msip_o   => csrs_mip_msip,
-        id_mepc_o       => csrs_id_mepc,
-        id_mtvec_base_o => csrs_id_mtvec_base,
-        mepc_o          => csrs_mepc,
-        mtvec_base_o    => csrs_mtvec_base,
-        csrrd_data_o    => csrs_csrrd_data,
-        pc_o            => csrs_pc
+        mepc_o       => csrs_mepc,
+        mtvec_base_o => csrs_mtvec_base,
+        csrrd_data_o => csrs_csrrd_data,
+        pc_o         => csrs_pc
     );
 
     -- CSR write data mux (uses post-pipeline register values, same timing as before)

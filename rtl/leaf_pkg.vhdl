@@ -141,8 +141,6 @@ package leaf_pkg is
             mie_mtie_i     : in  std_logic;
             mie_msie_i     : in  std_logic;
             mstatus_mie_i  : in  std_logic;
-            mepc_i         : in  std_logic_vector(XLEN-1 downto 2);
-            mtvec_base_i   : in  std_logic_vector(XLEN-1 downto 2);
             instr_err_o    : out std_logic;
             ecall_o        : out std_logic;
             ebreak_o       : out std_logic;
@@ -258,12 +256,10 @@ package leaf_pkg is
             mip_meip_o   : out std_logic;
             mip_mtip_o   : out std_logic;
             mip_msip_o   : out std_logic;
-            id_mepc_o       : out std_logic_vector(XLEN-1 downto 2);
-            id_mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
-            mepc_o          : out std_logic_vector(XLEN-1 downto 2);
-            mtvec_base_o    : out std_logic_vector(XLEN-1 downto 2);
-            csrrd_data_o    : out std_logic_vector(XLEN-1 downto 0);
-            pc_o            : out std_logic_vector(XLEN-1 downto 0)
+            mepc_o       : out std_logic_vector(XLEN-1 downto 2);
+            mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
+            csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
+            pc_o         : out std_logic_vector(XLEN-1 downto 0)
         );
     end component csrs;
 

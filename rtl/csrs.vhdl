@@ -57,12 +57,10 @@ entity csrs is
         mip_meip_o   : out std_logic;
         mip_mtip_o   : out std_logic;
         mip_msip_o   : out std_logic;
-        id_mepc_o       : out std_logic_vector(XLEN-1 downto 2);
-        id_mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
-        mepc_o          : out std_logic_vector(XLEN-1 downto 2);
-        mtvec_base_o    : out std_logic_vector(XLEN-1 downto 2);
-        csrrd_data_o    : out std_logic_vector(XLEN-1 downto 0);
-        pc_o            : out std_logic_vector(XLEN-1 downto 0)
+        mepc_o       : out std_logic_vector(XLEN-1 downto 2);
+        mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
+        csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
+        pc_o         : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity csrs;
 
@@ -85,12 +83,12 @@ architecture rtl of csrs is
     signal mip_mtip     : std_logic;
     signal mip_msip     : std_logic;
 
-    signal cop_sel_rd    : std_logic;
-    signal cop_sel_wr : std_logic;
-    signal rd_data_int : std_logic_vector(XLEN-1 downto 0);
-    signal rd_data_bypassed : std_logic_vector(XLEN-1 downto 0);
-    signal mepc_int       : std_logic_vector(XLEN-1 downto 2);
-    signal mtvec_base_int : std_logic_vector(XLEN-1 downto 2);
+    signal cop_sel_rd          : std_logic;
+    signal cop_sel_wr          : std_logic;
+    signal rd_data_int         : std_logic_vector(XLEN-1 downto 0);
+    signal rd_data_bypassed    : std_logic_vector(XLEN-1 downto 0);
+    signal mepc_bypassed       : std_logic_vector(XLEN-1 downto 2);
+    signal mtvec_base_bypassed : std_logic_vector(XLEN-1 downto 2);
 
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
@@ -307,8 +305,8 @@ begin
                 csrrd_data_reg <= (others => '0');
                 pc_reg         <= (others => '0');
             elsif pipe_en_i = '1' then
-                mepc_reg       <= mepc_int;
-                mtvec_base_reg <= mtvec_base_int;
+                mepc_reg       <= mepc_bypassed;
+                mtvec_base_reg <= mtvec_base_bypassed;
                 csrrd_data_reg <= rd_data_bypassed;
                 pc_reg         <= pc_i;
             end if;
@@ -322,10 +320,8 @@ begin
     mip_meip_o      <= mip_meip;
     mip_mtip_o      <= mip_mtip;
     mip_msip_o      <= mip_msip;
-    mepc_int        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC) else mepc;
-    id_mepc_o       <= mepc_int;
-    mtvec_base_int  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
-    id_mtvec_base_o <= mtvec_base_int;
+    mepc_bypassed       <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC) else mepc;
+    mtvec_base_bypassed <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
     cop_dat_o       <= wr_data_i;
