@@ -86,21 +86,16 @@ architecture rtl of main_ctrl is
     signal ebreak    : std_logic;
     signal mret      : std_logic;
     signal wfi       : std_logic;
-    signal trap_inhibit : std_logic;
 
-    -- Empty slot or wrong-path instruction: nothing here may reach EX or stall
-    -- the pipeline. Must not include trap_inhibit or mret -- trap_inhibit
-    -- depends on ecall/ebreak, which are themselves qualified by kill, and
-    -- including it would close a combinational loop.
-    signal kill      : std_logic;
-    signal wfi_eff   : std_logic;   -- wfi that is actually going to execute
+    -- imrd_fault_i qualified by the decode process, so that every term of
+    -- exc_taken below arrives pre-qualified except the interrupt.
+    signal fetch_fault : std_logic;
 
     -- Combinational decode values, read by the pipeline register below.
-    -- csrs_addr_int/ready_int/mret_out_int (further down) additionally
-    -- shadow a same-cycle out port (csrs_addr_o/ready_o/mret_o) -- needed
-    -- because VHDL-93 out ports cannot be read back inside the architecture;
-    -- everything else here has no such port, it's just the ID-stage value.
-    signal func3         : std_logic_vector(2  downto 0);
+    -- csrs_addr_int/ready_int additionally shadow a same-cycle out port
+    -- (csrs_addr_o/ready_o) -- needed because VHDL-93 out ports cannot be
+    -- read back inside the architecture; everything else here has no such
+    -- port, it's just the ID-stage value.
     signal branch_op     : std_logic_vector(1  downto 0);
     signal alu_op        : std_logic_vector(5  downto 0);
     signal dmls_ctrl     : std_logic_vector(1  downto 0);
@@ -110,11 +105,9 @@ architecture rtl of main_ctrl is
     signal opd_pass      : std_logic_vector(1  downto 0);
     signal regwr_sel     : std_logic_vector(1  downto 0);
     signal csrwr_en      : std_logic;
-    signal regwr_addr    : std_logic_vector(4  downto 0);
     signal csrs_addr_int : std_logic_vector(11 downto 0);
     signal ready_int     : std_logic;
     signal retire        : std_logic;
-    signal mret_out_int  : std_logic;
 
     -- Pipeline register signals
     signal func3_reg        : std_logic_vector(2  downto 0);
@@ -158,9 +151,239 @@ begin
 
     -- Decode process (opcode-based) --
 
-    main_ctrl_proc: process(opcode, instr_i, kill, mret, trap_inhibit)
+    -- Decode runs unconditionally and the two overrides at the end squash it.
+    -- Both conditions are built only from inputs, so this process never reads a
+    -- signal it drives -- notably not instr_err, which is produced here and
+    -- would close a loop. They differ on purpose: the wide one carries what a
+    -- fetch fault or a pending interrupt also invalidates, the narrow one what
+    -- only wrong-path speculation does.
+    main_ctrl_proc: process(opcode, instr_i, valid_i, stale_i, flush_i, imrd_fault_i, int_taken)
     begin
-        if kill = '1' or trap_inhibit = '1' or mret = '1' then
+        fetch_fault <= imrd_fault_i;
+
+        case opcode is
+            when RR_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= (others => '-');
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"00";
+                opd_pass     <= b"11";
+                ftype        <= '0';
+                op_en        <= '1';
+                regwr_sel    <= b"00";
+                csrwr_en     <= '0';
+                regwr_en     <= '1';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when IMM_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= IMM_I_TYPE;
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"10";
+                opd_pass     <= b"11";
+                ftype        <= '1';
+                op_en        <= '1';
+                regwr_sel    <= b"00";
+                csrwr_en     <= '0';
+                regwr_en     <= '1';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when JALR_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= IMM_I_TYPE;
+                branch_op    <= BR_JUMP;
+                opd_src_sel  <= b"10";
+                opd_pass     <= b"11";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"10";
+                csrwr_en     <= '0';
+                regwr_en     <= '1';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when LOAD_OPCODE =>
+                dmls_ctrl    <= DMLS_LOAD;
+                instr_err    <= '0';
+                imm_type     <= IMM_I_TYPE;
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"10";
+                opd_pass     <= b"11";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"01";
+                csrwr_en     <= '0';
+                regwr_en     <= '1';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when STORE_OPCODE =>
+                dmls_ctrl    <= DMLS_STORE;
+                instr_err    <= '0';
+                imm_type     <= IMM_S_TYPE;
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"10";
+                opd_pass     <= b"11";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"00";
+                csrwr_en     <= '0';
+                regwr_en     <= '0';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when BRANCH_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= IMM_B_TYPE;
+                branch_op    <= BR_BRANCH;
+                opd_src_sel  <= b"11";
+                opd_pass     <= b"11";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"00";
+                csrwr_en     <= '0';
+                regwr_en     <= '0';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when LUI_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= IMM_U_TYPE;
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"10";
+                opd_pass     <= b"10";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"00";
+                csrwr_en     <= '0';
+                regwr_en     <= '1';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when AUIPC_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= IMM_U_TYPE;
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"11";
+                opd_pass     <= b"11";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"00";
+                csrwr_en     <= '0';
+                regwr_en     <= '1';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when JAL_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= IMM_J_TYPE;
+                branch_op    <= BR_JUMP;
+                opd_src_sel  <= b"11";
+                opd_pass     <= b"11";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"10";
+                csrwr_en     <= '0';
+                regwr_en     <= '1';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when SYSTEM_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= IMM_Z_TYPE;
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"00";
+                opd_pass     <= b"00";
+                ftype        <= '0';
+                op_en        <= '0';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+                if instr_i(14 downto 12) = b"000" then
+                    regwr_sel <= b"00";
+                    csrwr_en  <= '0';
+                    regwr_en  <= '0';
+                    if instr_i(31 downto 20) = x"000" then ecall  <= '1'; end if;
+                    if instr_i(31 downto 20) = x"001" then ebreak <= '1'; end if;
+                    if instr_i(31 downto 20) = x"302" then mret   <= '1'; end if;
+                    if instr_i(31 downto 20) = x"105" then wfi    <= '1'; end if;
+                else
+                    regwr_sel <= b"11";
+                    csrwr_en  <= '1';
+                    regwr_en  <= '1';
+                end if;
+            when FENCE_OPCODE =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '0';
+                imm_type     <= (others => '-');
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"00";
+                opd_pass     <= b"00";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"00";
+                csrwr_en     <= '0';
+                regwr_en     <= '0';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+            when others =>
+                dmls_ctrl    <= DMLS_IDLE;
+                instr_err    <= '1';
+                imm_type     <= (others => '-');
+                branch_op    <= BR_NONE;
+                opd_src_sel  <= b"00";
+                opd_pass     <= b"00";
+                ftype        <= '0';
+                op_en        <= '0';
+                regwr_sel    <= b"00";
+                csrwr_en     <= '0';
+                regwr_en     <= '0';
+                ecall        <= '0';
+                ebreak       <= '0';
+                mret         <= '0';
+                wfi          <= '0';
+        end case;
+
+        -- Only speculation anulls these two. wfi parks the pipeline and is
+        -- released by int_taken, so it must survive a pending interrupt;
+        -- fetch_fault is imrd_fault_i itself, so folding it into the wider
+        -- condition below would pin it to '0' and silently drop every
+        -- instruction fetch fault.
+        if valid_i = '0' or stale_i = '1' or flush_i = '1' then
+            wfi         <= '0';
+            fetch_fault <= '0';
+        end if;
+
+        -- Squash: an empty slot (valid_i), a wrong-path instruction (stale_i,
+        -- flush_i), a fetch fault or a pending interrupt must not let this
+        -- instruction reach EX. ecall/ebreak/mret sit here rather than above
+        -- because a faulted fetch delivers a garbage instr_i -- the same reason
+        -- instr_err is suppressed -- and because a pending interrupt outranks
+        -- both a synchronous trap and an mret redirect.
+        if valid_i = '0' or stale_i = '1' or flush_i = '1'
+           or imrd_fault_i = '1' or int_taken = '1' then
             dmls_ctrl    <= DMLS_IDLE;
             instr_err    <= '0';
             imm_type     <= (others => '-');
@@ -172,159 +395,9 @@ begin
             regwr_sel    <= b"00";
             csrwr_en     <= '0';
             regwr_en     <= '0';
-        else
-            case opcode is
-                when RR_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= (others => '-');
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"00";
-                    opd_pass     <= b"11";
-                    ftype        <= '0';
-                    op_en        <= '1';
-                    regwr_sel    <= b"00";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '1';
-                when IMM_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_I_TYPE;
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"10";
-                    opd_pass     <= b"11";
-                    ftype        <= '1';
-                    op_en        <= '1';
-                    regwr_sel    <= b"00";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '1';
-                when JALR_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_I_TYPE;
-                    branch_op    <= BR_JUMP;
-                    opd_src_sel  <= b"10";
-                    opd_pass     <= b"11";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"10";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '1';
-                when LOAD_OPCODE =>
-                    dmls_ctrl    <= DMLS_LOAD;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_I_TYPE;
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"10";
-                    opd_pass     <= b"11";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"01";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '1';
-                when STORE_OPCODE =>
-                    dmls_ctrl    <= DMLS_STORE;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_S_TYPE;
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"10";
-                    opd_pass     <= b"11";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"00";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '0';
-                when BRANCH_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_B_TYPE;
-                    branch_op    <= BR_BRANCH;
-                    opd_src_sel  <= b"11";
-                    opd_pass     <= b"11";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"00";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '0';
-                when LUI_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_U_TYPE;
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"10";
-                    opd_pass     <= b"10";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"00";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '1';
-                when AUIPC_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_U_TYPE;
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"11";
-                    opd_pass     <= b"11";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"00";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '1';
-                when JAL_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_J_TYPE;
-                    branch_op    <= BR_JUMP;
-                    opd_src_sel  <= b"11";
-                    opd_pass     <= b"11";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"10";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '1';
-                when SYSTEM_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= IMM_Z_TYPE;
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"00";
-                    opd_pass     <= b"00";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    if instr_i(14 downto 12) = b"000" then
-                        regwr_sel <= b"00";
-                        csrwr_en  <= '0';
-                        regwr_en  <= '0';
-                    else
-                        regwr_sel <= b"11";
-                        csrwr_en  <= '1';
-                        regwr_en  <= '1';
-                    end if;
-                when FENCE_OPCODE =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '0';
-                    imm_type     <= (others => '-');
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"00";
-                    opd_pass     <= b"00";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"00";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '0';
-                when others =>
-                    dmls_ctrl    <= DMLS_IDLE;
-                    instr_err    <= '1';
-                    imm_type     <= (others => '-');
-                    branch_op    <= BR_NONE;
-                    opd_src_sel  <= b"00";
-                    opd_pass     <= b"00";
-                    ftype        <= '0';
-                    op_en        <= '0';
-                    regwr_sel    <= b"00";
-                    csrwr_en     <= '0';
-                    regwr_en     <= '0';
-            end case;
+            ecall        <= '0';
+            ebreak       <= '0';
+            mret         <= '0';
         end if;
     end process main_ctrl_proc;
 
@@ -357,36 +430,21 @@ begin
         end if;
     end process alu_op_ctrl;
 
-    -- system instruction decode (feeds the trap logic below, has no
-    -- dependency on the pipeline register, so it's fine ahead of it)
-    ecall  <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"000" else '0';
-    ebreak <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"001" else '0';
-    mret   <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"302" else '0';
-    wfi    <= '1' when opcode = SYSTEM_OPCODE and instr_i(14 downto 12) = b"000" and instr_i(31 downto 20) = x"105" else '0';
-
-    -- A speculatively fetched system instruction must not stall the pipeline or
-    -- take a trap. valid_i='0' covers an empty instruction buffer (instr_i is
-    -- then stale FIFO output), flush_i the cycle a taken branch resolves in EX,
-    -- and stale_i the wrong-path entries still buffered after flush drops.
-    kill <= (not valid_i) or stale_i or flush_i;
-
-    wfi_eff <= wfi and not kill;
-
-    -- Trap inhibit: gates control outputs when trap is taken (no instr_err to break loop)
-    -- int_taken is deliberately not gated by kill: a real interrupt is independent
-    -- of whichever instruction happens to occupy the slot.
-    trap_inhibit <= (imrd_fault_i and not kill)
-                 or ((ecall or ebreak) and valid_i and not kill)
-                 or int_taken;
-    exc_taken     <= trap_inhibit or instr_err;
+    -- Every term here is already qualified by the decode process. int_taken is
+    -- the exception, deliberately: a real interrupt is independent of whichever
+    -- instruction happens to occupy the slot.
+    exc_taken     <= fetch_fault or ecall or ebreak or int_taken or instr_err;
     exi_taken     <= mie_meie_i and mip_meip_i;
     tmi_taken     <= mie_mtie_i and mip_mtip_i;
     swi_taken     <= mie_msie_i and mip_msip_i;
     int_taken     <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_i;
 
-    mret_out_int <= mret and not kill;
-    ready_int    <= int_taken when wfi_eff = '1' else ready_i;
-    retire       <= (not kill) and ((not exc_taken) or wfi_eff);
+    ready_int    <= int_taken when wfi = '1' else ready_i;
+    -- valid_i='0' covers an empty instruction buffer (instr_i is then stale
+    -- FIFO output), flush_i the cycle a taken branch resolves in EX, and
+    -- stale_i the wrong-path entries still buffered after flush drops.
+    retire       <= valid_i and not stale_i and not flush_i
+                    and ((not exc_taken) or wfi);
 
     -- Pipeline register (ID -> EX) --
     pipeline_reg: process(clk_i)
@@ -409,7 +467,7 @@ begin
                 exc_taken_reg    <= '0';
                 mret_reg         <= '0';
             elsif ready_int = '1' then
-                func3_reg        <= func3;
+                func3_reg        <= instr_i(14 downto 12);
                 branch_op_reg    <= branch_op;
                 alu_op_reg       <= alu_op;
                 dmls_ctrl_reg    <= dmls_ctrl;
@@ -418,19 +476,17 @@ begin
                 opd_pass_reg     <= opd_pass;
                 regwr_en_reg     <= regwr_en;
                 regwr_sel_reg    <= regwr_sel;
-                regwr_addr_reg   <= regwr_addr;
+                regwr_addr_reg   <= instr_i(11 downto  7);
                 csrwr_en_reg     <= csrwr_en;
                 csrs_addr_reg    <= csrs_addr_int;
                 retire_reg       <= retire;
                 exc_taken_reg    <= exc_taken;
-                mret_reg         <= mret_out_int;
+                mret_reg         <= mret;
             end if;
         end if;
     end process pipeline_reg;
 
     -- Output assignments --
-    func3          <= instr_i(14 downto 12);
-    regwr_addr     <= instr_i(11 downto  7);
     regrd_addr0_o  <= instr_i(19 downto 15);
     regrd_addr1_o  <= instr_i(24 downto 20);
     csrs_addr_int  <= instr_i(31 downto 20);
@@ -443,10 +499,10 @@ begin
     int_taken_o    <= int_taken;
 
     instr_err_o   <= instr_err;
-    ecall_o       <= ecall  and not kill;
-    ebreak_o      <= ebreak and not kill;
-    id_mret_o     <= mret_out_int;
-    wfi_o         <= wfi_eff;
+    ecall_o       <= ecall;
+    ebreak_o      <= ebreak;
+    id_mret_o     <= mret;
+    wfi_o         <= wfi;
     ready_o       <= ready_int;
 
     -- Registered output port assignments
