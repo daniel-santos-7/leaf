@@ -32,10 +32,6 @@ entity csrs is
         mret_i       : in  std_logic;
         wfi_i        : in  std_logic;
         exc_taken_i  : in  std_logic;
-        int_taken_i  : in  std_logic;
-        exi_taken_i  : in  std_logic;
-        tmi_taken_i  : in  std_logic;
-        swi_taken_i  : in  std_logic;
         wr_en_i      : in  std_logic;
         wr_addr_i    : in  std_logic_vector(11 downto 0);
         rw_addr_i    : in  std_logic_vector(11 downto 0);
@@ -50,13 +46,7 @@ entity csrs is
         cop_adr_o    : out std_logic_vector(5 downto 0);
         cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o     : out std_logic;
-        mie_meie_o   : out std_logic;
-        mie_mtie_o   : out std_logic;
-        mie_msie_o   : out std_logic;
-        mstatus_mie_o: out std_logic;
-        mip_meip_o   : out std_logic;
-        mip_mtip_o   : out std_logic;
-        mip_msip_o   : out std_logic;
+        int_taken_o  : out std_logic;
         mepc_o       : out std_logic_vector(XLEN-1 downto 2);
         mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
         csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
@@ -89,6 +79,19 @@ architecture rtl of csrs is
     signal rd_data_bypassed    : std_logic_vector(XLEN-1 downto 0);
     signal mepc_bypassed       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_bypassed : std_logic_vector(XLEN-1 downto 2);
+
+    -- Interrupt evaluation. Every operand is a register owned here, so the
+    -- decision is made here too: mie/mstatus are read through the same
+    -- write-forwarding bypass as mepc/mtvec, so a csrrs that sets MIE arms the
+    -- interrupt in the cycle it commits rather than one cycle later.
+    signal mie_meie_bypassed    : std_logic;
+    signal mie_mtie_bypassed    : std_logic;
+    signal mie_msie_bypassed    : std_logic;
+    signal mstatus_mie_bypassed : std_logic;
+    signal exi_taken            : std_logic;
+    signal tmi_taken            : std_logic;
+    signal swi_taken            : std_logic;
+    signal int_taken            : std_logic;
 
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
@@ -217,13 +220,13 @@ begin
                 mcause_int <= '0';
                 mcause_exc <= (others => '0');
             elsif exc_taken_i = '1' then
-                mcause_int <= int_taken_i;
-                if int_taken_i = '1' then
-                    if swi_taken_i = '1' then
+                mcause_int <= int_taken;
+                if int_taken = '1' then
+                    if swi_taken = '1' then
                         mcause_exc <= b"00011";
-                    elsif tmi_taken_i = '1' then
+                    elsif tmi_taken = '1' then
                         mcause_exc <= b"00111";
-                    elsif exi_taken_i = '1' then
+                    elsif exi_taken = '1' then
                         mcause_exc <= b"01011";
                     end if;
                 else
@@ -260,7 +263,7 @@ begin
             if reset_i = '1' then
                 mtval <= (others => '0');
             elsif exc_taken_i = '1' then
-                if int_taken_i = '1' then
+                if int_taken = '1' then
                     mtval <= (others => '0');
                 elsif imrd_malgn_i = '1' then
                     mtval <= exec_res_i;
@@ -313,18 +316,25 @@ begin
         end if;
     end process pipeline_reg;
 
-    mie_meie_o      <= wr_data_i(11) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_meie;
-    mie_mtie_o      <= wr_data_i(7)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_mtie;
-    mie_msie_o      <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)    else mie_msie;
-    mstatus_mie_o   <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MSTATUS) else mstatus_mie;
-    mip_meip_o      <= mip_meip;
-    mip_mtip_o      <= mip_mtip;
-    mip_msip_o      <= mip_msip;
-    mepc_bypassed       <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC) else mepc;
-    mtvec_base_bypassed <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
+    mie_meie_bypassed    <= wr_data_i(11) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)     else mie_meie;
+    mie_mtie_bypassed    <= wr_data_i(7)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)     else mie_mtie;
+    mie_msie_bypassed    <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MIE)     else mie_msie;
+    mstatus_mie_bypassed <= wr_data_i(3)  when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MSTATUS) else mstatus_mie;
+    mepc_bypassed        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC)  else mepc;
+    mtvec_base_bypassed  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
+
+    -- mip needs no bypass: it is not writable, it just samples the irq inputs.
+    -- The three individual terms stay internal -- only write_mcause needs them,
+    -- to pick the cause code.
+    exi_taken <= mie_meie_bypassed and mip_meip;
+    tmi_taken <= mie_mtie_bypassed and mip_mtip;
+    swi_taken <= mie_msie_bypassed and mip_msip;
+    int_taken <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_bypassed;
+
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
     cop_dat_o       <= wr_data_i;
+    int_taken_o     <= int_taken;
     mepc_o          <= mepc_reg;
     mtvec_base_o    <= mtvec_base_reg;
     csrrd_data_o    <= csrrd_data_reg;

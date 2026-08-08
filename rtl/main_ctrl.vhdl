@@ -18,35 +18,22 @@ entity main_ctrl is
         instr_i        : in  std_logic_vector(XLEN-1 downto 0);
         valid_i        : in  std_logic;
         stale_i        : in  std_logic;
-        mip_meip_i     : in  std_logic;
-        mip_msip_i     : in  std_logic;
-        mip_mtip_i     : in  std_logic;
-        mie_meie_i     : in  std_logic;
-        mie_mtie_i     : in  std_logic;
-        mie_msie_i     : in  std_logic;
-        mstatus_mie_i  : in  std_logic;
+        -- Evaluated in csrs, from mie/mip/mstatus and their write bypass.
+        int_taken_i    : in  std_logic;
         instr_err_o    : out std_logic;
         ecall_o        : out std_logic;
         ebreak_o       : out std_logic;
         id_mret_o      : out std_logic;
         wfi_o          : out std_logic;
-        regrd_addr0_o  : out std_logic_vector(4  downto 0);
-        regrd_addr1_o  : out std_logic_vector(4  downto 0);
-        id_csrs_addr_o : out std_logic_vector(11 downto 0);
         ready_i        : in  std_logic;
         flush_i        : in  std_logic;
         ready_o        : out std_logic;
         id_exc_taken_o : out std_logic;
-        int_taken_o    : out std_logic;
-        exi_taken_o    : out std_logic;
-        tmi_taken_o    : out std_logic;
-        swi_taken_o    : out std_logic;
-        -- registered (pipeline) outputs. id_csrs_addr_o/id_exc_taken_o/
-        -- id_mret_o above are the same-cycle combinational twins of
-        -- csrs_addr_o/exc_taken_o/mret_o below -- both genuinely needed
-        -- (csrs read address + same-cycle CSR side effect vs. the delayed
-        -- write address / redirect signal at commit); everything else here
-        -- has no such twin, so it's named plainly.
+        -- registered (pipeline) outputs. id_exc_taken_o/id_mret_o above are the
+        -- same-cycle combinational twins of exc_taken_o/mret_o below -- both
+        -- genuinely needed (same-cycle CSR side effect vs. the redirect signal
+        -- at commit); everything else here has no such twin, so it's named
+        -- plainly.
         func3_o       : out std_logic_vector(2  downto 0);
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
@@ -75,10 +62,6 @@ architecture rtl of main_ctrl is
     signal op_en     : std_logic;
     signal regwr_en  : std_logic;
 
-    signal exi_taken : std_logic;
-    signal tmi_taken : std_logic;
-    signal swi_taken : std_logic;
-    signal int_taken : std_logic;
     signal exc_taken : std_logic;
 
     signal instr_err : std_logic;
@@ -92,10 +75,9 @@ architecture rtl of main_ctrl is
     signal fetch_fault : std_logic;
 
     -- Combinational decode values, read by the pipeline register below.
-    -- csrs_addr_int/ready_int additionally shadow a same-cycle out port
-    -- (csrs_addr_o/ready_o) -- needed because VHDL-93 out ports cannot be
-    -- read back inside the architecture; everything else here has no such
-    -- port, it's just the ID-stage value.
+    -- ready_int additionally shadows a same-cycle out port (ready_o) -- needed
+    -- because VHDL-93 out ports cannot be read back inside the architecture;
+    -- everything else here has no such port, it's just the ID-stage value.
     signal branch_op     : std_logic_vector(1  downto 0);
     signal alu_op        : std_logic_vector(5  downto 0);
     signal dmls_ctrl     : std_logic_vector(1  downto 0);
@@ -105,7 +87,6 @@ architecture rtl of main_ctrl is
     signal opd_pass      : std_logic_vector(1  downto 0);
     signal regwr_sel     : std_logic_vector(1  downto 0);
     signal csrwr_en      : std_logic;
-    signal csrs_addr_int : std_logic_vector(11 downto 0);
     signal ready_int     : std_logic;
     signal retire        : std_logic;
 
@@ -157,7 +138,7 @@ begin
     -- would close a loop. They differ on purpose: the wide one carries what a
     -- fetch fault or a pending interrupt also invalidates, the narrow one what
     -- only wrong-path speculation does.
-    main_ctrl_proc: process(opcode, instr_i, valid_i, stale_i, flush_i, imrd_fault_i, int_taken)
+    main_ctrl_proc: process(opcode, instr_i, valid_i, stale_i, flush_i, imrd_fault_i, int_taken_i)
     begin
         fetch_fault <= imrd_fault_i;
 
@@ -367,7 +348,7 @@ begin
         end case;
 
         -- Only speculation anulls these two. wfi parks the pipeline and is
-        -- released by int_taken, so it must survive a pending interrupt;
+        -- released by int_taken_i, so it must survive a pending interrupt;
         -- fetch_fault is imrd_fault_i itself, so folding it into the wider
         -- condition below would pin it to '0' and silently drop every
         -- instruction fetch fault.
@@ -383,7 +364,7 @@ begin
         -- instr_err is suppressed -- and because a pending interrupt outranks
         -- both a synchronous trap and an mret redirect.
         if valid_i = '0' or stale_i = '1' or flush_i = '1'
-           or imrd_fault_i = '1' or int_taken = '1' then
+           or imrd_fault_i = '1' or int_taken_i = '1' then
             dmls_ctrl    <= DMLS_IDLE;
             instr_err    <= '0';
             imm_type     <= (others => '-');
@@ -430,16 +411,12 @@ begin
         end if;
     end process alu_op_ctrl;
 
-    -- Every term here is already qualified by the decode process. int_taken is
+    -- Every term here is already qualified by the decode process. int_taken_i is
     -- the exception, deliberately: a real interrupt is independent of whichever
     -- instruction happens to occupy the slot.
-    exc_taken     <= fetch_fault or ecall or ebreak or int_taken or instr_err;
-    exi_taken     <= mie_meie_i and mip_meip_i;
-    tmi_taken     <= mie_mtie_i and mip_mtip_i;
-    swi_taken     <= mie_msie_i and mip_msip_i;
-    int_taken     <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_i;
+    exc_taken     <= fetch_fault or ecall or ebreak or int_taken_i or instr_err;
 
-    ready_int    <= int_taken when wfi = '1' else ready_i;
+    ready_int    <= int_taken_i when wfi = '1' else ready_i;
     -- valid_i='0' covers an empty instruction buffer (instr_i is then stale
     -- FIFO output), flush_i the cycle a taken branch resolves in EX, and
     -- stale_i the wrong-path entries still buffered after flush drops.
@@ -478,7 +455,7 @@ begin
                 regwr_sel_reg    <= regwr_sel;
                 regwr_addr_reg   <= instr_i(11 downto  7);
                 csrwr_en_reg     <= csrwr_en;
-                csrs_addr_reg    <= csrs_addr_int;
+                csrs_addr_reg    <= instr_i(31 downto 20);
                 retire_reg       <= retire;
                 exc_taken_reg    <= exc_taken;
                 mret_reg         <= mret;
@@ -487,16 +464,7 @@ begin
     end process pipeline_reg;
 
     -- Output assignments --
-    regrd_addr0_o  <= instr_i(19 downto 15);
-    regrd_addr1_o  <= instr_i(24 downto 20);
-    csrs_addr_int  <= instr_i(31 downto 20);
-    id_csrs_addr_o <= csrs_addr_int;
-
     id_exc_taken_o <= exc_taken;
-    exi_taken_o    <= exi_taken;
-    tmi_taken_o    <= tmi_taken;
-    swi_taken_o    <= swi_taken;
-    int_taken_o    <= int_taken;
 
     instr_err_o   <= instr_err;
     ecall_o       <= ecall;

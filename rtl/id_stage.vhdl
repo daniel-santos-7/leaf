@@ -63,26 +63,12 @@ architecture rtl of id_stage is
     signal main_ctrl_wfi       : std_logic;
     signal csrs_exc_taken : std_logic;
 
-    signal main_ctrl_regrd_addr0 : std_logic_vector(4  downto 0);
-    signal main_ctrl_regrd_addr1 : std_logic_vector(4  downto 0);
-
     signal pc_full     : std_logic_vector(XLEN-1 downto 0);
 
     signal main_ctrl_id_exc_taken : std_logic;
-    signal main_ctrl_int_taken : std_logic;
-    signal main_ctrl_exi_taken : std_logic;
-    signal main_ctrl_tmi_taken : std_logic;
-    signal main_ctrl_swi_taken : std_logic;
-    signal csrs_mie_meie      : std_logic;
-    signal csrs_mie_mtie      : std_logic;
-    signal csrs_mie_msie      : std_logic;
-    signal csrs_mstatus_mie   : std_logic;
-    signal csrs_mip_meip      : std_logic;
-    signal csrs_mip_mtip      : std_logic;
-    signal csrs_mip_msip      : std_logic;
-
-    -- Combinatorial decode outputs (to pipeline register)
-    signal main_ctrl_id_csrs_addr   : std_logic_vector(11 downto 0);
+    -- csrs owns the interrupt decision (all of mie/mip/mstatus live there);
+    -- main_ctrl only consumes it, to squash the decode and to wake a wfi.
+    signal csrs_int_taken : std_logic;
 
     -- Registered outputs from reg_file/csrs (ID -> EX). None of these has a
     -- same-cycle combinational twin reaching id_stage, so plain
@@ -110,9 +96,9 @@ architecture rtl of id_stage is
     signal main_ctrl_regwr_addr  : std_logic_vector(4 downto 0);
     signal main_ctrl_csrwr_en    : std_logic;
     signal main_ctrl_retire      : std_logic;
-    -- main_ctrl_csrs_addr/exc_taken/mret (registered, EX-facing) each have a
-    -- same-cycle combinational twin above (main_ctrl_id_csrs_addr/id_exc_taken/
-    -- id_mret), hence the id_ prefix on the combinational side instead.
+    -- main_ctrl_exc_taken/mret (registered, EX-facing) each have a same-cycle
+    -- combinational twin above (main_ctrl_id_exc_taken/id_mret), hence the id_
+    -- prefix on the combinational side instead.
     signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
     signal main_ctrl_exc_taken   : std_logic;
     signal main_ctrl_mret        : std_logic;
@@ -120,7 +106,6 @@ architecture rtl of id_stage is
     signal csrs_wr_data : std_logic_vector(XLEN-1 downto 0);
 
     signal exc_fault_int : std_logic;
-    signal exc_inhibit   : std_logic;
     signal rf_we_int     : std_logic;
     signal csr_we_int    : std_logic;
 
@@ -139,29 +124,16 @@ begin
         instr_i        => instr_i,
         valid_i        => valid_i,
         stale_i        => stale_i,
-        mip_meip_i     => csrs_mip_meip,
-        mip_msip_i     => csrs_mip_msip,
-        mip_mtip_i     => csrs_mip_mtip,
-        mie_meie_i     => csrs_mie_meie,
-        mie_mtie_i     => csrs_mie_mtie,
-        mie_msie_i     => csrs_mie_msie,
-        mstatus_mie_i  => csrs_mstatus_mie,
+        int_taken_i    => csrs_int_taken,
         instr_err_o    => main_ctrl_instr_err,
         ecall_o        => main_ctrl_ecall,
         ebreak_o       => main_ctrl_ebreak,
         id_mret_o      => main_ctrl_id_mret,
         wfi_o          => main_ctrl_wfi,
-        regrd_addr0_o  => main_ctrl_regrd_addr0,
-        regrd_addr1_o  => main_ctrl_regrd_addr1,
-        id_csrs_addr_o => main_ctrl_id_csrs_addr,
         ready_i        => ready_i,
         flush_i        => flush_i,
         ready_o        => main_ctrl_ready,
         id_exc_taken_o => main_ctrl_id_exc_taken,
-        int_taken_o    => main_ctrl_int_taken,
-        exi_taken_o    => main_ctrl_exi_taken,
-        tmi_taken_o    => main_ctrl_tmi_taken,
-        swi_taken_o    => main_ctrl_swi_taken,
         -- registered (pipeline) outputs
         func3_o       => main_ctrl_func3,
         branch_op_o   => main_ctrl_branch_op,
@@ -192,8 +164,10 @@ begin
         wr_data1_i => dmld_data_i,
         wr_data2_i => link_i,
         wr_data3_i => csrs_csrrd_data,
-        rd_addr0_i => main_ctrl_regrd_addr0,
-        rd_addr1_i => main_ctrl_regrd_addr1,
+        -- rs1/rs2, straight off the instruction: main_ctrl relayed these
+        -- unmodified, so the slice is taken where it is consumed.
+        rd_addr0_i => instr_i(19 downto 15),
+        rd_addr1_i => instr_i(24 downto 20),
         re_i       => main_ctrl_ready,
         rd_data0_o => reg_file_rd0,
         rd_data1_o => reg_file_rd1
@@ -202,14 +176,13 @@ begin
 
     exc_fault_int <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i;
     csrs_exc_taken <= main_ctrl_id_exc_taken or exc_fault_int;
-    -- fault_i is combinational from the (possibly empty) instruction FIFO;
-    -- only meaningful when this cycle actually holds a real, in-order
-    -- instruction. Left ungated it can read 'U' and propagate through the
-    -- OR (no zero-dominance the way main_ctrl's kill-gated AND has),
-    -- silently disabling rf_we_int/csr_we_int.
-    exc_inhibit <= exc_fault_int or (fault_i and valid_i and not stale_i and not flush_i);
-    rf_we_int <= main_ctrl_regwr_en and not exc_inhibit;
-    csr_we_int <= main_ctrl_csrwr_en and not exc_inhibit;
+    -- EX-time faults only, matching the stage main_ctrl_regwr_en/csrwr_en come
+    -- from. A fetch fault is inhibited one stage earlier: main_ctrl's squash
+    -- clears both enables on imrd_fault_i and the zero rides the ID/EX register,
+    -- so it lands on the instruction that actually faulted. Repeating that term
+    -- live here would instead block the older instruction sitting in EX.
+    rf_we_int <= main_ctrl_regwr_en and not exc_fault_int;
+    csr_we_int <= main_ctrl_csrwr_en and not exc_fault_int;
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -231,13 +204,9 @@ begin
         mret_i       => main_ctrl_id_mret,
         wfi_i        => main_ctrl_wfi,
         exc_taken_i  => csrs_exc_taken,
-        int_taken_i  => main_ctrl_int_taken,
-        exi_taken_i  => main_ctrl_exi_taken,
-        tmi_taken_i  => main_ctrl_tmi_taken,
-        swi_taken_i  => main_ctrl_swi_taken,
         wr_en_i      => csr_we_int,
         wr_addr_i    => main_ctrl_csrs_addr,
-        rw_addr_i    => main_ctrl_id_csrs_addr,
+        rw_addr_i    => instr_i(31 downto 20),
         wr_data_i    => csrs_wr_data,
         pipe_en_i    => main_ctrl_ready,
         exec_res_i   => exec_res_i,
@@ -249,13 +218,7 @@ begin
         cop_adr_o    => csrs_cop_adr,
         cop_dat_o    => csrs_cop_dat,
         cop_we_o     => csrs_cop_we,
-        mie_meie_o   => csrs_mie_meie,
-        mie_mtie_o   => csrs_mie_mtie,
-        mie_msie_o   => csrs_mie_msie,
-        mstatus_mie_o=> csrs_mstatus_mie,
-        mip_meip_o   => csrs_mip_meip,
-        mip_mtip_o   => csrs_mip_mtip,
-        mip_msip_o   => csrs_mip_msip,
+        int_taken_o  => csrs_int_taken,
         mepc_o       => csrs_mepc,
         mtvec_base_o => csrs_mtvec_base,
         csrrd_data_o => csrs_csrrd_data,
