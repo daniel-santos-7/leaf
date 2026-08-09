@@ -418,6 +418,20 @@ begin
     -- Every term here is already qualified by the decode process. int_taken_i is
     -- the exception, deliberately: a real interrupt is independent of whichever
     -- instruction happens to occupy the slot.
+    --
+    -- KNOWN BUG, on the interrupt term only. csrs commits the trap from
+    -- exc_taken_reg, one cycle after this line asserts, so mstatus.MIE (which
+    -- csrs clears on that commit) also falls one cycle late. int_taken_i is
+    -- still high through that extra cycle, so exc_taken is sampled twice and
+    -- csrs writes mepc/mcause a second time -- by then pc_reg has advanced, so
+    -- mepc ends up pointing at the wrong instruction. The synchronous causes
+    -- are unaffected: each is a decode output that goes away on its own.
+    --
+    -- The fix is to make the term a one-shot, `int_taken_i and not
+    -- exc_taken_reg`, which costs no state. It is not applied because it cannot
+    -- be verified here: leaf_tb ties ex_irq_i/sw_irq_i/tm_irq_i to '0', so no
+    -- test in the suite ever raises an interrupt. Apply it together with the
+    -- test that exercises it.
     exc_taken     <= fetch_fault or ecall or ebreak or int_taken_i or instr_err;
 
     ready_int    <= int_taken_i when wfi = '1' else ready_i;
