@@ -20,20 +20,19 @@ entity main_ctrl is
         stale_i        : in  std_logic;
         -- Evaluated in csrs, from mie/mip/mstatus and their write bypass.
         int_taken_i    : in  std_logic;
-        instr_err_o    : out std_logic;
-        ecall_o        : out std_logic;
-        ebreak_o       : out std_logic;
-        id_mret_o      : out std_logic;
-        wfi_o          : out std_logic;
         ready_i        : in  std_logic;
         flush_i        : in  std_logic;
         ready_o        : out std_logic;
-        id_exc_taken_o : out std_logic;
-        -- registered (pipeline) outputs. id_exc_taken_o/id_mret_o above are the
-        -- same-cycle combinational twins of exc_taken_o/mret_o below -- both
-        -- genuinely needed (same-cycle CSR side effect vs. the redirect signal
-        -- at commit); everything else here has no such twin, so it's named
-        -- plainly.
+        -- registered (pipeline) outputs. The whole trap cause set below is
+        -- registered: csrs commits mepc/mcause/mtval/mstatus at EX time, so
+        -- every input it correlates -- the cause flags, the fault flags and the
+        -- PC -- has to belong to the same instruction. A combinational twin of
+        -- any of these would pair a cause with the following instruction.
+        instr_err_o   : out std_logic;
+        ecall_o       : out std_logic;
+        ebreak_o      : out std_logic;
+        wfi_o         : out std_logic;
+        fetch_fault_o : out std_logic;
         func3_o       : out std_logic_vector(2  downto 0);
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
@@ -106,6 +105,11 @@ architecture rtl of main_ctrl is
     signal retire_reg       : std_logic;
     signal exc_taken_reg    : std_logic;
     signal mret_reg         : std_logic;
+    signal ecall_reg        : std_logic;
+    signal ebreak_reg       : std_logic;
+    signal wfi_reg          : std_logic;
+    signal instr_err_reg    : std_logic;
+    signal fetch_fault_reg  : std_logic;
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -443,6 +447,11 @@ begin
                 retire_reg       <= '0';
                 exc_taken_reg    <= '0';
                 mret_reg         <= '0';
+                ecall_reg        <= '0';
+                ebreak_reg       <= '0';
+                wfi_reg          <= '0';
+                instr_err_reg    <= '0';
+                fetch_fault_reg  <= '0';
             elsif ready_int = '1' then
                 func3_reg        <= instr_i(14 downto 12);
                 branch_op_reg    <= branch_op;
@@ -459,21 +468,24 @@ begin
                 retire_reg       <= retire;
                 exc_taken_reg    <= exc_taken;
                 mret_reg         <= mret;
+                ecall_reg        <= ecall;
+                ebreak_reg       <= ebreak;
+                wfi_reg          <= wfi;
+                instr_err_reg    <= instr_err;
+                fetch_fault_reg  <= fetch_fault;
             end if;
         end if;
     end process pipeline_reg;
 
     -- Output assignments --
-    id_exc_taken_o <= exc_taken;
-
-    instr_err_o   <= instr_err;
-    ecall_o       <= ecall;
-    ebreak_o      <= ebreak;
-    id_mret_o     <= mret;
-    wfi_o         <= wfi;
     ready_o       <= ready_int;
 
     -- Registered output port assignments
+    instr_err_o   <= instr_err_reg;
+    ecall_o       <= ecall_reg;
+    ebreak_o      <= ebreak_reg;
+    wfi_o         <= wfi_reg;
+    fetch_fault_o <= fetch_fault_reg;
     func3_o       <= func3_reg;
     branch_op_o   <= branch_op_reg;
     alu_op_o      <= alu_op_reg;

@@ -135,15 +135,14 @@ package leaf_pkg is
             valid_i        : in  std_logic;
             stale_i        : in  std_logic;
             int_taken_i    : in  std_logic;
-            instr_err_o    : out std_logic;
-            ecall_o        : out std_logic;
-            ebreak_o       : out std_logic;
-            id_mret_o      : out std_logic;
-            wfi_o          : out std_logic;
             ready_i        : in  std_logic;
             flush_i        : in  std_logic;
             ready_o        : out std_logic;
-            id_exc_taken_o : out std_logic;
+            instr_err_o   : out std_logic;
+            ecall_o       : out std_logic;
+            ebreak_o      : out std_logic;
+            wfi_o         : out std_logic;
+            fetch_fault_o : out std_logic;
             func3_o       : out std_logic_vector(2  downto 0);
             branch_op_o   : out std_logic_vector(1  downto 0);
             alu_op_o      : out std_logic_vector(5  downto 0);
@@ -254,6 +253,7 @@ package leaf_pkg is
             dmld_fault_i  : in  std_logic;
             dmst_malgn_i  : in  std_logic;
             dmst_fault_i  : in  std_logic;
+            exc_fault_i   : in  std_logic;
             cycle_i       : in  std_logic_vector(63 downto 0);
             timer_i       : in  std_logic_vector(63 downto 0);
             instret_i     : in  std_logic_vector(63 downto 0);
@@ -351,6 +351,7 @@ package leaf_pkg is
             dmld_fault_o  : out std_logic;
             dmst_malgn_o  : out std_logic;
             dmst_fault_o  : out std_logic;
+            exc_fault_o   : out std_logic;
             data_cyc_o         : out std_logic;
             data_stb_o         : out std_logic;
             data_dat_o   : out std_logic_vector(XLEN-1 downto 0);

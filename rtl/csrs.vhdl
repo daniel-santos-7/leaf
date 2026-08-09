@@ -195,17 +195,15 @@ begin
             if reset_i = '1' then
                 mepc <= (others => '0');
             elsif exc_taken_i = '1' then
+                -- Every cause reaching this process is now EX-aligned, so
+                -- pc_reg is the trapping instruction's PC whichever stage
+                -- produced the cause -- no three-way choice left.
                 if wfi_i = '1' then
                     -- mepc must point past the WFI, so the handler's mret does
-                    -- not fall back into it and sleep again. pc_i is the
-                    -- ID-stage PC (the WFI itself); ex_block's link_o is the
-                    -- EX-stage one, a different instruction, so it cannot be
-                    -- reused here.
-                    mepc <= std_logic_vector(unsigned(pc_i(XLEN-1 downto 2)) + 1);
-                elsif (imrd_malgn_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i) = '1' then
-                    mepc <= pc_reg(XLEN-1 downto 2);
+                    -- not fall back into it and sleep again.
+                    mepc <= std_logic_vector(unsigned(pc_reg(XLEN-1 downto 2)) + 1);
                 else
-                    mepc <= pc_i(XLEN-1 downto 2);
+                    mepc <= pc_reg(XLEN-1 downto 2);
                 end if;
             elsif wr_addr_i = CSR_ADDR_MEPC and wr_en_i = '1' then
                 mepc <= wr_data_i(XLEN-1 downto 2);
@@ -268,11 +266,11 @@ begin
                 elsif imrd_malgn_i = '1' then
                     mtval <= exec_res_i;
                 elsif imrd_fault_i = '1' then
-                    mtval <= pc_i;
+                    mtval <= pc_reg;
                 elsif instr_err_i = '1' then
                     mtval <= (others => '0');
                 elsif ebreak_i = '1' then
-                    mtval <= pc_i;
+                    mtval <= pc_reg;
                 elsif dmld_malgn_i = '1' or dmld_fault_i = '1' or dmst_malgn_i = '1' or dmst_fault_i = '1' then
                     mtval <= exec_res_i;
                 else

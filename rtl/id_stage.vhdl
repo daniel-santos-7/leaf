@@ -18,6 +18,10 @@ entity id_stage is
         dmld_fault_i  : in  std_logic;
         dmst_malgn_i  : in  std_logic;
         dmst_fault_i  : in  std_logic;
+        -- The OR of the five above, evaluated in ex_block. The five still come
+        -- in individually because csrs discriminates between them for mcause
+        -- and mtval; this one only gates the writes.
+        exc_fault_i   : in  std_logic;
         cycle_i       : in  std_logic_vector(63 downto 0);
         timer_i       : in  std_logic_vector(63 downto 0);
         instret_i     : in  std_logic_vector(63 downto 0);
@@ -56,16 +60,18 @@ end entity id_stage;
 
 architecture rtl of id_stage is
 
-    signal main_ctrl_instr_err : std_logic;
-    signal main_ctrl_ecall     : std_logic;
-    signal main_ctrl_ebreak    : std_logic;
-    signal main_ctrl_id_mret   : std_logic;
-    signal main_ctrl_wfi       : std_logic;
+    -- Trap causes, all registered in main_ctrl: csrs commits the trap at EX
+    -- time, so these arrive together with exc_taken and with the PC they
+    -- belong to.
+    signal main_ctrl_instr_err   : std_logic;
+    signal main_ctrl_ecall       : std_logic;
+    signal main_ctrl_ebreak      : std_logic;
+    signal main_ctrl_wfi         : std_logic;
+    signal main_ctrl_fetch_fault : std_logic;
     signal csrs_exc_taken : std_logic;
 
     signal pc_full     : std_logic_vector(XLEN-1 downto 0);
 
-    signal main_ctrl_id_exc_taken : std_logic;
     -- csrs owns the interrupt decision (all of mie/mip/mstatus live there);
     -- main_ctrl only consumes it, to squash the decode and to wake a wfi.
     signal csrs_int_taken : std_logic;
@@ -96,16 +102,15 @@ architecture rtl of id_stage is
     signal main_ctrl_regwr_addr  : std_logic_vector(4 downto 0);
     signal main_ctrl_csrwr_en    : std_logic;
     signal main_ctrl_retire      : std_logic;
-    -- main_ctrl_exc_taken/mret (registered, EX-facing) each have a same-cycle
-    -- combinational twin above (main_ctrl_id_exc_taken/id_mret), hence the id_
-    -- prefix on the combinational side instead.
+    -- main_ctrl_mret feeds both ex_block (redirect target) and csrs (mstatus
+    -- unstacking); a single registered copy serves both now that csrs commits
+    -- at EX time.
     signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
     signal main_ctrl_exc_taken   : std_logic;
     signal main_ctrl_mret        : std_logic;
 
     signal csrs_wr_data : std_logic_vector(XLEN-1 downto 0);
 
-    signal exc_fault_int : std_logic;
     signal rf_we_int     : std_logic;
     signal csr_we_int    : std_logic;
 
@@ -125,16 +130,15 @@ begin
         valid_i        => valid_i,
         stale_i        => stale_i,
         int_taken_i    => csrs_int_taken,
-        instr_err_o    => main_ctrl_instr_err,
-        ecall_o        => main_ctrl_ecall,
-        ebreak_o       => main_ctrl_ebreak,
-        id_mret_o      => main_ctrl_id_mret,
-        wfi_o          => main_ctrl_wfi,
         ready_i        => ready_i,
         flush_i        => flush_i,
         ready_o        => main_ctrl_ready,
-        id_exc_taken_o => main_ctrl_id_exc_taken,
         -- registered (pipeline) outputs
+        instr_err_o   => main_ctrl_instr_err,
+        ecall_o       => main_ctrl_ecall,
+        ebreak_o      => main_ctrl_ebreak,
+        wfi_o         => main_ctrl_wfi,
+        fetch_fault_o => main_ctrl_fetch_fault,
         func3_o       => main_ctrl_func3,
         branch_op_o   => main_ctrl_branch_op,
         alu_op_o      => main_ctrl_alu_op,
@@ -174,15 +178,16 @@ begin
     );
 
 
-    exc_fault_int <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or dmst_malgn_i or dmst_fault_i;
-    csrs_exc_taken <= main_ctrl_id_exc_taken or exc_fault_int;
+    -- Both terms are EX-aligned now: main_ctrl_exc_taken is the registered
+    -- cause set, exc_fault_i the live EX fault. They commit in the same cycle.
+    csrs_exc_taken <= main_ctrl_exc_taken or exc_fault_i;
     -- EX-time faults only, matching the stage main_ctrl_regwr_en/csrwr_en come
     -- from. A fetch fault is inhibited one stage earlier: main_ctrl's squash
     -- clears both enables on imrd_fault_i and the zero rides the ID/EX register,
     -- so it lands on the instruction that actually faulted. Repeating that term
     -- live here would instead block the older instruction sitting in EX.
-    rf_we_int <= main_ctrl_regwr_en and not exc_fault_int;
-    csr_we_int <= main_ctrl_csrwr_en and not exc_fault_int;
+    rf_we_int <= main_ctrl_regwr_en and not exc_fault_i;
+    csr_we_int <= main_ctrl_csrwr_en and not exc_fault_i;
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -193,7 +198,7 @@ begin
         sw_irq_i     => sw_irq_i,
         tm_irq_i     => tm_irq_i,
         imrd_malgn_i => imrd_malgn_i,
-        imrd_fault_i => fault_i,
+        imrd_fault_i => main_ctrl_fetch_fault,
         instr_err_i  => main_ctrl_instr_err,
         dmld_malgn_i => dmld_malgn_i,
         dmld_fault_i => dmld_fault_i,
@@ -201,7 +206,7 @@ begin
         dmst_fault_i => dmst_fault_i,
         ecall_i      => main_ctrl_ecall,
         ebreak_i     => main_ctrl_ebreak,
-        mret_i       => main_ctrl_id_mret,
+        mret_i       => main_ctrl_mret,
         wfi_i        => main_ctrl_wfi,
         exc_taken_i  => csrs_exc_taken,
         wr_en_i      => csr_we_int,
@@ -256,6 +261,6 @@ begin
 
     -- minstret: count at the commit point, one pulse per instruction as it
     -- leaves EX. A fault detected in EX cancels the retirement.
-    retire_o      <= main_ctrl_retire and ready_i and not exc_fault_int;
+    retire_o      <= main_ctrl_retire and ready_i and not exc_fault_i;
 
 end architecture rtl;

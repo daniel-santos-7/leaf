@@ -83,6 +83,7 @@ architecture rtl of core is
     signal ex_dmld_fault  : std_logic;
     signal ex_dmst_malgn  : std_logic;
     signal ex_dmst_fault  : std_logic;
+    signal ex_exc_fault   : std_logic;
 
 begin
 
@@ -127,6 +128,7 @@ begin
         dmld_fault_i   => ex_dmld_fault,
         dmst_malgn_i   => ex_dmst_malgn,
         dmst_fault_i   => ex_dmst_fault,
+        exc_fault_i    => ex_exc_fault,
         cycle_i        => cycle_i,
         timer_i        => timer_i,
         instret_i      => instret_i,
@@ -187,6 +189,7 @@ begin
         dmld_fault_o   => ex_dmld_fault,
         dmst_malgn_o   => ex_dmst_malgn,
         dmst_fault_o   => ex_dmst_fault,
+        exc_fault_o    => ex_exc_fault,
         data_cyc_o     => data_cyc_o,
         data_stb_o     => data_stb_o,
         data_we_o      => data_we_o,
