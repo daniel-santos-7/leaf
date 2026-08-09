@@ -18,10 +18,6 @@ entity id_stage is
         dmld_fault_i  : in  std_logic;
         dmst_malgn_i  : in  std_logic;
         dmst_fault_i  : in  std_logic;
-        -- The OR of the five above, evaluated in ex_block. The five still come
-        -- in individually because csrs discriminates between them for mcause
-        -- and mtval; this one only gates the writes.
-        exc_fault_i   : in  std_logic;
         cycle_i       : in  std_logic_vector(63 downto 0);
         timer_i       : in  std_logic_vector(63 downto 0);
         instret_i     : in  std_logic_vector(63 downto 0);
@@ -44,10 +40,11 @@ entity id_stage is
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
         dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-        exc_taken_o   : out std_logic;
-        mret_o        : out std_logic;
-        mepc_o        : out std_logic_vector(XLEN-1 downto 2);
-        mtvec_base_o  : out std_logic_vector(XLEN-1 downto 2);
+        -- Fully resolved trap redirect for ex_block. mepc/mtvec never leave
+        -- this stage: csrs owns both, so the 2:1 mux between them belongs
+        -- here rather than 60 bits of CSR content crossing into EX.
+        trap_taken_o  : out std_logic;
+        trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
         rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
@@ -68,6 +65,12 @@ architecture rtl of id_stage is
     signal main_ctrl_ebreak      : std_logic;
     signal main_ctrl_wfi         : std_logic;
     signal main_ctrl_fetch_fault : std_logic;
+
+    -- The five EX faults ORed together, and that OR plus the registered cause
+    -- set. Single copies: ex_block hands over the five individually because
+    -- csrs discriminates between them for mcause and mtval, and everything
+    -- built on top of them is consumed here.
+    signal exc_fault      : std_logic;
     signal csrs_exc_taken : std_logic;
 
     signal pc_full     : std_logic_vector(XLEN-1 downto 0);
@@ -178,16 +181,20 @@ begin
     );
 
 
-    -- Both terms are EX-aligned now: main_ctrl_exc_taken is the registered
-    -- cause set, exc_fault_i the live EX fault. They commit in the same cycle.
-    csrs_exc_taken <= main_ctrl_exc_taken or exc_fault_i;
+    exc_fault      <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or
+                      dmst_malgn_i or dmst_fault_i;
+
+    -- Both terms are EX-aligned: main_ctrl_exc_taken is the registered cause
+    -- set, exc_fault the live EX fault. They commit in the same cycle.
+    csrs_exc_taken <= main_ctrl_exc_taken or exc_fault;
+
     -- EX-time faults only, matching the stage main_ctrl_regwr_en/csrwr_en come
     -- from. A fetch fault is inhibited one stage earlier: main_ctrl's squash
     -- clears both enables on imrd_fault_i and the zero rides the ID/EX register,
     -- so it lands on the instruction that actually faulted. Repeating that term
     -- live here would instead block the older instruction sitting in EX.
-    rf_we_int <= main_ctrl_regwr_en and not exc_fault_i;
-    csr_we_int <= main_ctrl_csrwr_en and not exc_fault_i;
+    rf_we_int <= main_ctrl_regwr_en and not exc_fault;
+    csr_we_int <= main_ctrl_csrwr_en and not exc_fault;
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -243,10 +250,11 @@ begin
     cop_adr_o     <= csrs_cop_adr;
     cop_dat_o     <= csrs_cop_dat;
     cop_we_o      <= csrs_cop_we;
-    exc_taken_o   <= main_ctrl_exc_taken;
-    mret_o        <= main_ctrl_mret;
-    mepc_o        <= csrs_mepc;
-    mtvec_base_o  <= csrs_mtvec_base;
+    -- An mret redirects the fetch too, but commits nothing in csrs beyond the
+    -- mstatus unstacking, so it joins only here and not in csrs_exc_taken.
+    trap_taken_o  <= csrs_exc_taken or main_ctrl_mret;
+    trap_target_o <= csrs_mepc & b"00" when main_ctrl_mret = '1' else
+                     csrs_mtvec_base & b"00";
     func3_o       <= main_ctrl_func3;
     branch_op_o   <= main_ctrl_branch_op;
     alu_op_o      <= main_ctrl_alu_op;
@@ -261,6 +269,6 @@ begin
 
     -- minstret: count at the commit point, one pulse per instruction as it
     -- leaves EX. A fault detected in EX cancels the retirement.
-    retire_o      <= main_ctrl_retire and ready_i and not exc_fault_i;
+    retire_o      <= main_ctrl_retire and ready_i and not exc_fault;
 
 end architecture rtl;

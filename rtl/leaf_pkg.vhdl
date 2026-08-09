@@ -253,7 +253,6 @@ package leaf_pkg is
             dmld_fault_i  : in  std_logic;
             dmst_malgn_i  : in  std_logic;
             dmst_fault_i  : in  std_logic;
-            exc_fault_i   : in  std_logic;
             cycle_i       : in  std_logic_vector(63 downto 0);
             timer_i       : in  std_logic_vector(63 downto 0);
             instret_i     : in  std_logic_vector(63 downto 0);
@@ -276,10 +275,8 @@ package leaf_pkg is
             branch_op_o   : out std_logic_vector(1  downto 0);
             alu_op_o      : out std_logic_vector(5  downto 0);
             dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-            exc_taken_o   : out std_logic;
-            mret_o        : out std_logic;
-            mepc_o        : out std_logic_vector(XLEN-1 downto 2);
-            mtvec_base_o  : out std_logic_vector(XLEN-1 downto 2);
+            trap_taken_o  : out std_logic;
+            trap_target_o : out std_logic_vector(XLEN-1 downto 0);
             rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
             rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
             imm_o         : out std_logic_vector(XLEN-1 downto 0);
@@ -327,10 +324,8 @@ package leaf_pkg is
         port (
             clk_i         : in  std_logic;
             reset_i       : in  std_logic;
-            exc_taken_i   : in  std_logic;
-            mret_i        : in  std_logic;
-            mepc_i        : in  std_logic_vector(XLEN-1 downto 2);
-            mtvec_base_i  : in  std_logic_vector(XLEN-1 downto 2);
+            trap_taken_i  : in  std_logic;
+            trap_target_i : in  std_logic_vector(XLEN-1 downto 0);
             func3_i       : in  std_logic_vector(2  downto 0);
             reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
             reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
@@ -351,7 +346,6 @@ package leaf_pkg is
             dmld_fault_o  : out std_logic;
             dmst_malgn_o  : out std_logic;
             dmst_fault_o  : out std_logic;
-            exc_fault_o   : out std_logic;
             data_cyc_o         : out std_logic;
             data_stb_o         : out std_logic;
             data_dat_o   : out std_logic_vector(XLEN-1 downto 0);

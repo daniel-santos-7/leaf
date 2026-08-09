@@ -14,10 +14,12 @@ entity ex_block is
     port (
         clk_i         : in  std_logic;
         reset_i       : in  std_logic;
-        exc_taken_i   : in  std_logic;
-        mret_i        : in  std_logic;
-        mepc_i        : in  std_logic_vector(XLEN-1 downto 2);
-        mtvec_base_i  : in  std_logic_vector(XLEN-1 downto 2);
+        -- Trap redirect, already resolved in id_stage: whether a trap commits
+        -- this cycle and where it goes. The distinction between an exception
+        -- and an mret only matters for picking mtvec over mepc, and both of
+        -- those registers live in csrs -- so the mux stays next to them.
+        trap_taken_i  : in  std_logic;
+        trap_target_i : in  std_logic_vector(XLEN-1 downto 0);
         func3_i       : in  std_logic_vector(2  downto 0);
         reg0_i        : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i        : in  std_logic_vector(XLEN-1 downto 0);
@@ -38,11 +40,6 @@ entity ex_block is
         dmld_fault_o  : out std_logic;
         dmst_malgn_o  : out std_logic;
         dmst_fault_o  : out std_logic;
-        -- The five above ORed together: every EX-time fault inhibits the
-        -- register-file and CSR writes downstream, and that consumer does not
-        -- care which one fired. The individual five still go out because csrs
-        -- needs them to pick the mcause code and the mtval payload.
-        exc_fault_o   : out std_logic;
         data_cyc_o    : out std_logic;
         data_stb_o    : out std_logic;
         data_dat_o    : out std_logic_vector(XLEN-1 downto 0);
@@ -82,11 +79,6 @@ architecture ex_block_arch of ex_block is
     signal dmls_dmst_malgn : std_logic;
     signal dmls_dmst_fault : std_logic;
 
-    signal exc_fault      : std_logic;
-
-    signal ex_trap_taken  : std_logic;
-    signal ex_trap_target : std_logic_vector(XLEN-1 downto 0);
-
     signal taken_int      : std_logic;
 
 begin
@@ -113,8 +105,8 @@ begin
         en_i          => branch_op_i(0),
         jmp_i         => branch_op_i(1),
         arith_res_i   => alu_arith_res,
-        trap_taken_i  => ex_trap_taken,
-        trap_target_i => ex_trap_target,
+        trap_taken_i  => trap_taken_i,
+        trap_target_i => trap_target_i,
         taken_o       => taken_int,
         target_o      => target_o,
         imrd_malgn_o  => br_detector_imrd_malgn
@@ -150,13 +142,6 @@ begin
     dmld_fault_o <= dmls_dmld_fault;
     dmst_malgn_o <= dmls_dmst_malgn;
     dmst_fault_o <= dmls_dmst_fault;
-    exc_fault_o  <= exc_fault;
-
-    exc_fault      <= br_detector_imrd_malgn or dmls_dmld_malgn or dmls_dmld_fault or
-                      dmls_dmst_malgn or dmls_dmst_fault;
-
-    ex_trap_taken  <= exc_taken_i or mret_i or exc_fault;
-    ex_trap_target <= mepc_i & b"00" when mret_i = '1' else mtvec_base_i & b"00";
 
     data_cyc_o <= dmls_cyc;
     data_stb_o <= dmls_stb;

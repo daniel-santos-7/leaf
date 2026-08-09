@@ -63,10 +63,8 @@ architecture rtl of core is
     signal ex_branch_op   : std_logic_vector(1  downto 0);
     signal ex_alu_op      : std_logic_vector(5  downto 0);
     signal ex_dmls_ctrl   : std_logic_vector(1  downto 0);
-    signal ex_exc_taken   : std_logic;
-    signal ex_mret        : std_logic;
-    signal ex_mepc        : std_logic_vector(XLEN-1 downto 2);
-    signal ex_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
+    signal ex_trap_taken  : std_logic;
+    signal ex_trap_target : std_logic_vector(XLEN-1 downto 0);
     signal ex_rd0         : std_logic_vector(XLEN-1 downto 0);
     signal ex_rd1         : std_logic_vector(XLEN-1 downto 0);
     signal ex_imm         : std_logic_vector(XLEN-1 downto 0);
@@ -83,7 +81,6 @@ architecture rtl of core is
     signal ex_dmld_fault  : std_logic;
     signal ex_dmst_malgn  : std_logic;
     signal ex_dmst_fault  : std_logic;
-    signal ex_exc_fault   : std_logic;
 
 begin
 
@@ -128,7 +125,6 @@ begin
         dmld_fault_i   => ex_dmld_fault,
         dmst_malgn_i   => ex_dmst_malgn,
         dmst_fault_i   => ex_dmst_fault,
-        exc_fault_i    => ex_exc_fault,
         cycle_i        => cycle_i,
         timer_i        => timer_i,
         instret_i      => instret_i,
@@ -151,10 +147,8 @@ begin
         branch_op_o    => ex_branch_op,
         alu_op_o       => ex_alu_op,
         dmls_ctrl_o    => ex_dmls_ctrl,
-        exc_taken_o    => ex_exc_taken,
-        mret_o         => ex_mret,
-        mepc_o         => ex_mepc,
-        mtvec_base_o   => ex_mtvec_base,
+        trap_taken_o   => ex_trap_taken,
+        trap_target_o  => ex_trap_target,
         rd_data0_o     => ex_rd0,
         rd_data1_o     => ex_rd1,
         imm_o          => ex_imm,
@@ -169,10 +163,8 @@ begin
     core_ex_block: ex_block port map (
         clk_i          => clk_i,
         reset_i        => reset_i,
-        exc_taken_i    => ex_exc_taken,
-        mret_i         => ex_mret,
-        mepc_i         => ex_mepc,
-        mtvec_base_i   => ex_mtvec_base,
+        trap_taken_i   => ex_trap_taken,
+        trap_target_i  => ex_trap_target,
         func3_i        => ex_func3,
         reg0_i         => ex_rd0,
         reg1_i         => ex_rd1,
@@ -189,7 +181,6 @@ begin
         dmld_fault_o   => ex_dmld_fault,
         dmst_malgn_o   => ex_dmst_malgn,
         dmst_fault_o   => ex_dmst_fault,
-        exc_fault_o    => ex_exc_fault,
         data_cyc_o     => data_cyc_o,
         data_stb_o     => data_stb_o,
         data_we_o      => data_we_o,
