@@ -269,6 +269,12 @@ begin
 
     -- minstret: count at the commit point, one pulse per instruction as it
     -- leaves EX. A fault detected in EX cancels the retirement.
-    retire_o      <= main_ctrl_retire and ready_i and not exc_fault;
+    --
+    -- The qualifier is main_ctrl_ready, not ready_i: the two are the same signal
+    -- except while a wfi is parked, and there ready_i still reads '1' (EX is
+    -- idle) while retire_reg keeps holding the bit of the instruction ahead of
+    -- the wfi -- which would then be counted once per parked cycle. Covered by
+    -- verif/tests/wfi_timer.
+    retire_o      <= main_ctrl_retire and main_ctrl_ready and not exc_fault;
 
 end architecture rtl;

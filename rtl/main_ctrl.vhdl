@@ -417,24 +417,27 @@ begin
 
     -- Every term here is already qualified by the decode process. int_taken_i is
     -- the exception, deliberately: a real interrupt is independent of whichever
-    -- instruction happens to occupy the slot.
-    --
-    -- KNOWN BUG, on the interrupt term only. csrs commits the trap from
-    -- exc_taken_reg, one cycle after this line asserts, so mstatus.MIE (which
-    -- csrs clears on that commit) also falls one cycle late. int_taken_i is
-    -- still high through that extra cycle, so exc_taken is sampled twice and
-    -- csrs writes mepc/mcause a second time -- by then pc_reg has advanced, so
-    -- mepc ends up pointing at the wrong instruction. The synchronous causes
-    -- are unaffected: each is a decode output that goes away on its own.
-    --
-    -- The fix is to make the term a one-shot, `int_taken_i and not
-    -- exc_taken_reg`, which costs no state. It is not applied because it cannot
-    -- be verified here: leaf_tb ties ex_irq_i/sw_irq_i/tm_irq_i to '0', so no
-    -- test in the suite ever raises an interrupt. Apply it together with the
-    -- test that exercises it.
-    exc_taken     <= fetch_fault or ecall or ebreak or int_taken_i or instr_err;
+    -- instruction happens to occupy the slot -- and so the one term that needs
+    -- the one-shot. csrs commits from exc_taken_reg a cycle after this line
+    -- asserts, clearing mstatus.MIE with it, but int_taken_i is still high
+    -- through that extra cycle: without `and not exc_taken_reg` the trap commits
+    -- twice, the second time with pc_reg advanced and int_taken already dropped,
+    -- leaving a wrong mepc and an mcause without the interrupt bit. Covered by
+    -- verif/tests/wfi_timer.
+    exc_taken     <= fetch_fault or ecall or ebreak or instr_err
+                     or (int_taken_i and not exc_taken_reg);
 
-    ready_int    <= int_taken_i when wfi = '1' else ready_i;
+    -- A parked wfi must still wait on EX. The earlier form,
+    -- `int_taken_i when wfi = '1' else ready_i`, dropped ready_i while parked,
+    -- so an interrupt landing in the few cycles a load still occupies EX would
+    -- advance the ID/EX register over it.
+    --
+    -- NOT COVERED: hitting that window needs the interrupt to fire inside those
+    -- few cycles, and wfi_timer's park is thousands of cycles long -- tuning
+    -- the delay to land there would pass for a reason no later change
+    -- preserves. This form can only delay an advance, never allow one the old
+    -- form refused, so it is safe to carry unverified.
+    ready_int    <= ready_i and (int_taken_i or not wfi);
     -- valid_i='0' covers an empty instruction buffer (instr_i is then stale
     -- FIFO output), flush_i the cycle a taken branch resolves in EX, and
     -- stale_i the wrong-path entries still buffered after flush drops.
