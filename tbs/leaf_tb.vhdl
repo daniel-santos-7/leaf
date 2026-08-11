@@ -55,6 +55,12 @@ architecture leaf_tb_arch of leaf_tb is
     signal data_err : std_logic;
     signal data_stall : std_logic;
 
+    -- Read data from the two data-bus slaves. wb_ram_dual answers every
+    -- address, so clint_sel is what says whose word is the real one.
+    signal ram_dat   : std_logic_vector(31 downto 0);
+    signal clint_dat : std_logic_vector(31 downto 0);
+    signal clint_sel : std_logic;
+
     -- Clock enable signal --
     signal clk_en : std_logic;
 
@@ -110,7 +116,7 @@ begin
         data_sel_i => data_sel,
         data_we_i  => data_we,
         data_dat_i => data_dat,
-        data_dat_o => data_dat_to_core,
+        data_dat_o => ram_dat,
         data_ack_o => data_ack,
 
         wr_mem_i => wr_mem_i,
@@ -118,11 +124,27 @@ begin
         halt_o   => halt_o
     );
 
+    clint: wb_clint port map (
+        clk_i    => clk_i,
+        rst_i    => rst_i,
+        cyc_i    => data_cyc,
+        stb_i    => data_stb,
+        we_i     => data_we,
+        adr_i    => data_adr,
+        dat_i    => data_dat,
+        dat_o    => clint_dat,
+        sel_o    => clint_sel,
+        sw_irq_o => sw_irq,
+        tm_irq_o => tm_irq
+    );
+
+    data_dat_to_core <= clint_dat when clint_sel = '1' else ram_dat;
+
     clk_i <= not clk_i after (CLK_PERIOD/2) when clk_en = '1' else '0';
 
+    -- No external interrupt controller is modelled; the CLINT drives the
+    -- other two.
     ex_irq <= '0';
-    sw_irq <= '0';
-    tm_irq <= '0';
     inst_err <= '0';
     data_err <= '0';
     inst_stall <= '0';

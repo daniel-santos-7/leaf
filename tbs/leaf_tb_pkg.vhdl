@@ -93,6 +93,27 @@ package leaf_tb_pkg is
         );
     end component wb_ram_dual;
 
+    component wb_clint is
+        generic (
+            RTC_DIV : positive := 8
+        );
+        port (
+            clk_i : in  std_logic;
+            rst_i : in  std_logic;
+
+            cyc_i : in  std_logic;
+            stb_i : in  std_logic;
+            we_i  : in  std_logic;
+            adr_i : in  std_logic_vector(31 downto 2);
+            dat_i : in  std_logic_vector(31 downto 0);
+            dat_o : out std_logic_vector(31 downto 0);
+            sel_o : out std_logic;
+
+            sw_irq_o : out std_logic;
+            tm_irq_o : out std_logic
+        );
+    end component wb_clint;
+
 end package leaf_tb_pkg;
 
 package body leaf_tb_pkg is
