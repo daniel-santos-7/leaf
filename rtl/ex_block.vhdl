@@ -14,10 +14,9 @@ entity ex_block is
     port (
         clk_i         : in  std_logic;
         reset_i       : in  std_logic;
-        -- Trap redirect, already resolved in id_stage: whether a trap commits
-        -- this cycle and where it goes. The distinction between an exception
-        -- and an mret only matters for picking mtvec over mepc, and both of
-        -- those registers live in csrs -- so the mux stays next to them.
+        -- Trap redirect, already resolved in id_stage. Exception versus mret
+        -- only matters for picking mtvec over mepc, and both registers live in
+        -- csrs, so that mux stays next to them.
         trap_taken_i  : in  std_logic;
         trap_target_i : in  std_logic_vector(XLEN-1 downto 0);
         func3_i       : in  std_logic_vector(2  downto 0);

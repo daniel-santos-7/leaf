@@ -40,9 +40,9 @@ entity id_stage is
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
         dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-        -- Fully resolved trap redirect for ex_block. mepc/mtvec never leave
-        -- this stage: csrs owns both, so the 2:1 mux between them belongs
-        -- here rather than 60 bits of CSR content crossing into EX.
+        -- Fully resolved trap redirect. csrs owns mepc and mtvec, so the 2:1
+        -- mux between them stays here instead of 60 bits of CSR content
+        -- crossing into EX.
         trap_taken_o  : out std_logic;
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
@@ -57,19 +57,15 @@ end entity id_stage;
 
 architecture rtl of id_stage is
 
-    -- Trap causes, all registered in main_ctrl: csrs commits the trap at EX
-    -- time, so these arrive together with exc_taken and with the PC they
-    -- belong to.
     signal main_ctrl_instr_err   : std_logic;
     signal main_ctrl_ecall       : std_logic;
     signal main_ctrl_ebreak      : std_logic;
     signal main_ctrl_wfi         : std_logic;
     signal main_ctrl_fetch_fault : std_logic;
 
-    -- The five EX faults ORed together, and that OR plus the registered cause
-    -- set. Single copies: ex_block hands over the five individually because
-    -- csrs discriminates between them for mcause and mtval, and everything
-    -- built on top of them is consumed here.
+    -- ex_block hands the five EX faults over individually because csrs
+    -- discriminates between them for mcause and mtval; everything built on top
+    -- of them is consumed here, in one copy.
     signal exc_fault      : std_logic;
     signal csrs_exc_taken : std_logic;
 
@@ -79,10 +75,8 @@ architecture rtl of id_stage is
     -- main_ctrl only consumes it, to squash the decode and to wake a wfi.
     signal csrs_int_taken : std_logic;
 
-    -- Registered outputs from reg_file/csrs (ID -> EX). None of these has a
-    -- same-cycle combinational twin reaching id_stage, so plain
-    -- driver-prefixed names are enough. csrs also owns the PC pipeline
-    -- register: pc_full below is its combinational (same-cycle) input.
+    -- Registered outputs from reg_file/csrs (ID -> EX). csrs also owns the PC
+    -- pipeline register: pc_full below is its combinational input.
     signal reg_file_rd0    : std_logic_vector(XLEN-1 downto 0);
     signal reg_file_rd1    : std_logic_vector(XLEN-1 downto 0);
     signal csrs_mepc       : std_logic_vector(XLEN-1 downto 2);
@@ -105,9 +99,6 @@ architecture rtl of id_stage is
     signal main_ctrl_regwr_addr  : std_logic_vector(4 downto 0);
     signal main_ctrl_csrwr_en    : std_logic;
     signal main_ctrl_retire      : std_logic;
-    -- main_ctrl_mret feeds both ex_block (redirect target) and csrs (mstatus
-    -- unstacking); a single registered copy serves both now that csrs commits
-    -- at EX time.
     signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
     signal main_ctrl_exc_taken   : std_logic;
     signal main_ctrl_mret        : std_logic;
@@ -136,7 +127,6 @@ begin
         ready_i        => ready_i,
         flush_i        => flush_i,
         ready_o        => main_ctrl_ready,
-        -- registered (pipeline) outputs
         instr_err_o   => main_ctrl_instr_err,
         ecall_o       => main_ctrl_ecall,
         ebreak_o      => main_ctrl_ebreak,
@@ -171,7 +161,7 @@ begin
         wr_data1_i => dmld_data_i,
         wr_data2_i => link_i,
         wr_data3_i => csrs_csrrd_data,
-        -- rs1/rs2, straight off the instruction: main_ctrl relayed these
+        -- rs1/rs2 straight off the instruction: main_ctrl relayed these
         -- unmodified, so the slice is taken where it is consumed.
         rd_addr0_i => instr_i(19 downto 15),
         rd_addr1_i => instr_i(24 downto 20),
@@ -188,11 +178,10 @@ begin
     -- set, exc_fault the live EX fault. They commit in the same cycle.
     csrs_exc_taken <= main_ctrl_exc_taken or exc_fault;
 
-    -- EX-time faults only, matching the stage main_ctrl_regwr_en/csrwr_en come
-    -- from. A fetch fault is inhibited one stage earlier: main_ctrl's squash
-    -- clears both enables on imrd_fault_i and the zero rides the ID/EX register,
-    -- so it lands on the instruction that actually faulted. Repeating that term
-    -- live here would instead block the older instruction sitting in EX.
+    -- EX-time faults only. A fetch fault is inhibited one stage earlier --
+    -- main_ctrl's squash clears both enables on imrd_fault_i and the zero rides
+    -- the ID/EX register -- so repeating that term live here would instead
+    -- block the older instruction sitting in EX.
     rf_we_int <= main_ctrl_regwr_en and not exc_fault;
     csr_we_int <= main_ctrl_csrwr_en and not exc_fault;
 
@@ -237,7 +226,6 @@ begin
         pc_o         => csrs_pc
     );
 
-    -- CSR write data mux (uses post-pipeline register values, same timing as before)
     id_stage_csrs_logic: csrs_logic port map (
         csrwr_mode_i => main_ctrl_func3,
         csrrd_data_i => csrs_csrrd_data,
@@ -246,7 +234,6 @@ begin
         csrwr_data_o => csrs_wr_data
     );
 
-    -- Output assignments at end
     cop_adr_o     <= csrs_cop_adr;
     cop_dat_o     <= csrs_cop_dat;
     cop_we_o      <= csrs_cop_we;
@@ -267,14 +254,11 @@ begin
     pc_full_o     <= csrs_pc;
     ready_o       <= main_ctrl_ready;
 
-    -- minstret: count at the commit point, one pulse per instruction as it
-    -- leaves EX. A fault detected in EX cancels the retirement.
-    --
-    -- The qualifier is main_ctrl_ready, not ready_i: the two are the same signal
-    -- except while a wfi is parked, and there ready_i still reads '1' (EX is
-    -- idle) while retire_reg keeps holding the bit of the instruction ahead of
-    -- the wfi -- which would then be counted once per parked cycle. Covered by
-    -- verif/tests/wfi_timer.
+    -- The qualifier is main_ctrl_ready, not ready_i: the two are the same
+    -- signal except while a wfi is parked, and there ready_i still reads '1'
+    -- (EX is idle) while retire_reg keeps holding the bit of the instruction
+    -- ahead of the wfi -- which would then be counted once per parked cycle.
+    -- Covered by verif/tests/wfi_timer.
     retire_o      <= main_ctrl_retire and main_ctrl_ready and not exc_fault;
 
 end architecture rtl;

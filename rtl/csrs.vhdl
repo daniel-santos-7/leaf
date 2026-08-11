@@ -56,8 +56,6 @@ end entity csrs;
 
 architecture rtl of csrs is
 
-    -- registers --
-
     signal mstatus_mie  : std_logic;
     signal mstatus_mpie : std_logic;
     signal mie_meie     : std_logic;
@@ -80,10 +78,10 @@ architecture rtl of csrs is
     signal mepc_bypassed       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_bypassed : std_logic_vector(XLEN-1 downto 2);
 
-    -- Interrupt evaluation. Every operand is a register owned here, so the
-    -- decision is made here too: mie/mstatus are read through the same
-    -- write-forwarding bypass as mepc/mtvec, so a csrrs that sets MIE arms the
-    -- interrupt in the cycle it commits rather than one cycle later.
+    -- The interrupt decision is made here because every operand is a register
+    -- owned here. mie/mstatus go through the same write-forwarding bypass as
+    -- mepc/mtvec, so a csrrs that sets MIE arms the interrupt in the cycle it
+    -- commits rather than one cycle later.
     signal mie_meie_bypassed    : std_logic;
     signal mie_mtie_bypassed    : std_logic;
     signal mie_msie_bypassed    : std_logic;
@@ -195,9 +193,8 @@ begin
             if reset_i = '1' then
                 mepc <= (others => '0');
             elsif exc_taken_i = '1' then
-                -- Every cause reaching this process is now EX-aligned, so
-                -- pc_reg is the trapping instruction's PC whichever stage
-                -- produced the cause -- no three-way choice left.
+                -- Every cause reaching here is EX-aligned, so pc_reg is the
+                -- trapping instruction's PC whichever stage produced it.
                 if wfi_i = '1' then
                     -- mepc must point past the WFI, so the handler's mret does
                     -- not fall back into it and sleep again.
@@ -322,8 +319,6 @@ begin
     mtvec_base_bypassed  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
 
     -- mip needs no bypass: it is not writable, it just samples the irq inputs.
-    -- The three individual terms stay internal -- only write_mcause needs them,
-    -- to pick the cause code.
     exi_taken <= mie_meie_bypassed and mip_meip;
     tmi_taken <= mie_mtie_bypassed and mip_mtip;
     swi_taken <= mie_msie_bypassed and mip_msip;

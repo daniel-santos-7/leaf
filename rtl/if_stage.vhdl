@@ -42,11 +42,9 @@ architecture rtl of if_stage is
     -- asserted until redirect_ack signals that this stage consumed them.
     signal redirect_ack      : std_logic;
 
-    -- Registers
     signal adr_reg           : std_logic_vector(XLEN-1 downto 2);
     signal epoch_reg         : std_logic;
 
-    -- Address buffer
     signal adr_data          : std_logic_vector(XLEN-2 downto 0);
     signal adr_valid         : std_logic;
     signal adr_ready         : std_logic;
@@ -54,7 +52,6 @@ architecture rtl of if_stage is
     signal if_adr_buf_valid  : std_logic;
     signal if_adr_buf_ready  : std_logic;
 
-    -- Instruction buffer
     signal inst_data         : std_logic_vector(XLEN downto 0);
     signal inst_valid        : std_logic;
     signal if_inst_buf_data  : std_logic_vector(XLEN downto 0);
@@ -127,7 +124,6 @@ begin
         ready_o => if_inst_buf_ready
     );
 
-    -- Output assignments --
     inst_cyc_o <= if_inst_buf_ready;
     inst_stb_o <= if_adr_buf_ready;
     inst_adr_o <= adr_reg;

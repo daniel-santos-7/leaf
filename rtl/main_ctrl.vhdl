@@ -23,10 +23,8 @@ entity main_ctrl is
         ready_i        : in  std_logic;
         flush_i        : in  std_logic;
         ready_o        : out std_logic;
-        -- registered (pipeline) outputs. The whole trap cause set below is
-        -- registered: csrs commits mepc/mcause/mtval/mstatus at EX time, so
-        -- every input it correlates -- the cause flags, the fault flags and the
-        -- PC -- has to belong to the same instruction. A combinational twin of
+        -- Registered (pipeline) outputs. The whole trap cause set is
+        -- registered because csrs commits at EX time: a combinational twin of
         -- any of these would pair a cause with the following instruction.
         instr_err_o   : out std_logic;
         ecall_o       : out std_logic;
@@ -73,10 +71,8 @@ architecture rtl of main_ctrl is
     -- exc_taken below arrives pre-qualified except the interrupt.
     signal fetch_fault : std_logic;
 
-    -- Combinational decode values, read by the pipeline register below.
-    -- ready_int additionally shadows a same-cycle out port (ready_o) -- needed
-    -- because VHDL-93 out ports cannot be read back inside the architecture;
-    -- everything else here has no such port, it's just the ID-stage value.
+    -- ready_int shadows ready_o because VHDL-93 out ports cannot be read back
+    -- inside the architecture.
     signal branch_op     : std_logic_vector(1  downto 0);
     signal alu_op        : std_logic_vector(5  downto 0);
     signal dmls_ctrl     : std_logic_vector(1  downto 0);
@@ -89,7 +85,6 @@ architecture rtl of main_ctrl is
     signal ready_int     : std_logic;
     signal retire        : std_logic;
 
-    -- Pipeline register signals
     signal func3_reg        : std_logic_vector(2  downto 0);
     signal branch_op_reg    : std_logic_vector(1  downto 0);
     signal alu_op_reg       : std_logic_vector(5  downto 0);
@@ -133,8 +128,6 @@ begin
             when others     => imm <= (XLEN-1 downto 0 => '-');
         end case;
     end process gen;
-
-    -- Decode process (opcode-based) --
 
     -- Decode runs unconditionally and the two overrides at the end squash it.
     -- Both conditions are built only from inputs, so this process never reads a
@@ -361,12 +354,10 @@ begin
             fetch_fault <= '0';
         end if;
 
-        -- Squash: an empty slot (valid_i), a wrong-path instruction (stale_i,
-        -- flush_i), a fetch fault or a pending interrupt must not let this
-        -- instruction reach EX. ecall/ebreak/mret sit here rather than above
-        -- because a faulted fetch delivers a garbage instr_i -- the same reason
-        -- instr_err is suppressed -- and because a pending interrupt outranks
-        -- both a synchronous trap and an mret redirect.
+        -- ecall/ebreak/mret sit in this wider squash rather than the narrow one
+        -- above because a faulted fetch delivers a garbage instr_i -- the same
+        -- reason instr_err is suppressed -- and because a pending interrupt
+        -- outranks both a synchronous trap and an mret redirect.
         if valid_i = '0' or stale_i = '1' or flush_i = '1'
            or imrd_fault_i = '1' or int_taken_i = '1' then
             dmls_ctrl    <= DMLS_IDLE;
@@ -415,15 +406,14 @@ begin
         end if;
     end process alu_op_ctrl;
 
-    -- Every term here is already qualified by the decode process. int_taken_i is
-    -- the exception, deliberately: a real interrupt is independent of whichever
-    -- instruction happens to occupy the slot -- and so the one term that needs
-    -- the one-shot. csrs commits from exc_taken_reg a cycle after this line
-    -- asserts, clearing mstatus.MIE with it, but int_taken_i is still high
-    -- through that extra cycle: without `and not exc_taken_reg` the trap commits
-    -- twice, the second time with pc_reg advanced and int_taken already dropped,
-    -- leaving a wrong mepc and an mcause without the interrupt bit. Covered by
-    -- verif/tests/wfi_timer.
+    -- int_taken_i is the one term the decode process does not qualify -- a real
+    -- interrupt is independent of whichever instruction occupies the slot --
+    -- and so the one that needs the one-shot. csrs commits from exc_taken_reg a
+    -- cycle after this line asserts, clearing mstatus.MIE with it, but
+    -- int_taken_i is still high through that extra cycle: without `and not
+    -- exc_taken_reg` the trap commits twice, the second time with pc_reg
+    -- advanced and int_taken already dropped, leaving a wrong mepc and an
+    -- mcause without the interrupt bit. Covered by verif/tests/wfi_timer.
     exc_taken     <= fetch_fault or ecall or ebreak or instr_err
                      or (int_taken_i and not exc_taken_reg);
 
@@ -444,7 +434,6 @@ begin
     retire       <= valid_i and not stale_i and not flush_i
                     and ((not exc_taken) or wfi);
 
-    -- Pipeline register (ID -> EX) --
     pipeline_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -494,10 +483,8 @@ begin
         end if;
     end process pipeline_reg;
 
-    -- Output assignments --
     ready_o       <= ready_int;
 
-    -- Registered output port assignments
     instr_err_o   <= instr_err_reg;
     ecall_o       <= ecall_reg;
     ebreak_o      <= ebreak_reg;

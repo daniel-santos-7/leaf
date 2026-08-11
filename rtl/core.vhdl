@@ -58,7 +58,7 @@ architecture rtl of core is
     signal if_stale   : std_logic;
     signal if_redirect_ack : std_logic;
 
-    -- ID stage -> EX stage (pipeline register inside id_stage)
+    -- ID -> EX. The pipeline register lives inside id_stage.
     signal ex_func3       : std_logic_vector(2  downto 0);
     signal ex_branch_op   : std_logic_vector(1  downto 0);
     signal ex_alu_op      : std_logic_vector(5  downto 0);
@@ -84,8 +84,6 @@ architecture rtl of core is
 
 begin
 
-    -- instruction fetch stage --
-
     core_if_stage: if_stage generic map (
         RESET_ADDR => RESET_ADDR
     ) port map (
@@ -108,8 +106,6 @@ begin
         stale_o      => if_stale,
         redirect_ack_o => if_redirect_ack
     );
-
-    -- instruction decode stage (contains pipeline register internally) --
 
     core_id_stage: id_stage generic map (
         REG_FILE_SIZE => REG_FILE_SIZE,
@@ -157,8 +153,6 @@ begin
         pc_full_o      => ex_pc_full,
         retire_o       => retire_o
     );
-
-    -- execute stage --
 
     core_ex_block: ex_block port map (
         clk_i          => clk_i,
