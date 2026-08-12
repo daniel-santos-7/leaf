@@ -13,29 +13,29 @@ entity id_stage is
         ex_irq_i      : in  std_logic;
         sw_irq_i      : in  std_logic;
         tm_irq_i      : in  std_logic;
-        imrd_malgn_i  : in  std_logic;
-        dmld_malgn_i  : in  std_logic;
-        dmld_fault_i  : in  std_logic;
-        dmst_malgn_i  : in  std_logic;
-        dmst_fault_i  : in  std_logic;
         cycle_i       : in  std_logic_vector(63 downto 0);
         timer_i       : in  std_logic_vector(63 downto 0);
         instret_i     : in  std_logic_vector(63 downto 0);
-        exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
-        link_i        : in  std_logic_vector(XLEN-1 downto 0);
-        dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+
         pc_i          : in  std_logic_vector(XLEN-1 downto 2);
         instr_i       : in  std_logic_vector(XLEN-1 downto 0);
         fault_i       : in  std_logic;
         valid_i       : in  std_logic;
         stale_i       : in  std_logic;
-        cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
-        cop_adr_o     : out std_logic_vector(5 downto 0);
-        cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
-        cop_we_o      : out std_logic;
+
+        imrd_malgn_i  : in  std_logic;
+        dmld_malgn_i  : in  std_logic;
+        dmld_fault_i  : in  std_logic;
+        dmst_malgn_i  : in  std_logic;
+        dmst_fault_i  : in  std_logic;
+        exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
+        link_i        : in  std_logic_vector(XLEN-1 downto 0);
+        dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+
         flush_i       : in  std_logic;
         ready_i       : in  std_logic;
         ready_o       : out std_logic;
+
         func3_o       : out std_logic_vector(2  downto 0);
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
@@ -48,43 +48,37 @@ entity id_stage is
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
         rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
-        opd_src_sel_o  : out std_logic_vector(1  downto 0);
-        opd_pass_o     : out std_logic_vector(1  downto 0);
+        opd_src_sel_o : out std_logic_vector(1  downto 0);
+        opd_pass_o    : out std_logic_vector(1  downto 0);
         pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
-        retire_o      : out std_logic
+        retire_o      : out std_logic;
+
+        cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
+        cop_adr_o     : out std_logic_vector(5      downto 0);
+        cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
+        cop_we_o      : out std_logic
     );
 end entity id_stage;
 
 architecture rtl of id_stage is
 
+    signal pc_full : std_logic_vector(XLEN-1 downto 0);
+
+    -- ex_block hands the five EX faults over individually because csrs
+    -- discriminates between them for mcause and mtval; everything built on top
+    -- of them is consumed here, in one copy.
+    signal exc_fault : std_logic;
+    signal exc_taken : std_logic;
+
+    signal gtd_regwr_en : std_logic;
+    signal gtd_csrwr_en : std_logic;
+
+    signal main_ctrl_ready       : std_logic;
     signal main_ctrl_instr_err   : std_logic;
     signal main_ctrl_ecall       : std_logic;
     signal main_ctrl_ebreak      : std_logic;
     signal main_ctrl_wfi         : std_logic;
     signal main_ctrl_fetch_fault : std_logic;
-
-    -- ex_block hands the five EX faults over individually because csrs
-    -- discriminates between them for mcause and mtval; everything built on top
-    -- of them is consumed here, in one copy.
-    signal exc_fault      : std_logic;
-    signal csrs_exc_taken : std_logic;
-
-    signal pc_full     : std_logic_vector(XLEN-1 downto 0);
-
-    -- csrs owns the interrupt decision (all of mie/mip/mstatus live there);
-    -- main_ctrl only consumes it, to squash the decode and to wake a wfi.
-    signal csrs_int_taken : std_logic;
-
-    -- Registered outputs from reg_file/csrs (ID -> EX). csrs also owns the PC
-    -- pipeline register: pc_full below is its combinational input.
-    signal reg_file_rd0    : std_logic_vector(XLEN-1 downto 0);
-    signal reg_file_rd1    : std_logic_vector(XLEN-1 downto 0);
-    signal csrs_mepc       : std_logic_vector(XLEN-1 downto 2);
-    signal csrs_mtvec_base : std_logic_vector(XLEN-1 downto 2);
-    signal csrs_csrrd_data : std_logic_vector(XLEN-1 downto 0);
-    signal csrs_pc         : std_logic_vector(XLEN-1 downto 0);
-
-    signal main_ctrl_ready  : std_logic;
 
     -- main_ctrl registered (pipeline) outputs
     signal main_ctrl_func3       : std_logic_vector(2  downto 0);
@@ -92,41 +86,64 @@ architecture rtl of id_stage is
     signal main_ctrl_alu_op      : std_logic_vector(5  downto 0);
     signal main_ctrl_dmls_ctrl   : std_logic_vector(1  downto 0);
     signal main_ctrl_imm         : std_logic_vector(XLEN-1 downto 0);
-    signal main_ctrl_opd_src_sel : std_logic_vector(1 downto 0);
-    signal main_ctrl_opd_pass    : std_logic_vector(1 downto 0);
+    signal main_ctrl_opd_src_sel : std_logic_vector(1  downto 0);
+    signal main_ctrl_opd_pass    : std_logic_vector(1  downto 0);
     signal main_ctrl_regwr_en    : std_logic;
-    signal main_ctrl_regwr_sel   : std_logic_vector(1 downto 0);
-    signal main_ctrl_regwr_addr  : std_logic_vector(4 downto 0);
+    signal main_ctrl_regwr_sel   : std_logic_vector(1  downto 0);
+    signal main_ctrl_regwr_addr  : std_logic_vector(4  downto 0);
     signal main_ctrl_csrwr_en    : std_logic;
     signal main_ctrl_retire      : std_logic;
     signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
     signal main_ctrl_exc_taken   : std_logic;
     signal main_ctrl_mret        : std_logic;
 
-    signal csrs_wr_data : std_logic_vector(XLEN-1 downto 0);
+    -- Registered outputs from reg_file/csrs (ID -> EX). csrs also owns the PC
+    -- pipeline register: pc_full above is its combinational input.
+    signal reg_file_rd_data0 : std_logic_vector(XLEN-1 downto 0);
+    signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
-    signal rf_we_int     : std_logic;
-    signal csr_we_int    : std_logic;
+    -- csrs owns the interrupt decision (all of mie/mip/mstatus live there);
+    -- main_ctrl only consumes it, to squash the decode and to wake a wfi.
+    signal csrs_int_taken   : std_logic;
+    signal csrs_mepc        : std_logic_vector(XLEN-1 downto 2);
+    signal csrs_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
+    signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
+    signal csrs_pc          : std_logic_vector(XLEN-1 downto 0);
+    signal csrs_cop_adr     : std_logic_vector(5      downto 0);
+    signal csrs_cop_dat     : std_logic_vector(XLEN-1 downto 0);
+    signal csrs_cop_we      : std_logic;
 
-    signal csrs_cop_adr : std_logic_vector(5 downto 0);
-    signal csrs_cop_dat : std_logic_vector(XLEN-1 downto 0);
-    signal csrs_cop_we  : std_logic;
+    signal csrs_logic_csrwr_data : std_logic_vector(XLEN-1 downto 0);
 
 begin
 
-    pc_full     <= pc_i & b"00";
+    pc_full   <= pc_i & b"00";
+
+    exc_fault <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or
+                 dmst_malgn_i or dmst_fault_i;
+
+    -- Both terms are EX-aligned: main_ctrl_exc_taken is the registered cause
+    -- set, exc_fault the live EX fault. They commit in the same cycle.
+    exc_taken <= main_ctrl_exc_taken or exc_fault;
+
+    -- EX-time faults only. A fetch fault is inhibited one stage earlier --
+    -- main_ctrl's squash clears both enables on imrd_fault_i and the zero rides
+    -- the ID/EX register -- so repeating that term live here would instead
+    -- block the older instruction sitting in EX.
+    gtd_regwr_en <= main_ctrl_regwr_en and not exc_fault;
+    gtd_csrwr_en <= main_ctrl_csrwr_en and not exc_fault;
 
     id_stage_main_ctrl: main_ctrl port map (
-        clk_i          => clk_i,
-        reset_i        => reset_i,
-        imrd_fault_i   => fault_i,
-        instr_i        => instr_i,
-        valid_i        => valid_i,
-        stale_i        => stale_i,
-        int_taken_i    => csrs_int_taken,
-        ready_i        => ready_i,
-        flush_i        => flush_i,
-        ready_o        => main_ctrl_ready,
+        clk_i         => clk_i,
+        reset_i       => reset_i,
+        imrd_fault_i  => fault_i,
+        instr_i       => instr_i,
+        valid_i       => valid_i,
+        stale_i       => stale_i,
+        int_taken_i   => csrs_int_taken,
+        ready_i       => ready_i,
+        flush_i       => flush_i,
+        ready_o       => main_ctrl_ready,
         instr_err_o   => main_ctrl_instr_err,
         ecall_o       => main_ctrl_ecall,
         ebreak_o      => main_ctrl_ebreak,
@@ -144,9 +161,9 @@ begin
         regwr_addr_o  => main_ctrl_regwr_addr,
         csrwr_en_o    => main_ctrl_csrwr_en,
         retire_o      => main_ctrl_retire,
-        csrs_addr_o    => main_ctrl_csrs_addr,
-        exc_taken_o    => main_ctrl_exc_taken,
-        mret_o         => main_ctrl_mret
+        csrs_addr_o   => main_ctrl_csrs_addr,
+        exc_taken_o   => main_ctrl_exc_taken,
+        mret_o        => main_ctrl_mret
     );
 
     id_stage_reg_file: reg_file generic map (
@@ -154,36 +171,19 @@ begin
     ) port map (
         clk_i      => clk_i,
         reset_i    => reset_i,
-        we_i       => rf_we_int,
+        we_i       => gtd_regwr_en,
         wr_sel_i   => main_ctrl_regwr_sel,
         wr_addr_i  => main_ctrl_regwr_addr,
         wr_data0_i => exec_res_i,
         wr_data1_i => dmld_data_i,
         wr_data2_i => link_i,
         wr_data3_i => csrs_csrrd_data,
-        -- rs1/rs2 straight off the instruction: main_ctrl relayed these
-        -- unmodified, so the slice is taken where it is consumed.
         rd_addr0_i => instr_i(19 downto 15),
         rd_addr1_i => instr_i(24 downto 20),
         re_i       => main_ctrl_ready,
-        rd_data0_o => reg_file_rd0,
-        rd_data1_o => reg_file_rd1
+        rd_data0_o => reg_file_rd_data0,
+        rd_data1_o => reg_file_rd_data1
     );
-
-
-    exc_fault      <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or
-                      dmst_malgn_i or dmst_fault_i;
-
-    -- Both terms are EX-aligned: main_ctrl_exc_taken is the registered cause
-    -- set, exc_fault the live EX fault. They commit in the same cycle.
-    csrs_exc_taken <= main_ctrl_exc_taken or exc_fault;
-
-    -- EX-time faults only. A fetch fault is inhibited one stage earlier --
-    -- main_ctrl's squash clears both enables on imrd_fault_i and the zero rides
-    -- the ID/EX register -- so repeating that term live here would instead
-    -- block the older instruction sitting in EX.
-    rf_we_int <= main_ctrl_regwr_en and not exc_fault;
-    csr_we_int <= main_ctrl_csrwr_en and not exc_fault;
 
     id_stage_csrs: csrs generic map (
         MHART_ID => CSRS_MHART_ID
@@ -204,11 +204,11 @@ begin
         ebreak_i     => main_ctrl_ebreak,
         mret_i       => main_ctrl_mret,
         wfi_i        => main_ctrl_wfi,
-        exc_taken_i  => csrs_exc_taken,
-        wr_en_i      => csr_we_int,
+        exc_taken_i  => exc_taken,
+        wr_en_i      => gtd_csrwr_en,
         wr_addr_i    => main_ctrl_csrs_addr,
         rw_addr_i    => instr_i(31 downto 20),
-        wr_data_i    => csrs_wr_data,
+        wr_data_i    => csrs_logic_csrwr_data,
         pipe_en_i    => main_ctrl_ready,
         exec_res_i   => exec_res_i,
         pc_i         => pc_full,
@@ -229,30 +229,27 @@ begin
     id_stage_csrs_logic: csrs_logic port map (
         csrwr_mode_i => main_ctrl_func3,
         csrrd_data_i => csrs_csrrd_data,
-        regwr_data_i => reg_file_rd0,
+        regwr_data_i => reg_file_rd_data0,
         immwr_data_i => main_ctrl_imm,
-        csrwr_data_o => csrs_wr_data
+        csrwr_data_o => csrs_logic_csrwr_data
     );
 
-    cop_adr_o     <= csrs_cop_adr;
-    cop_dat_o     <= csrs_cop_dat;
-    cop_we_o      <= csrs_cop_we;
-    -- An mret redirects the fetch too, but commits nothing in csrs beyond the
-    -- mstatus unstacking, so it joins only here and not in csrs_exc_taken.
-    trap_taken_o  <= csrs_exc_taken or main_ctrl_mret;
-    trap_target_o <= csrs_mepc & b"00" when main_ctrl_mret = '1' else
-                     csrs_mtvec_base & b"00";
+    ready_o       <= main_ctrl_ready;
     func3_o       <= main_ctrl_func3;
     branch_op_o   <= main_ctrl_branch_op;
     alu_op_o      <= main_ctrl_alu_op;
     dmls_ctrl_o   <= main_ctrl_dmls_ctrl;
-    rd_data0_o    <= reg_file_rd0;
-    rd_data1_o    <= reg_file_rd1;
+    -- An mret redirects the fetch too, but commits nothing in csrs beyond the
+    -- mstatus unstacking, so it joins only here and not in exc_taken.
+    trap_taken_o  <= exc_taken or main_ctrl_mret;
+    trap_target_o <= csrs_mepc & b"00" when main_ctrl_mret = '1' else
+                     csrs_mtvec_base & b"00";
+    rd_data0_o    <= reg_file_rd_data0;
+    rd_data1_o    <= reg_file_rd_data1;
     imm_o         <= main_ctrl_imm;
     opd_src_sel_o <= main_ctrl_opd_src_sel;
     opd_pass_o    <= main_ctrl_opd_pass;
     pc_full_o     <= csrs_pc;
-    ready_o       <= main_ctrl_ready;
 
     -- The qualifier is main_ctrl_ready, not ready_i: the two are the same
     -- signal except while a wfi is parked, and there ready_i still reads '1'
@@ -260,5 +257,9 @@ begin
     -- ahead of the wfi -- which would then be counted once per parked cycle.
     -- Covered by verif/tests/wfi_timer.
     retire_o      <= main_ctrl_retire and main_ctrl_ready and not exc_fault;
+
+    cop_adr_o     <= csrs_cop_adr;
+    cop_dat_o     <= csrs_cop_dat;
+    cop_we_o      <= csrs_cop_we;
 
 end architecture rtl;
