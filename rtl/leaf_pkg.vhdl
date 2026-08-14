@@ -130,34 +130,33 @@ package leaf_pkg is
         port (
             clk_i          : in  std_logic;
             reset_i        : in  std_logic;
-            imrd_fault_i   : in std_logic;
+            imrd_fault_i   : in  std_logic;
             instr_i        : in  std_logic_vector(XLEN-1 downto 0);
             valid_i        : in  std_logic;
             stale_i        : in  std_logic;
             int_taken_i    : in  std_logic;
-            ready_i        : in  std_logic;
             flush_i        : in  std_logic;
-            ready_o        : out std_logic;
-            instr_err_o   : out std_logic;
-            ecall_o       : out std_logic;
-            ebreak_o      : out std_logic;
-            wfi_o         : out std_logic;
-            fetch_fault_o : out std_logic;
-            func3_o       : out std_logic_vector(2  downto 0);
-            branch_op_o   : out std_logic_vector(1  downto 0);
-            alu_op_o      : out std_logic_vector(5  downto 0);
-            dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-            imm_o         : out std_logic_vector(XLEN-1 downto 0);
-            opd_src_sel_o : out std_logic_vector(1  downto 0);
-            opd_pass_o    : out std_logic_vector(1  downto 0);
-            regwr_en_o    : out std_logic;
-            regwr_sel_o   : out std_logic_vector(1 downto 0);
-            regwr_addr_o  : out std_logic_vector(4 downto 0);
-            csrwr_en_o    : out std_logic;
-            retire_o      : out std_logic;
-            csrs_addr_o   : out std_logic_vector(11 downto 0);
-            exc_taken_o   : out std_logic;
-            mret_o        : out std_logic
+            pipe_en_i      : in  std_logic;
+            id_exc_cause_o : out std_logic;
+            id_wfi_o       : out std_logic;
+            instr_err_o    : out std_logic;
+            ecall_o        : out std_logic;
+            ebreak_o       : out std_logic;
+            wfi_o          : out std_logic;
+            fetch_fault_o  : out std_logic;
+            func3_o        : out std_logic_vector(2  downto 0);
+            branch_op_o    : out std_logic_vector(1  downto 0);
+            alu_op_o       : out std_logic_vector(5  downto 0);
+            dmls_ctrl_o    : out std_logic_vector(1  downto 0);
+            imm_o          : out std_logic_vector(XLEN-1 downto 0);
+            opd_src_sel_o  : out std_logic_vector(1  downto 0);
+            opd_pass_o     : out std_logic_vector(1  downto 0);
+            regwr_en_o     : out std_logic;
+            regwr_sel_o    : out std_logic_vector(1 downto 0);
+            regwr_addr_o   : out std_logic_vector(4 downto 0);
+            csrwr_en_o     : out std_logic;
+            csrs_addr_o    : out std_logic_vector(11 downto 0);
+            mret_o         : out std_logic
         );
     end component main_ctrl;
 
@@ -192,6 +191,37 @@ package leaf_pkg is
             csrwr_data_o : out std_logic_vector(XLEN-1      downto 0)
         );
     end component csrs_logic;
+
+    component trap_ctrl is
+        port (
+            clk_i          : in  std_logic;
+            reset_i        : in  std_logic;
+            id_exc_cause_i : in  std_logic;
+            id_wfi_i       : in  std_logic;
+            int_taken_i    : in  std_logic;
+            valid_i        : in  std_logic;
+            stale_i        : in  std_logic;
+            flush_i        : in  std_logic;
+            ready_i        : in  std_logic;
+            imrd_malgn_i   : in  std_logic;
+            dmld_malgn_i   : in  std_logic;
+            dmld_fault_i   : in  std_logic;
+            dmst_malgn_i   : in  std_logic;
+            dmst_fault_i   : in  std_logic;
+            mret_i         : in  std_logic;
+            mepc_i         : in  std_logic_vector(XLEN-1 downto 2);
+            mtvec_base_i   : in  std_logic_vector(XLEN-1 downto 2);
+            regwr_en_i     : in  std_logic;
+            csrwr_en_i     : in  std_logic;
+            pipe_en_o      : out std_logic;
+            exc_taken_o    : out std_logic;
+            taken_o        : out std_logic;
+            target_o       : out std_logic_vector(XLEN-1 downto 0);
+            regwr_en_o     : out std_logic;
+            csrwr_en_o     : out std_logic;
+            retire_o       : out std_logic
+        );
+    end component trap_ctrl;
 
     component csrs is
         generic (

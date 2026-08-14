@@ -20,9 +20,13 @@ entity main_ctrl is
         stale_i        : in  std_logic;
         -- Evaluated in csrs, from mie/mip/mstatus and their write bypass.
         int_taken_i    : in  std_logic;
-        ready_i        : in  std_logic;
         flush_i        : in  std_logic;
-        ready_o        : out std_logic;
+        -- The ID/EX advance. trap_ctrl owns it because a parked wfi holds it.
+        pipe_en_i      : in  std_logic;
+        -- ID-time twins of the causes below. trap_ctrl needs them a cycle
+        -- earlier than csrs does: it decides the advance from them.
+        id_exc_cause_o : out std_logic;
+        id_wfi_o       : out std_logic;
         -- Registered (pipeline) outputs. The whole trap cause set is
         -- registered because csrs commits at EX time: a combinational twin of
         -- any of these would pair a cause with the following instruction.
@@ -42,9 +46,7 @@ entity main_ctrl is
         regwr_sel_o   : out std_logic_vector(1 downto 0);
         regwr_addr_o  : out std_logic_vector(4 downto 0);
         csrwr_en_o    : out std_logic;
-        retire_o      : out std_logic;
         csrs_addr_o   : out std_logic_vector(11 downto 0);
-        exc_taken_o   : out std_logic;
         mret_o        : out std_logic
     );
 end entity main_ctrl;
@@ -59,7 +61,10 @@ architecture rtl of main_ctrl is
     signal op_en     : std_logic;
     signal regwr_en  : std_logic;
 
-    signal exc_taken : std_logic;
+    -- The synchronous causes, ORed for trap_ctrl. The interrupt is not one of
+    -- them: it is the only cause the decode process does not qualify, so it
+    -- joins over there.
+    signal exc_cause : std_logic;
 
     signal instr_err : std_logic;
     signal ecall     : std_logic;
@@ -68,11 +73,9 @@ architecture rtl of main_ctrl is
     signal wfi       : std_logic;
 
     -- imrd_fault_i qualified by the decode process, so that every term of
-    -- exc_taken below arrives pre-qualified except the interrupt.
+    -- exc_cause arrives pre-qualified.
     signal fetch_fault : std_logic;
 
-    -- ready_int shadows ready_o because VHDL-93 out ports cannot be read back
-    -- inside the architecture.
     signal branch_op     : std_logic_vector(1  downto 0);
     signal alu_op        : std_logic_vector(5  downto 0);
     signal dmls_ctrl     : std_logic_vector(1  downto 0);
@@ -82,8 +85,6 @@ architecture rtl of main_ctrl is
     signal opd_pass      : std_logic_vector(1  downto 0);
     signal regwr_sel     : std_logic_vector(1  downto 0);
     signal csrwr_en      : std_logic;
-    signal ready_int     : std_logic;
-    signal retire        : std_logic;
 
     signal func3_reg        : std_logic_vector(2  downto 0);
     signal branch_op_reg    : std_logic_vector(1  downto 0);
@@ -97,8 +98,6 @@ architecture rtl of main_ctrl is
     signal regwr_addr_reg   : std_logic_vector(4 downto 0);
     signal csrwr_en_reg     : std_logic;
     signal csrs_addr_reg    : std_logic_vector(11 downto 0);
-    signal retire_reg       : std_logic;
-    signal exc_taken_reg    : std_logic;
     signal mret_reg         : std_logic;
     signal ecall_reg        : std_logic;
     signal ebreak_reg       : std_logic;
@@ -406,33 +405,7 @@ begin
         end if;
     end process alu_op_ctrl;
 
-    -- int_taken_i is the one term the decode process does not qualify -- a real
-    -- interrupt is independent of whichever instruction occupies the slot --
-    -- and so the one that needs the one-shot. csrs commits from exc_taken_reg a
-    -- cycle after this line asserts, clearing mstatus.MIE with it, but
-    -- int_taken_i is still high through that extra cycle: without `and not
-    -- exc_taken_reg` the trap commits twice, the second time with pc_reg
-    -- advanced and int_taken already dropped, leaving a wrong mepc and an
-    -- mcause without the interrupt bit. Covered by verif/tests/wfi_timer.
-    exc_taken     <= fetch_fault or ecall or ebreak or instr_err
-                     or (int_taken_i and not exc_taken_reg);
-
-    -- A parked wfi must still wait on EX. The earlier form,
-    -- `int_taken_i when wfi = '1' else ready_i`, dropped ready_i while parked,
-    -- so an interrupt landing in the few cycles a load still occupies EX would
-    -- advance the ID/EX register over it.
-    --
-    -- NOT COVERED: hitting that window needs the interrupt to fire inside those
-    -- few cycles, and wfi_timer's park is thousands of cycles long -- tuning
-    -- the delay to land there would pass for a reason no later change
-    -- preserves. This form can only delay an advance, never allow one the old
-    -- form refused, so it is safe to carry unverified.
-    ready_int    <= ready_i and (int_taken_i or not wfi);
-    -- valid_i='0' covers an empty instruction buffer (instr_i is then stale
-    -- FIFO output), flush_i the cycle a taken branch resolves in EX, and
-    -- stale_i the wrong-path entries still buffered after flush drops.
-    retire       <= valid_i and not stale_i and not flush_i
-                    and ((not exc_taken) or wfi);
+    exc_cause <= fetch_fault or ecall or ebreak or instr_err;
 
     pipeline_reg: process(clk_i)
     begin
@@ -450,15 +423,13 @@ begin
                 regwr_addr_reg   <= (others => '0');
                 csrwr_en_reg     <= '0';
                 csrs_addr_reg    <= (others => '0');
-                retire_reg       <= '0';
-                exc_taken_reg    <= '0';
                 mret_reg         <= '0';
                 ecall_reg        <= '0';
                 ebreak_reg       <= '0';
                 wfi_reg          <= '0';
                 instr_err_reg    <= '0';
                 fetch_fault_reg  <= '0';
-            elsif ready_int = '1' then
+            elsif pipe_en_i = '1' then
                 func3_reg        <= instr_i(14 downto 12);
                 branch_op_reg    <= branch_op;
                 alu_op_reg       <= alu_op;
@@ -471,8 +442,6 @@ begin
                 regwr_addr_reg   <= instr_i(11 downto  7);
                 csrwr_en_reg     <= csrwr_en;
                 csrs_addr_reg    <= instr_i(31 downto 20);
-                retire_reg       <= retire;
-                exc_taken_reg    <= exc_taken;
                 mret_reg         <= mret;
                 ecall_reg        <= ecall;
                 ebreak_reg       <= ebreak;
@@ -483,7 +452,8 @@ begin
         end if;
     end process pipeline_reg;
 
-    ready_o       <= ready_int;
+    id_exc_cause_o <= exc_cause;
+    id_wfi_o       <= wfi;
 
     instr_err_o   <= instr_err_reg;
     ecall_o       <= ecall_reg;
@@ -501,9 +471,7 @@ begin
     regwr_sel_o   <= regwr_sel_reg;
     regwr_addr_o  <= regwr_addr_reg;
     csrwr_en_o    <= csrwr_en_reg;
-    retire_o      <= retire_reg;
     csrs_addr_o   <= csrs_addr_reg;
-    exc_taken_o   <= exc_taken_reg;
     mret_o        <= mret_reg;
 
 end architecture rtl;

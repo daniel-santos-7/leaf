@@ -40,9 +40,7 @@ entity id_stage is
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
         dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-        -- Fully resolved trap redirect. csrs owns mepc and mtvec, so the 2:1
-        -- mux between them stays here instead of 60 bits of CSR content
-        -- crossing into EX.
+        -- Trap redirect, already resolved against mepc/mtvec in trap_ctrl.
         trap_taken_o  : out std_logic;
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
@@ -64,16 +62,10 @@ architecture rtl of id_stage is
 
     signal pc_full : std_logic_vector(XLEN-1 downto 0);
 
-    -- ex_block hands the five EX faults over individually because csrs
-    -- discriminates between them for mcause and mtval; everything built on top
-    -- of them is consumed here, in one copy.
-    signal exc_fault : std_logic;
-    signal exc_taken : std_logic;
+    -- ID-time decode, one cycle ahead of the registered copies below.
+    signal main_ctrl_id_exc_cause : std_logic;
+    signal main_ctrl_id_wfi       : std_logic;
 
-    signal gtd_regwr_en : std_logic;
-    signal gtd_csrwr_en : std_logic;
-
-    signal main_ctrl_ready       : std_logic;
     signal main_ctrl_instr_err   : std_logic;
     signal main_ctrl_ecall       : std_logic;
     signal main_ctrl_ebreak      : std_logic;
@@ -92,9 +84,7 @@ architecture rtl of id_stage is
     signal main_ctrl_regwr_sel   : std_logic_vector(1  downto 0);
     signal main_ctrl_regwr_addr  : std_logic_vector(4  downto 0);
     signal main_ctrl_csrwr_en    : std_logic;
-    signal main_ctrl_retire      : std_logic;
     signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
-    signal main_ctrl_exc_taken   : std_logic;
     signal main_ctrl_mret        : std_logic;
 
     -- Registered outputs from reg_file/csrs (ID -> EX). csrs also owns the PC
@@ -103,7 +93,8 @@ architecture rtl of id_stage is
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
     -- csrs owns the interrupt decision (all of mie/mip/mstatus live there);
-    -- main_ctrl only consumes it, to squash the decode and to wake a wfi.
+    -- main_ctrl consumes it to squash the decode, trap_ctrl to take the trap
+    -- and to wake a parked wfi.
     signal csrs_int_taken   : std_logic;
     signal csrs_mepc        : std_logic_vector(XLEN-1 downto 2);
     signal csrs_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
@@ -115,55 +106,50 @@ architecture rtl of id_stage is
 
     signal csrs_logic_csrwr_data : std_logic_vector(XLEN-1 downto 0);
 
+    -- trap_ctrl owns the whole trap decision: the pipeline advance, the
+    -- redirect, the write inhibits and the retire qualifier.
+    signal trap_ctrl_pipe_en   : std_logic;
+    signal trap_ctrl_exc_taken : std_logic;
+    signal trap_ctrl_taken     : std_logic;
+    signal trap_ctrl_target    : std_logic_vector(XLEN-1 downto 0);
+    signal trap_ctrl_regwr_en  : std_logic;
+    signal trap_ctrl_csrwr_en  : std_logic;
+    signal trap_ctrl_retire    : std_logic;
+
 begin
 
-    pc_full   <= pc_i & b"00";
-
-    exc_fault <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or
-                 dmst_malgn_i or dmst_fault_i;
-
-    -- Both terms are EX-aligned: main_ctrl_exc_taken is the registered cause
-    -- set, exc_fault the live EX fault. They commit in the same cycle.
-    exc_taken <= main_ctrl_exc_taken or exc_fault;
-
-    -- EX-time faults only. A fetch fault is inhibited one stage earlier --
-    -- main_ctrl's squash clears both enables on imrd_fault_i and the zero rides
-    -- the ID/EX register -- so repeating that term live here would instead
-    -- block the older instruction sitting in EX.
-    gtd_regwr_en <= main_ctrl_regwr_en and not exc_fault;
-    gtd_csrwr_en <= main_ctrl_csrwr_en and not exc_fault;
+    pc_full <= pc_i & b"00";
 
     id_stage_main_ctrl: main_ctrl port map (
-        clk_i         => clk_i,
-        reset_i       => reset_i,
-        imrd_fault_i  => fault_i,
-        instr_i       => instr_i,
-        valid_i       => valid_i,
-        stale_i       => stale_i,
-        int_taken_i   => csrs_int_taken,
-        ready_i       => ready_i,
-        flush_i       => flush_i,
-        ready_o       => main_ctrl_ready,
-        instr_err_o   => main_ctrl_instr_err,
-        ecall_o       => main_ctrl_ecall,
-        ebreak_o      => main_ctrl_ebreak,
-        wfi_o         => main_ctrl_wfi,
-        fetch_fault_o => main_ctrl_fetch_fault,
-        func3_o       => main_ctrl_func3,
-        branch_op_o   => main_ctrl_branch_op,
-        alu_op_o      => main_ctrl_alu_op,
-        dmls_ctrl_o   => main_ctrl_dmls_ctrl,
-        imm_o         => main_ctrl_imm,
-        opd_src_sel_o => main_ctrl_opd_src_sel,
-        opd_pass_o    => main_ctrl_opd_pass,
-        regwr_en_o    => main_ctrl_regwr_en,
-        regwr_sel_o   => main_ctrl_regwr_sel,
-        regwr_addr_o  => main_ctrl_regwr_addr,
-        csrwr_en_o    => main_ctrl_csrwr_en,
-        retire_o      => main_ctrl_retire,
-        csrs_addr_o   => main_ctrl_csrs_addr,
-        exc_taken_o   => main_ctrl_exc_taken,
-        mret_o        => main_ctrl_mret
+        clk_i          => clk_i,
+        reset_i        => reset_i,
+        imrd_fault_i   => fault_i,
+        instr_i        => instr_i,
+        valid_i        => valid_i,
+        stale_i        => stale_i,
+        int_taken_i    => csrs_int_taken,
+        flush_i        => flush_i,
+        pipe_en_i      => trap_ctrl_pipe_en,
+        id_exc_cause_o => main_ctrl_id_exc_cause,
+        id_wfi_o       => main_ctrl_id_wfi,
+        instr_err_o    => main_ctrl_instr_err,
+        ecall_o        => main_ctrl_ecall,
+        ebreak_o       => main_ctrl_ebreak,
+        wfi_o          => main_ctrl_wfi,
+        fetch_fault_o  => main_ctrl_fetch_fault,
+        func3_o        => main_ctrl_func3,
+        branch_op_o    => main_ctrl_branch_op,
+        alu_op_o       => main_ctrl_alu_op,
+        dmls_ctrl_o    => main_ctrl_dmls_ctrl,
+        imm_o          => main_ctrl_imm,
+        opd_src_sel_o  => main_ctrl_opd_src_sel,
+        opd_pass_o     => main_ctrl_opd_pass,
+        regwr_en_o     => main_ctrl_regwr_en,
+        regwr_sel_o    => main_ctrl_regwr_sel,
+        regwr_addr_o   => main_ctrl_regwr_addr,
+        csrwr_en_o     => main_ctrl_csrwr_en,
+        csrs_addr_o    => main_ctrl_csrs_addr,
+        mret_o         => main_ctrl_mret
     );
 
     id_stage_reg_file: reg_file generic map (
@@ -171,7 +157,7 @@ begin
     ) port map (
         clk_i      => clk_i,
         reset_i    => reset_i,
-        we_i       => gtd_regwr_en,
+        we_i       => trap_ctrl_regwr_en,
         wr_sel_i   => main_ctrl_regwr_sel,
         wr_addr_i  => main_ctrl_regwr_addr,
         wr_data0_i => exec_res_i,
@@ -180,7 +166,7 @@ begin
         wr_data3_i => csrs_csrrd_data,
         rd_addr0_i => instr_i(19 downto 15),
         rd_addr1_i => instr_i(24 downto 20),
-        re_i       => main_ctrl_ready,
+        re_i       => trap_ctrl_pipe_en,
         rd_data0_o => reg_file_rd_data0,
         rd_data1_o => reg_file_rd_data1
     );
@@ -204,12 +190,12 @@ begin
         ebreak_i     => main_ctrl_ebreak,
         mret_i       => main_ctrl_mret,
         wfi_i        => main_ctrl_wfi,
-        exc_taken_i  => exc_taken,
-        wr_en_i      => gtd_csrwr_en,
+        exc_taken_i  => trap_ctrl_exc_taken,
+        wr_en_i      => trap_ctrl_csrwr_en,
         wr_addr_i    => main_ctrl_csrs_addr,
         rw_addr_i    => instr_i(31 downto 20),
         wr_data_i    => csrs_logic_csrwr_data,
-        pipe_en_i    => main_ctrl_ready,
+        pipe_en_i    => trap_ctrl_pipe_en,
         exec_res_i   => exec_res_i,
         pc_i         => pc_full,
         cycle_i      => cycle_i,
@@ -234,29 +220,49 @@ begin
         csrwr_data_o => csrs_logic_csrwr_data
     );
 
-    ready_o       <= main_ctrl_ready;
+    id_stage_trap_ctrl: trap_ctrl port map (
+        clk_i          => clk_i,
+        reset_i        => reset_i,
+        id_exc_cause_i => main_ctrl_id_exc_cause,
+        id_wfi_i       => main_ctrl_id_wfi,
+        int_taken_i    => csrs_int_taken,
+        valid_i        => valid_i,
+        stale_i        => stale_i,
+        flush_i        => flush_i,
+        ready_i        => ready_i,
+        imrd_malgn_i   => imrd_malgn_i,
+        dmld_malgn_i   => dmld_malgn_i,
+        dmld_fault_i   => dmld_fault_i,
+        dmst_malgn_i   => dmst_malgn_i,
+        dmst_fault_i   => dmst_fault_i,
+        mret_i         => main_ctrl_mret,
+        mepc_i         => csrs_mepc,
+        mtvec_base_i   => csrs_mtvec_base,
+        regwr_en_i     => main_ctrl_regwr_en,
+        csrwr_en_i     => main_ctrl_csrwr_en,
+        pipe_en_o      => trap_ctrl_pipe_en,
+        exc_taken_o    => trap_ctrl_exc_taken,
+        taken_o        => trap_ctrl_taken,
+        target_o       => trap_ctrl_target,
+        regwr_en_o     => trap_ctrl_regwr_en,
+        csrwr_en_o     => trap_ctrl_csrwr_en,
+        retire_o       => trap_ctrl_retire
+    );
+
+    ready_o       <= trap_ctrl_pipe_en;
     func3_o       <= main_ctrl_func3;
     branch_op_o   <= main_ctrl_branch_op;
     alu_op_o      <= main_ctrl_alu_op;
     dmls_ctrl_o   <= main_ctrl_dmls_ctrl;
-    -- An mret redirects the fetch too, but commits nothing in csrs beyond the
-    -- mstatus unstacking, so it joins only here and not in exc_taken.
-    trap_taken_o  <= exc_taken or main_ctrl_mret;
-    trap_target_o <= csrs_mepc & b"00" when main_ctrl_mret = '1' else
-                     csrs_mtvec_base & b"00";
+    trap_taken_o  <= trap_ctrl_taken;
+    trap_target_o <= trap_ctrl_target;
     rd_data0_o    <= reg_file_rd_data0;
     rd_data1_o    <= reg_file_rd_data1;
     imm_o         <= main_ctrl_imm;
     opd_src_sel_o <= main_ctrl_opd_src_sel;
     opd_pass_o    <= main_ctrl_opd_pass;
     pc_full_o     <= csrs_pc;
-
-    -- The qualifier is main_ctrl_ready, not ready_i: the two are the same
-    -- signal except while a wfi is parked, and there ready_i still reads '1'
-    -- (EX is idle) while retire_reg keeps holding the bit of the instruction
-    -- ahead of the wfi -- which would then be counted once per parked cycle.
-    -- Covered by verif/tests/wfi_timer.
-    retire_o      <= main_ctrl_retire and main_ctrl_ready and not exc_fault;
+    retire_o      <= trap_ctrl_retire;
 
     cop_adr_o     <= csrs_cop_adr;
     cop_dat_o     <= csrs_cop_dat;
