@@ -38,7 +38,7 @@ entity csrs is
         wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
         pipe_en_i    : in  std_logic;
         exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
-        pc_i         : in  std_logic_vector(XLEN-1 downto 0);
+        pc_i         : in  std_logic_vector(XLEN-1 downto 2);
         cycle_i      : in  std_logic_vector(63 downto 0);
         timer_i      : in  std_logic_vector(63 downto 0);
         instret_i    : in  std_logic_vector(63 downto 0);
@@ -71,6 +71,8 @@ architecture rtl of csrs is
     signal mip_mtip     : std_logic;
     signal mip_msip     : std_logic;
 
+    signal pc_full : std_logic_vector(XLEN-1 downto 0);
+
     signal cop_sel_rd          : std_logic;
     signal cop_sel_wr          : std_logic;
     signal rd_data_int         : std_logic_vector(XLEN-1 downto 0);
@@ -97,6 +99,8 @@ architecture rtl of csrs is
     signal pc_reg         : std_logic_vector(XLEN-1 downto 0);
 
 begin
+
+    pc_full <= pc_i & b"00";
 
     cop_sel_rd <= '1' when rw_addr_i(11 downto 6) = b"011111" else '0';
     cop_sel_wr <= '1' when wr_addr_i(11 downto 6) = b"011111" else '0';
@@ -306,7 +310,7 @@ begin
                 mepc_reg       <= mepc_bypassed;
                 mtvec_base_reg <= mtvec_base_bypassed;
                 csrrd_data_reg <= rd_data_bypassed;
-                pc_reg         <= pc_i;
+                pc_reg         <= pc_full;
             end if;
         end if;
     end process pipeline_reg;

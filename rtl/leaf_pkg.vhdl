@@ -251,7 +251,7 @@ package leaf_pkg is
             wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
             pipe_en_i    : in  std_logic;
             exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
-            pc_i         : in  std_logic_vector(XLEN-1 downto 0);
+            pc_i         : in  std_logic_vector(XLEN-1 downto 2);
             cycle_i      : in  std_logic_vector(63 downto 0);
             timer_i      : in  std_logic_vector(63 downto 0);
             instret_i    : in  std_logic_vector(63 downto 0);

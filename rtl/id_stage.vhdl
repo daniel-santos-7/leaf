@@ -60,8 +60,6 @@ end entity id_stage;
 
 architecture rtl of id_stage is
 
-    signal pc_full : std_logic_vector(XLEN-1 downto 0);
-
     -- ID-time decode, one cycle ahead of the registered copies below.
     signal main_ctrl_id_exc_cause : std_logic;
     signal main_ctrl_id_wfi       : std_logic;
@@ -88,7 +86,7 @@ architecture rtl of id_stage is
     signal main_ctrl_mret        : std_logic;
 
     -- Registered outputs from reg_file/csrs (ID -> EX). csrs also owns the PC
-    -- pipeline register: pc_full above is its combinational input.
+    -- pipeline register, and widens the word address to a byte address.
     signal reg_file_rd_data0 : std_logic_vector(XLEN-1 downto 0);
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
@@ -117,8 +115,6 @@ architecture rtl of id_stage is
     signal trap_ctrl_retire    : std_logic;
 
 begin
-
-    pc_full <= pc_i & b"00";
 
     id_stage_main_ctrl: main_ctrl port map (
         clk_i          => clk_i,
@@ -197,7 +193,7 @@ begin
         wr_data_i    => csrs_logic_csrwr_data,
         pipe_en_i    => trap_ctrl_pipe_en,
         exec_res_i   => exec_res_i,
-        pc_i         => pc_full,
+        pc_i         => pc_i,
         cycle_i      => cycle_i,
         timer_i      => timer_i,
         instret_i    => instret_i,
