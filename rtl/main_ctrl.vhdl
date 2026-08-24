@@ -16,25 +16,21 @@ entity main_ctrl is
         reset_i        : in  std_logic;
         imrd_fault_i   : in  std_logic;
         instr_i        : in  std_logic_vector(XLEN-1 downto 0);
-        valid_i        : in  std_logic;
-        stale_i        : in  std_logic;
+        -- The ID slot holds a real instruction: not empty, not wrong-path, not
+        -- flushed. Built in id_stage, which owns all three terms.
+        id_valid_i     : in  std_logic;
         -- Evaluated in csrs, from mie/mip/mstatus and their write bypass.
         int_taken_i    : in  std_logic;
-        flush_i        : in  std_logic;
         -- The ID/EX advance. trap_ctrl owns it because a parked wfi holds it.
         pipe_en_i      : in  std_logic;
-        -- ID-time twins of the causes below. trap_ctrl needs them a cycle
-        -- earlier than csrs does: it decides the advance from them.
-        id_exc_cause_o : out std_logic;
-        id_wfi_o       : out std_logic;
-        -- Registered (pipeline) outputs. The whole trap cause set is
-        -- registered because csrs commits at EX time: a combinational twin of
-        -- any of these would pair a cause with the following instruction.
-        instr_err_o   : out std_logic;
-        ecall_o       : out std_logic;
-        ebreak_o      : out std_logic;
-        wfi_o         : out std_logic;
-        fetch_fault_o : out std_logic;
+        -- The one cause decoded here, at ID time: trap_ctrl ORs it into its
+        -- cause set, decides the advance from that and registers it for csrs.
+        instr_err_o    : out std_logic;
+        -- SYSTEM with funct3 = 000, i.e. ecall/ebreak/mret/wfi. trap_ctrl picks
+        -- which one from funct12 and qualifies it there: the four do not share
+        -- one squash condition, so this leaves here unqualified.
+        sys_ctrl_o     : out std_logic;
+        -- Registered (pipeline) outputs.
         func3_o       : out std_logic_vector(2  downto 0);
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
@@ -46,8 +42,7 @@ entity main_ctrl is
         regwr_sel_o   : out std_logic_vector(1 downto 0);
         regwr_addr_o  : out std_logic_vector(4 downto 0);
         csrwr_en_o    : out std_logic;
-        csrs_addr_o   : out std_logic_vector(11 downto 0);
-        mret_o        : out std_logic
+        csrs_addr_o   : out std_logic_vector(11 downto 0)
     );
 end entity main_ctrl;
 
@@ -60,21 +55,13 @@ architecture rtl of main_ctrl is
     signal ftype     : std_logic;
     signal op_en     : std_logic;
     signal regwr_en  : std_logic;
+    signal sys_ctrl  : std_logic;
 
-    -- The synchronous causes, ORed for trap_ctrl. The interrupt is not one of
-    -- them: it is the only cause the decode process does not qualify, so it
-    -- joins over there.
-    signal exc_cause : std_logic;
-
+    -- The only cause decoded here. ecall/ebreak/wfi/mret are not among them:
+    -- they are pure trap control and are decoded in trap_ctrl, and so is the
+    -- fetch fault, which is a qualified input rather than decode. trap_ctrl
+    -- registers this one too, so no registered twin lives here.
     signal instr_err : std_logic;
-    signal ecall     : std_logic;
-    signal ebreak    : std_logic;
-    signal mret      : std_logic;
-    signal wfi       : std_logic;
-
-    -- imrd_fault_i qualified by the decode process, so that every term of
-    -- exc_cause arrives pre-qualified.
-    signal fetch_fault : std_logic;
 
     signal branch_op     : std_logic_vector(1  downto 0);
     signal alu_op        : std_logic_vector(5  downto 0);
@@ -98,12 +85,6 @@ architecture rtl of main_ctrl is
     signal regwr_addr_reg   : std_logic_vector(4 downto 0);
     signal csrwr_en_reg     : std_logic;
     signal csrs_addr_reg    : std_logic_vector(11 downto 0);
-    signal mret_reg         : std_logic;
-    signal ecall_reg        : std_logic;
-    signal ebreak_reg       : std_logic;
-    signal wfi_reg          : std_logic;
-    signal instr_err_reg    : std_logic;
-    signal fetch_fault_reg  : std_logic;
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -112,8 +93,8 @@ architecture rtl of main_ctrl is
 
 begin
 
-    opcode  <= instr_i(6  downto  0);
-    payload <= instr_i(31 downto  7);
+    opcode   <= instr_i(6  downto  0);
+    payload  <= instr_i(31 downto  7);
 
     gen: process(imm_type, payload)
     begin
@@ -128,16 +109,9 @@ begin
         end case;
     end process gen;
 
-    -- Decode runs unconditionally and the two overrides at the end squash it.
-    -- Both conditions are built only from inputs, so this process never reads a
-    -- signal it drives -- notably not instr_err, which is produced here and
-    -- would close a loop. They differ on purpose: the wide one carries what a
-    -- fetch fault or a pending interrupt also invalidates, the narrow one what
-    -- only wrong-path speculation does.
-    main_ctrl_proc: process(opcode, instr_i, valid_i, stale_i, flush_i, imrd_fault_i, int_taken_i)
+    -- Decode runs unconditionally and the override at the end squashes it.
+    main_ctrl_proc: process(opcode, instr_i, id_valid_i, imrd_fault_i, int_taken_i)
     begin
-        fetch_fault <= imrd_fault_i;
-
         case opcode is
             when RR_OPCODE =>
                 dmls_ctrl    <= DMLS_IDLE;
@@ -151,10 +125,7 @@ begin
                 regwr_sel    <= b"00";
                 csrwr_en     <= '0';
                 regwr_en     <= '1';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when IMM_OPCODE =>
                 dmls_ctrl    <= DMLS_IDLE;
                 instr_err    <= '0';
@@ -167,10 +138,7 @@ begin
                 regwr_sel    <= b"00";
                 csrwr_en     <= '0';
                 regwr_en     <= '1';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when JALR_OPCODE =>
                 dmls_ctrl    <= DMLS_IDLE;
                 instr_err    <= '0';
@@ -183,10 +151,7 @@ begin
                 regwr_sel    <= b"10";
                 csrwr_en     <= '0';
                 regwr_en     <= '1';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when LOAD_OPCODE =>
                 dmls_ctrl    <= DMLS_LOAD;
                 instr_err    <= '0';
@@ -199,10 +164,7 @@ begin
                 regwr_sel    <= b"01";
                 csrwr_en     <= '0';
                 regwr_en     <= '1';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when STORE_OPCODE =>
                 dmls_ctrl    <= DMLS_STORE;
                 instr_err    <= '0';
@@ -215,10 +177,7 @@ begin
                 regwr_sel    <= b"00";
                 csrwr_en     <= '0';
                 regwr_en     <= '0';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when BRANCH_OPCODE =>
                 dmls_ctrl    <= DMLS_IDLE;
                 instr_err    <= '0';
@@ -231,10 +190,7 @@ begin
                 regwr_sel    <= b"00";
                 csrwr_en     <= '0';
                 regwr_en     <= '0';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when LUI_OPCODE =>
                 dmls_ctrl    <= DMLS_IDLE;
                 instr_err    <= '0';
@@ -247,10 +203,7 @@ begin
                 regwr_sel    <= b"00";
                 csrwr_en     <= '0';
                 regwr_en     <= '1';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when AUIPC_OPCODE =>
                 dmls_ctrl    <= DMLS_IDLE;
                 instr_err    <= '0';
@@ -263,10 +216,7 @@ begin
                 regwr_sel    <= b"00";
                 csrwr_en     <= '0';
                 regwr_en     <= '1';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when JAL_OPCODE =>
                 dmls_ctrl    <= DMLS_IDLE;
                 instr_err    <= '0';
@@ -279,10 +229,7 @@ begin
                 regwr_sel    <= b"10";
                 csrwr_en     <= '0';
                 regwr_en     <= '1';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when SYSTEM_OPCODE =>
                 dmls_ctrl    <= DMLS_IDLE;
                 instr_err    <= '0';
@@ -292,19 +239,16 @@ begin
                 opd_pass     <= b"00";
                 ftype        <= '0';
                 op_en        <= '0';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                -- funct3 = 000 is ecall/ebreak/mret/wfi: here it only means the
+                -- instruction writes nothing back, trap_ctrl is what acts on
+                -- them.
                 if instr_i(14 downto 12) = b"000" then
+                    sys_ctrl  <= '1';
                     regwr_sel <= b"00";
                     csrwr_en  <= '0';
                     regwr_en  <= '0';
-                    if instr_i(31 downto 20) = x"000" then ecall  <= '1'; end if;
-                    if instr_i(31 downto 20) = x"001" then ebreak <= '1'; end if;
-                    if instr_i(31 downto 20) = x"302" then mret   <= '1'; end if;
-                    if instr_i(31 downto 20) = x"105" then wfi    <= '1'; end if;
                 else
+                    sys_ctrl  <= '0';
                     regwr_sel <= b"11";
                     csrwr_en  <= '1';
                     regwr_en  <= '1';
@@ -321,10 +265,7 @@ begin
                 regwr_sel    <= b"00";
                 csrwr_en     <= '0';
                 regwr_en     <= '0';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
             when others =>
                 dmls_ctrl    <= DMLS_IDLE;
                 instr_err    <= '1';
@@ -337,28 +278,15 @@ begin
                 regwr_sel    <= b"00";
                 csrwr_en     <= '0';
                 regwr_en     <= '0';
-                ecall        <= '0';
-                ebreak       <= '0';
-                mret         <= '0';
-                wfi          <= '0';
+                sys_ctrl     <= '0';
         end case;
 
-        -- Only speculation anulls these two. wfi parks the pipeline and is
-        -- released by int_taken_i, so it must survive a pending interrupt;
-        -- fetch_fault is imrd_fault_i itself, so folding it into the wider
-        -- condition below would pin it to '0' and silently drop every
-        -- instruction fetch fault.
-        if valid_i = '0' or stale_i = '1' or flush_i = '1' then
-            wfi         <= '0';
-            fetch_fault <= '0';
-        end if;
-
-        -- ecall/ebreak/mret sit in this wider squash rather than the narrow one
-        -- above because a faulted fetch delivers a garbage instr_i -- the same
-        -- reason instr_err is suppressed -- and because a pending interrupt
-        -- outranks both a synchronous trap and an mret redirect.
-        if valid_i = '0' or stale_i = '1' or flush_i = '1'
-           or imrd_fault_i = '1' or int_taken_i = '1' then
+        -- The decode also falls to a faulted fetch, which delivers a garbage
+        -- instr_i, and to a pending interrupt, which outranks the instruction
+        -- occupying the slot. sys_ctrl is in neither: the four instructions it
+        -- covers do not share one condition -- a wfi must survive a pending
+        -- interrupt while an mret must not -- so trap_ctrl qualifies it.
+        if id_valid_i = '0' or imrd_fault_i = '1' or int_taken_i = '1' then
             dmls_ctrl    <= DMLS_IDLE;
             instr_err    <= '0';
             imm_type     <= (others => '-');
@@ -370,9 +298,6 @@ begin
             regwr_sel    <= b"00";
             csrwr_en     <= '0';
             regwr_en     <= '0';
-            ecall        <= '0';
-            ebreak       <= '0';
-            mret         <= '0';
         end if;
     end process main_ctrl_proc;
 
@@ -405,8 +330,6 @@ begin
         end if;
     end process alu_op_ctrl;
 
-    exc_cause <= fetch_fault or ecall or ebreak or instr_err;
-
     pipeline_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -423,12 +346,6 @@ begin
                 regwr_addr_reg   <= (others => '0');
                 csrwr_en_reg     <= '0';
                 csrs_addr_reg    <= (others => '0');
-                mret_reg         <= '0';
-                ecall_reg        <= '0';
-                ebreak_reg       <= '0';
-                wfi_reg          <= '0';
-                instr_err_reg    <= '0';
-                fetch_fault_reg  <= '0';
             elsif pipe_en_i = '1' then
                 func3_reg        <= instr_i(14 downto 12);
                 branch_op_reg    <= branch_op;
@@ -442,24 +359,13 @@ begin
                 regwr_addr_reg   <= instr_i(11 downto  7);
                 csrwr_en_reg     <= csrwr_en;
                 csrs_addr_reg    <= instr_i(31 downto 20);
-                mret_reg         <= mret;
-                ecall_reg        <= ecall;
-                ebreak_reg       <= ebreak;
-                wfi_reg          <= wfi;
-                instr_err_reg    <= instr_err;
-                fetch_fault_reg  <= fetch_fault;
             end if;
         end if;
     end process pipeline_reg;
 
-    id_exc_cause_o <= exc_cause;
-    id_wfi_o       <= wfi;
+    instr_err_o   <= instr_err;
+    sys_ctrl_o    <= sys_ctrl;
 
-    instr_err_o   <= instr_err_reg;
-    ecall_o       <= ecall_reg;
-    ebreak_o      <= ebreak_reg;
-    wfi_o         <= wfi_reg;
-    fetch_fault_o <= fetch_fault_reg;
     func3_o       <= func3_reg;
     branch_op_o   <= branch_op_reg;
     alu_op_o      <= alu_op_reg;
@@ -472,6 +378,5 @@ begin
     regwr_addr_o  <= regwr_addr_reg;
     csrwr_en_o    <= csrwr_en_reg;
     csrs_addr_o   <= csrs_addr_reg;
-    mret_o        <= mret_reg;
 
 end architecture rtl;

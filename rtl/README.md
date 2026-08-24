@@ -8,7 +8,8 @@
 | `rtl/core.vhdl` | `core` | Pipeline wiring: IF + ID/EX |
 | `rtl/if_stage.vhdl` | `if_stage` | Fetch FSM + pipeline regs, drives instruction Wishbone port |
 | `rtl/id_stage.vhdl` | `id_stage` | Decode, reg file, CSRs, pipeline reg |
-| `rtl/main_ctrl.vhdl` | `main_ctrl` | Decoder + immediate gen + ALU op decode + interrupt logic |
+| `rtl/main_ctrl.vhdl` | `main_ctrl` | Decoder + immediate gen + ALU op decode |
+| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | Trap and interrupt decision + ecall/ebreak/mret/wfi qualification |
 | `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file (SIZE=16 or 32) |
 | `rtl/csrs.vhdl` | `csrs` | Machine CSRs and trap/exception logic |
 | `rtl/ex_block.vhdl` | `ex_block` | ALU, branch, load/store, CSR write mux |
@@ -33,7 +34,8 @@ leaf (top)
 └── core           IF + ID/EX pipeline
     ├── if_stage     Fetch FSM + pipeline regs → inst Wishbone
     ├── id_stage     Decode + reg file + CSRs + pipeline reg
-    │   ├── main_ctrl   Decoder, immediate gen, ALU op decode, interrupt logic
+    │   ├── main_ctrl   Decoder, immediate gen, ALU op decode
+    │   ├── trap_ctrl   Trap/interrupt decision, ecall/ebreak/mret/wfi
     │   ├── reg_file    32×XLEN register file
     │   └── csrs        Machine-mode CSRs and trap/exception control
     └── ex_block     ALU, branch, load/store, CSR write mux
@@ -56,7 +58,7 @@ pipeline register outputs feed `ex_block` combinatorially.
 Stages handshake via `ready_i`/`ready_o`:
 - `if_stage.ready_i` = `id_stage.ready_o` — IF advances when ID is ready
 - `id_stage.ready_i` = `ex_block.ready_o` — ID advances when EX is done
-  (WFI: `id_stage.ready_o` tied to interrupt, gated by `wfi` in main_ctrl)
+  (WFI: `id_stage.ready_o` tied to interrupt, gated by `wfi` in trap_ctrl)
 
 Branch/trap: `ex_block.taken_o` (combinatorial) loops back to `if_stage`,
 redirecting the next PC. Taken branch costs 2 cycles (fetch + redirect).
@@ -418,16 +420,17 @@ the pipeline register (registered on `id_ready`).
 
 File: `rtl/main_ctrl.vhdl`
 
-Decodes opcode to generate all control signals, immediate, ALU opcode, and
-interrupt/exception logic.
+Decodes opcode to generate all control signals, immediate and ALU opcode. The
+trap side — ecall/ebreak/mret/wfi, the fetch fault and the interrupt — is
+decided in `trap_ctrl`; main_ctrl only reports the illegal instruction.
 
 ##### Decoding Logic
 
 - **Opcode-based**: R-type, I-type, loads, stores, branches, JAL/JALR,
   LUI, AUIPC, system (ECALL/EBREAK/MRET/WFI/CSR), FENCE
-- **Trap inhibit**: gates control outputs when `imrd_fault`, `ecall`/`ebreak`,
-  or interrupt is taken (prevents decode-triggered error loops)
-- **WFI**: ready output tied to interrupt: `ready_o <= int_taken when wfi`
+- **Trap inhibit**: gates control outputs when `imrd_fault` or an interrupt is
+  taken (prevents decode-triggered error loops)
+- **WFI**: parks the pipeline from `trap_ctrl`, not from here
 - **Immediate types**: I, S, B, U, J, Z (CSR uimm)
 
 ##### ALU Op Decode

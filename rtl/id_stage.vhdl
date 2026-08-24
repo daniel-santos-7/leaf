@@ -60,15 +60,14 @@ end entity id_stage;
 
 architecture rtl of id_stage is
 
-    -- ID-time decode, one cycle ahead of the registered copies below.
-    signal main_ctrl_id_exc_cause : std_logic;
-    signal main_ctrl_id_wfi       : std_logic;
+    -- The ID slot holds a real instruction: not empty, not wrong-path, not
+    -- flushed. main_ctrl squashes its decode with it, trap_ctrl qualifies its
+    -- own decode and counts retirements by it.
+    signal id_valid : std_logic;
 
-    signal main_ctrl_instr_err   : std_logic;
-    signal main_ctrl_ecall       : std_logic;
-    signal main_ctrl_ebreak      : std_logic;
-    signal main_ctrl_wfi         : std_logic;
-    signal main_ctrl_fetch_fault : std_logic;
+    -- ID-time decode, one cycle ahead of the registered copies below.
+    signal main_ctrl_instr_err : std_logic;
+    signal main_ctrl_sys_ctrl  : std_logic;
 
     -- main_ctrl registered (pipeline) outputs
     signal main_ctrl_func3       : std_logic_vector(2  downto 0);
@@ -83,7 +82,6 @@ architecture rtl of id_stage is
     signal main_ctrl_regwr_addr  : std_logic_vector(4  downto 0);
     signal main_ctrl_csrwr_en    : std_logic;
     signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
-    signal main_ctrl_mret        : std_logic;
 
     -- Registered outputs from reg_file/csrs (ID -> EX). csrs also owns the PC
     -- pipeline register, and widens the word address to a byte address.
@@ -110,29 +108,30 @@ architecture rtl of id_stage is
     signal trap_ctrl_exc_taken : std_logic;
     signal trap_ctrl_taken     : std_logic;
     signal trap_ctrl_target    : std_logic_vector(XLEN-1 downto 0);
+    signal trap_ctrl_ecall     : std_logic;
+    signal trap_ctrl_ebreak    : std_logic;
+    signal trap_ctrl_mret      : std_logic;
+    signal trap_ctrl_wfi         : std_logic;
+    signal trap_ctrl_instr_err   : std_logic;
+    signal trap_ctrl_fetch_fault : std_logic;
     signal trap_ctrl_regwr_en  : std_logic;
     signal trap_ctrl_csrwr_en  : std_logic;
     signal trap_ctrl_retire    : std_logic;
 
 begin
 
+    id_valid <= valid_i and not stale_i and not flush_i;
+
     id_stage_main_ctrl: main_ctrl port map (
         clk_i          => clk_i,
         reset_i        => reset_i,
         imrd_fault_i   => fault_i,
         instr_i        => instr_i,
-        valid_i        => valid_i,
-        stale_i        => stale_i,
+        id_valid_i     => id_valid,
         int_taken_i    => csrs_int_taken,
-        flush_i        => flush_i,
         pipe_en_i      => trap_ctrl_pipe_en,
-        id_exc_cause_o => main_ctrl_id_exc_cause,
-        id_wfi_o       => main_ctrl_id_wfi,
         instr_err_o    => main_ctrl_instr_err,
-        ecall_o        => main_ctrl_ecall,
-        ebreak_o       => main_ctrl_ebreak,
-        wfi_o          => main_ctrl_wfi,
-        fetch_fault_o  => main_ctrl_fetch_fault,
+        sys_ctrl_o     => main_ctrl_sys_ctrl,
         func3_o        => main_ctrl_func3,
         branch_op_o    => main_ctrl_branch_op,
         alu_op_o       => main_ctrl_alu_op,
@@ -144,8 +143,7 @@ begin
         regwr_sel_o    => main_ctrl_regwr_sel,
         regwr_addr_o   => main_ctrl_regwr_addr,
         csrwr_en_o     => main_ctrl_csrwr_en,
-        csrs_addr_o    => main_ctrl_csrs_addr,
-        mret_o         => main_ctrl_mret
+        csrs_addr_o    => main_ctrl_csrs_addr
     );
 
     id_stage_reg_file: reg_file generic map (
@@ -176,16 +174,16 @@ begin
         sw_irq_i     => sw_irq_i,
         tm_irq_i     => tm_irq_i,
         imrd_malgn_i => imrd_malgn_i,
-        imrd_fault_i => main_ctrl_fetch_fault,
-        instr_err_i  => main_ctrl_instr_err,
+        imrd_fault_i => trap_ctrl_fetch_fault,
+        instr_err_i  => trap_ctrl_instr_err,
         dmld_malgn_i => dmld_malgn_i,
         dmld_fault_i => dmld_fault_i,
         dmst_malgn_i => dmst_malgn_i,
         dmst_fault_i => dmst_fault_i,
-        ecall_i      => main_ctrl_ecall,
-        ebreak_i     => main_ctrl_ebreak,
-        mret_i       => main_ctrl_mret,
-        wfi_i        => main_ctrl_wfi,
+        ecall_i      => trap_ctrl_ecall,
+        ebreak_i     => trap_ctrl_ebreak,
+        mret_i       => trap_ctrl_mret,
+        wfi_i        => trap_ctrl_wfi,
         exc_taken_i  => trap_ctrl_exc_taken,
         wr_en_i      => trap_ctrl_csrwr_en,
         wr_addr_i    => main_ctrl_csrs_addr,
@@ -219,19 +217,18 @@ begin
     id_stage_trap_ctrl: trap_ctrl port map (
         clk_i          => clk_i,
         reset_i        => reset_i,
-        id_exc_cause_i => main_ctrl_id_exc_cause,
-        id_wfi_i       => main_ctrl_id_wfi,
+        sys_ctrl_i     => main_ctrl_sys_ctrl,
+        funct12_i      => instr_i(31 downto 20),
+        id_valid_i     => id_valid,
+        instr_err_i    => main_ctrl_instr_err,
         int_taken_i    => csrs_int_taken,
-        valid_i        => valid_i,
-        stale_i        => stale_i,
-        flush_i        => flush_i,
+        imrd_fault_i   => fault_i,
         ready_i        => ready_i,
         imrd_malgn_i   => imrd_malgn_i,
         dmld_malgn_i   => dmld_malgn_i,
         dmld_fault_i   => dmld_fault_i,
         dmst_malgn_i   => dmst_malgn_i,
         dmst_fault_i   => dmst_fault_i,
-        mret_i         => main_ctrl_mret,
         mepc_i         => csrs_mepc,
         mtvec_base_i   => csrs_mtvec_base,
         regwr_en_i     => main_ctrl_regwr_en,
@@ -240,6 +237,12 @@ begin
         exc_taken_o    => trap_ctrl_exc_taken,
         taken_o        => trap_ctrl_taken,
         target_o       => trap_ctrl_target,
+        ecall_o        => trap_ctrl_ecall,
+        ebreak_o       => trap_ctrl_ebreak,
+        mret_o         => trap_ctrl_mret,
+        wfi_o          => trap_ctrl_wfi,
+        instr_err_o    => trap_ctrl_instr_err,
+        fetch_fault_o  => trap_ctrl_fetch_fault,
         regwr_en_o     => trap_ctrl_regwr_en,
         csrwr_en_o     => trap_ctrl_csrwr_en,
         retire_o       => trap_ctrl_retire
