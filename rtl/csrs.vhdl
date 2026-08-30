@@ -237,6 +237,14 @@ begin
     -- address that faulted for the four misaligned/access faults and the
     -- misaligned jump target, the PC for a fetch fault and a breakpoint, zero
     -- for everything else.
+    --
+    -- The pick stays here rather than joining the cause encoding in trap_ctrl.
+    -- Both operands are local -- exec_res_i comes in for this and nothing
+    -- else, pc_reg is our own register, shared with mepc -- so moving the
+    -- value would drag 96 bits of datapath through a control block. Moving
+    -- only the select would hand trap_ctrl a second encoding of a decision it
+    -- already emits as mcause_exc_o, free to drift from it; as a function of
+    -- the cause the two cannot.
     write_mtval: process(clk_i)
     begin
         if rising_edge(clk_i) then
