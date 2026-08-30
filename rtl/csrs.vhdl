@@ -87,12 +87,10 @@ architecture rtl of csrs is
     signal tmi_taken            : std_logic;
     signal swi_taken            : std_logic;
     signal int_taken            : std_logic;
+    -- The interrupt half of mcause. The exception half arrives already encoded
+    -- as mcause_exc_i, so nothing here has to rank the two against each other
+    -- beyond int_taken, which both writes below test.
     signal int_cause            : std_logic_vector(4 downto 0);
-
-    -- The mcause a trap would commit this cycle: the interrupt bit and the
-    -- code. mtval reads it too, because the spec defines the mtval source per
-    -- cause.
-    signal mcause_next          : std_logic_vector(5 downto 0);
 
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
@@ -224,8 +222,12 @@ begin
                 mcause_int <= '0';
                 mcause_exc <= (others => '0');
             elsif exc_taken_i = '1' then
-                mcause_int <= mcause_next(5);
-                mcause_exc <= mcause_next(4 downto 0);
+                mcause_int <= int_taken;
+                if int_taken = '1' then
+                    mcause_exc <= int_cause;
+                else
+                    mcause_exc <= mcause_exc_i;
+                end if;
             elsif wr_addr_i = CSR_ADDR_MCAUSE and wr_en_i = '1' then
                 mcause_int <= wr_data_i(XLEN-1);
                 mcause_exc <= wr_data_i(4 downto 0);
@@ -251,10 +253,10 @@ begin
             if reset_i = '1' then
                 mtval <= (others => '0');
             elsif exc_taken_i = '1' then
-                if mcause_next(5) = '1' then
+                if int_taken = '1' then
                     mtval <= (others => '0');
                 else
-                    case mcause_next(4 downto 0) is
+                    case mcause_exc_i is
                         when b"00000" | b"00100" | b"00101" | b"00110" | b"00111" =>
                             mtval <= exec_res_i;
                         when b"00001" | b"00011" =>
@@ -319,9 +321,6 @@ begin
     int_cause <= b"00011" when swi_taken = '1' else   -- machine software
                  b"00111" when tmi_taken = '1' else   -- machine timer
                  b"01011";                            -- machine external
-
-    mcause_next <= ('1' & int_cause) when int_taken = '1' else
-                   ('0' & mcause_exc_i);
 
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
