@@ -83,7 +83,7 @@ architecture rtl of core is
     signal ex_block_target     : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_flush      : std_logic;
     signal ex_block_res        : std_logic_vector(XLEN-1 downto 0);
-    signal ex_block_link       : std_logic_vector(XLEN-1 downto 0);
+    signal ex_block_pc_next    : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_dmld_data  : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_imrd_malgn : std_logic;
     signal ex_block_dmld_malgn : std_logic;
@@ -140,7 +140,7 @@ begin
         timer_i       => timer_i,
         instret_i     => instret_i,
         exec_res_i    => ex_block_res,
-        link_i        => ex_block_link,
+        pc_next_i     => ex_block_pc_next,
         dmld_data_i   => ex_block_dmld_data,
         pc_i          => if_stage_pc,
         instr_i       => if_stage_inst,
@@ -204,7 +204,7 @@ begin
         taken_o        => ex_block_taken,
         target_o       => ex_block_target,
         res_o          => ex_block_res,
-        link_o         => ex_block_link,
+        pc_next_o      => ex_block_pc_next,
         ready_o        => ex_block_ready,
         flush_o        => ex_block_flush
     );

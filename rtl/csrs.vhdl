@@ -7,7 +7,6 @@
 
 library IEEE;
 use IEEE.std_logic_1164.all;
-use IEEE.numeric_std.all;
 use work.leaf_pkg.all;
 
 entity csrs is
@@ -41,6 +40,10 @@ entity csrs is
         pipe_en_i    : in  std_logic;
         exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
         pc_i         : in  std_logic_vector(XLEN-1 downto 2);
+        -- pc + 4 out of ex_block's incrementer. It pairs with pc_o, not with
+        -- pc_i: ex_block is fed by pc_o, so this is the EX-aligned pc_reg plus
+        -- one word, which is exactly the mepc a wfi trap has to stack.
+        pc_next_i    : in  std_logic_vector(XLEN-1 downto 2);
         cycle_i      : in  std_logic_vector(63 downto 0);
         timer_i      : in  std_logic_vector(63 downto 0);
         instret_i    : in  std_logic_vector(63 downto 0);
@@ -209,8 +212,9 @@ begin
                 -- trapping instruction's PC whichever stage produced it.
                 if wfi_i = '1' then
                     -- mepc must point past the WFI, so the handler's mret does
-                    -- not fall back into it and sleep again.
-                    mepc <= std_logic_vector(unsigned(pc_reg(XLEN-1 downto 2)) + 1);
+                    -- not fall back into it and sleep again. pc_next_i is that
+                    -- word, already incremented in ex_block for JAL/JALR.
+                    mepc <= pc_next_i;
                 else
                     mepc <= pc_reg(XLEN-1 downto 2);
                 end if;

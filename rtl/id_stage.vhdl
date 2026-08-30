@@ -29,7 +29,7 @@ entity id_stage is
         dmst_malgn_i  : in  std_logic;
         dmst_fault_i  : in  std_logic;
         exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
-        link_i        : in  std_logic_vector(XLEN-1 downto 0);
+        pc_next_i     : in  std_logic_vector(XLEN-1 downto 0);
         dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
 
         flush_i       : in  std_logic;
@@ -157,7 +157,7 @@ begin
         wr_addr_i  => main_ctrl_regwr_addr,
         wr_data0_i => exec_res_i,
         wr_data1_i => dmld_data_i,
-        wr_data2_i => link_i,
+        wr_data2_i => pc_next_i,
         wr_data3_i => csrs_csrrd_data,
         rd_addr0_i => instr_i(19 downto 15),
         rd_addr1_i => instr_i(24 downto 20),
@@ -186,6 +186,7 @@ begin
         pipe_en_i    => trap_ctrl_pipe_en,
         exec_res_i   => exec_res_i,
         pc_i         => pc_i,
+        pc_next_i    => pc_next_i(XLEN-1 downto 2),
         cycle_i      => cycle_i,
         timer_i      => timer_i,
         instret_i    => instret_i,

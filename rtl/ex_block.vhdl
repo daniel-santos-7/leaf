@@ -36,10 +36,12 @@ entity ex_block is
         taken_o        : out std_logic;
         target_o       : out std_logic_vector(XLEN-1 downto 0);
         res_o          : out std_logic_vector(XLEN-1 downto 0);
-        -- JAL/JALR link address (pc+4). The ALU cannot produce it: its single
+        -- pc+4, for the two things that need it: the JAL/JALR link address and
+        -- the mepc a wfi trap stacks. The ALU cannot produce it -- its single
         -- adder is already computing the jump target for those very
-        -- instructions, so the link needs its own incrementer.
-        link_o         : out std_logic_vector(XLEN-1 downto 0);
+        -- instructions -- so it gets its own incrementer, and csrs reads this
+        -- one instead of building a second.
+        pc_next_o      : out std_logic_vector(XLEN-1 downto 0);
         imrd_malgn_o   : out std_logic;
         dmld_malgn_o   : out std_logic;
         dmld_fault_o   : out std_logic;
@@ -144,7 +146,7 @@ begin
     target_o     <= br_detector_target;
     res_o        <= alu_res;
     -- pc_i is word-aligned, so +4 is an increment of the word address
-    link_o       <= std_logic_vector(unsigned(pc_i(XLEN-1 downto 2)) + 1) & b"00";
+    pc_next_o    <= std_logic_vector(unsigned(pc_i(XLEN-1 downto 2)) + 1) & b"00";
 
     imrd_malgn_o <= br_detector_imrd_malgn;
     dmld_malgn_o <= dmls_block_dmld_malgn;

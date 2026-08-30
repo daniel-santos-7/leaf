@@ -243,6 +243,7 @@ package leaf_pkg is
             pipe_en_i    : in  std_logic;
             exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
             pc_i         : in  std_logic_vector(XLEN-1 downto 2);
+            pc_next_i    : in  std_logic_vector(XLEN-1 downto 2);
             cycle_i      : in  std_logic_vector(63 downto 0);
             timer_i      : in  std_logic_vector(63 downto 0);
             instret_i    : in  std_logic_vector(63 downto 0);
@@ -288,7 +289,7 @@ package leaf_pkg is
             dmst_malgn_i  : in  std_logic;
             dmst_fault_i  : in  std_logic;
             exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
-            link_i        : in  std_logic_vector(XLEN-1 downto 0);
+            pc_next_i     : in  std_logic_vector(XLEN-1 downto 0);
             dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
 
             flush_i       : in  std_logic;
@@ -372,7 +373,7 @@ package leaf_pkg is
             taken_o        : out std_logic;
             target_o       : out std_logic_vector(XLEN-1 downto 0);
             res_o          : out std_logic_vector(XLEN-1 downto 0);
-            link_o         : out std_logic_vector(XLEN-1 downto 0);
+            pc_next_o      : out std_logic_vector(XLEN-1 downto 0);
             imrd_malgn_o   : out std_logic;
             dmld_malgn_o   : out std_logic;
             dmld_fault_o   : out std_logic;
