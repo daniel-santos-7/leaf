@@ -20,15 +20,10 @@ entity csrs is
         ex_irq_i     : in  std_logic;
         sw_irq_i     : in  std_logic;
         tm_irq_i     : in  std_logic;
-        imrd_malgn_i : in  std_logic;
-        imrd_fault_i : in  std_logic;
-        instr_err_i  : in  std_logic;
-        dmld_malgn_i : in  std_logic;
-        dmld_fault_i : in  std_logic;
-        dmst_malgn_i : in  std_logic;
-        dmst_fault_i : in  std_logic;
-        ecall_i      : in  std_logic;
-        ebreak_i     : in  std_logic;
+        -- The exception code, already prioritised in trap_ctrl, which owns the
+        -- cause set. The interrupt code is built here instead: it comes out of
+        -- mie/mip/mstatus, and those live here.
+        mcause_exc_i : in  std_logic_vector(4 downto 0);
         mret_i       : in  std_logic;
         wfi_i        : in  std_logic;
         exc_taken_i  : in  std_logic;
@@ -92,6 +87,12 @@ architecture rtl of csrs is
     signal tmi_taken            : std_logic;
     signal swi_taken            : std_logic;
     signal int_taken            : std_logic;
+    signal int_cause            : std_logic_vector(4 downto 0);
+
+    -- The mcause a trap would commit this cycle: the interrupt bit and the
+    -- code. mtval reads it too, because the spec defines the mtval source per
+    -- cause.
+    signal mcause_next          : std_logic_vector(5 downto 0);
 
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
@@ -212,6 +213,10 @@ begin
         end if;
     end process write_mepc;
 
+    -- The write is unconditional under exc_taken_i, where the old form held
+    -- the previous mcause whenever no cause matched. The only way to reach it
+    -- is int_taken dropping between the cycle trap_ctrl arms the trap and the
+    -- cycle it commits, and a held stale cause is no better an answer there.
     write_mcause: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -219,36 +224,8 @@ begin
                 mcause_int <= '0';
                 mcause_exc <= (others => '0');
             elsif exc_taken_i = '1' then
-                mcause_int <= int_taken;
-                if int_taken = '1' then
-                    if swi_taken = '1' then
-                        mcause_exc <= b"00011";
-                    elsif tmi_taken = '1' then
-                        mcause_exc <= b"00111";
-                    elsif exi_taken = '1' then
-                        mcause_exc <= b"01011";
-                    end if;
-                else
-                    if imrd_malgn_i = '1' then
-                        mcause_exc <= b"00000";
-                    elsif imrd_fault_i = '1' then
-                        mcause_exc <= b"00001";
-                    elsif instr_err_i = '1' then
-                        mcause_exc <= b"00010";
-                    elsif ebreak_i = '1' then
-                        mcause_exc <= b"00011";
-                    elsif dmld_malgn_i = '1' then
-                        mcause_exc <= b"00100";
-                    elsif dmld_fault_i = '1' then
-                        mcause_exc <= b"00101";
-                    elsif dmst_malgn_i = '1' then
-                        mcause_exc <= b"00110";
-                    elsif dmst_fault_i = '1' then
-                        mcause_exc <= b"00111";
-                    elsif ecall_i = '1' then
-                        mcause_exc <= b"01011";
-                    end if;
-                end if;
+                mcause_int <= mcause_next(5);
+                mcause_exc <= mcause_next(4 downto 0);
             elsif wr_addr_i = CSR_ADDR_MCAUSE and wr_en_i = '1' then
                 mcause_int <= wr_data_i(XLEN-1);
                 mcause_exc <= wr_data_i(4 downto 0);
@@ -256,26 +233,27 @@ begin
         end if;
     end process write_mcause;
 
+    -- The mtval source follows from the cause, as the spec defines it: the
+    -- address that faulted for the four misaligned/access faults and the
+    -- misaligned jump target, the PC for a fetch fault and a breakpoint, zero
+    -- for everything else.
     write_mtval: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 mtval <= (others => '0');
             elsif exc_taken_i = '1' then
-                if int_taken = '1' then
+                if mcause_next(5) = '1' then
                     mtval <= (others => '0');
-                elsif imrd_malgn_i = '1' then
-                    mtval <= exec_res_i;
-                elsif imrd_fault_i = '1' then
-                    mtval <= pc_reg;
-                elsif instr_err_i = '1' then
-                    mtval <= (others => '0');
-                elsif ebreak_i = '1' then
-                    mtval <= pc_reg;
-                elsif dmld_malgn_i = '1' or dmld_fault_i = '1' or dmst_malgn_i = '1' or dmst_fault_i = '1' then
-                    mtval <= exec_res_i;
                 else
-                    mtval <= (others => '0');   -- ecall_i
+                    case mcause_next(4 downto 0) is
+                        when b"00000" | b"00100" | b"00101" | b"00110" | b"00111" =>
+                            mtval <= exec_res_i;
+                        when b"00001" | b"00011" =>
+                            mtval <= pc_reg;
+                        when others =>
+                            mtval <= (others => '0');
+                    end case;
                 end if;
             elsif wr_addr_i = CSR_ADDR_MTVAL and wr_en_i = '1' then
                 mtval <= wr_data_i;
@@ -327,6 +305,15 @@ begin
     tmi_taken <= mie_mtie_bypassed and mip_mtip;
     swi_taken <= mie_msie_bypassed and mip_msip;
     int_taken <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_bypassed;
+
+    -- Same shape as trap_ctrl's exception chain: the last cause needs no guard
+    -- because int_taken already says one of the three is up.
+    int_cause <= b"00011" when swi_taken = '1' else   -- machine software
+                 b"00111" when tmi_taken = '1' else   -- machine timer
+                 b"01011";                            -- machine external
+
+    mcause_next <= ('1' & int_cause) when int_taken = '1' else
+                   ('0' & mcause_exc_i);
 
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);

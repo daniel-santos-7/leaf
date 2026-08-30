@@ -9,9 +9,9 @@
 | `rtl/if_stage.vhdl` | `if_stage` | Fetch FSM + pipeline regs, drives instruction Wishbone port |
 | `rtl/id_stage.vhdl` | `id_stage` | Decode, reg file, CSRs, pipeline reg |
 | `rtl/main_ctrl.vhdl` | `main_ctrl` | Decoder + immediate gen + ALU op decode |
-| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | Trap and interrupt decision + ecall/ebreak/mret/wfi qualification |
+| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | Trap and interrupt decision, exception cause encoding, ecall/ebreak/mret/wfi qualification |
 | `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file (SIZE=16 or 32) |
-| `rtl/csrs.vhdl` | `csrs` | Machine CSRs and trap/exception logic |
+| `rtl/csrs.vhdl` | `csrs` | Machine CSRs, interrupt decision, trap state commit |
 | `rtl/ex_block.vhdl` | `ex_block` | ALU, branch, load/store, CSR write mux |
 | `rtl/alu.vhdl` | `alu` | ALU datapath (bypass chain) |
 | `rtl/br_detector.vhdl` | `br_detector` | Branch condition evaluation |
@@ -35,9 +35,10 @@ leaf (top)
     ├── if_stage     Fetch FSM + pipeline regs → inst Wishbone
     ├── id_stage     Decode + reg file + CSRs + pipeline reg
     │   ├── main_ctrl   Decoder, immediate gen, ALU op decode
-    │   ├── trap_ctrl   Trap/interrupt decision, ecall/ebreak/mret/wfi
+    │   ├── trap_ctrl   Trap/interrupt decision, exception cause,
+    │                   ecall/ebreak/mret/wfi
     │   ├── reg_file    32×XLEN register file
-    │   └── csrs        Machine-mode CSRs and trap/exception control
+    │   └── csrs        Machine-mode CSRs, interrupt decision, trap commit
     └── ex_block     ALU, branch, load/store, CSR write mux
         ├── alu          ALU datapath (arith → comp → logic → shifter)
         ├── br_detector  Branch condition evaluation
@@ -468,7 +469,10 @@ write data when write address matches read address and write is active.
 
 File: `rtl/csrs.vhdl`
 
-Implements machine-mode CSR registers and all trap/exception logic.
+Implements the machine-mode CSR registers, the interrupt decision (every
+operand of it -- `mie`, `mip`, `mstatus` -- is a register owned here) and the
+trap state commit. Which exception a trap reports is decided in `trap_ctrl`
+and arrives as `mcause_exc_i`.
 
 ##### Machine-Mode CSRs
 
@@ -509,7 +513,10 @@ Implements machine-mode CSR registers and all trap/exception logic.
 
 ##### Trap/Exception Handling
 
-Exception sources and `mcause` codes:
+Exception sources and `mcause` codes. The priority between them is resolved
+in `trap_ctrl` (`mcause_exc_o`); `csrs` registers the code and picks the
+`mtval` source from it. The interrupt code below is built here, since it
+follows from `mie`/`mip`/`mstatus`.
 
 | Code | Source | mtval |
 |------|--------|-------|

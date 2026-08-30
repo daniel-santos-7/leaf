@@ -30,9 +30,9 @@ entity trap_ctrl is
         imrd_fault_i   : in  std_logic;
         ready_i        : in  std_logic;
 
-        -- ex_block hands the five EX faults over individually because csrs
-        -- discriminates between them for mcause and mtval; everything built on
-        -- top of them is consumed here, in one copy.
+        -- ex_block hands the five EX faults over individually because the
+        -- mcause encoding below discriminates between them; exc_fault ORs them
+        -- back together for everything built on top of them.
         imrd_malgn_i   : in  std_logic;
         dmld_malgn_i   : in  std_logic;
         dmld_fault_i   : in  std_logic;
@@ -49,14 +49,14 @@ entity trap_ctrl is
         exc_taken_o    : out std_logic;
         taken_o        : out std_logic;
         target_o       : out std_logic_vector(XLEN-1 downto 0);
+        -- The exception code for mcause. Picking one cause out of the set is
+        -- the same priority decision exc_taken already makes, over the same
+        -- signals, so it is resolved here and csrs only registers the result.
+        mcause_exc_o   : out std_logic_vector(4 downto 0);
         -- Registered, for csrs: it commits at EX time, so a combinational twin
-        -- of any of these would pair a cause with the following instruction.
-        ecall_o        : out std_logic;
-        ebreak_o       : out std_logic;
+        -- of either would pair a cause with the following instruction.
         mret_o         : out std_logic;
         wfi_o          : out std_logic;
-        instr_err_o    : out std_logic;
-        fetch_fault_o  : out std_logic;
         regwr_en_o     : out std_logic;
         csrwr_en_o     : out std_logic;
         retire_o       : out std_logic
@@ -85,10 +85,11 @@ architecture rtl of trap_ctrl is
     signal pipe_en   : std_logic;
     signal retire    : std_logic;
 
-    signal exc_fault : std_logic;
-    signal exc_taken : std_logic;
+    signal exc_fault  : std_logic;
+    signal exc_taken  : std_logic;
+    signal mcause_exc : std_logic_vector(4 downto 0);
 
-    -- The cause set is registered because csrs commits at EX time: a
+    -- The cause set is registered because the trap commits at EX time: a
     -- combinational twin would pair a cause with the following instruction.
     -- pipe_en, driven here, is also main_ctrl's enable, so these stay in step
     -- with the ID/EX register over there.
@@ -176,6 +177,21 @@ begin
     exc_fault <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or
                  dmst_malgn_i or dmst_fault_i;
 
+    -- The spec's exception priority, in order. Both halves are EX-aligned, so
+    -- the registered ID causes and the live EX faults rank against each other
+    -- directly. ecall_reg is the only case left once the eight above are ruled
+    -- out, so it needs no guard and the chain stays a mux instead of an
+    -- encoder. Reached only under exc_taken; csrs ignores it otherwise.
+    mcause_exc <= b"00000" when imrd_malgn_i    = '1' else  -- instr addr misaligned
+                  b"00001" when fetch_fault_reg = '1' else  -- instr access fault
+                  b"00010" when instr_err_reg   = '1' else  -- illegal instruction
+                  b"00011" when ebreak_reg      = '1' else  -- breakpoint
+                  b"00100" when dmld_malgn_i    = '1' else  -- load addr misaligned
+                  b"00101" when dmld_fault_i    = '1' else  -- load access fault
+                  b"00110" when dmst_malgn_i    = '1' else  -- store addr misaligned
+                  b"00111" when dmst_fault_i    = '1' else  -- store access fault
+                  b"01011";                                 -- ecall
+
     -- Both terms are EX-aligned: exc_cause_reg is the registered cause set,
     -- exc_fault the live EX fault. They commit in the same cycle.
     exc_taken <= exc_cause_reg or exc_fault;
@@ -194,12 +210,9 @@ begin
     target_o    <= mepc_i & b"00" when mret_reg = '1' else
                    mtvec_base_i & b"00";
 
-    ecall_o       <= ecall_reg;
-    ebreak_o      <= ebreak_reg;
+    mcause_exc_o  <= mcause_exc;
     mret_o        <= mret_reg;
     wfi_o         <= wfi_reg;
-    instr_err_o   <= instr_err_reg;
-    fetch_fault_o <= fetch_fault_reg;
 
     -- EX-time faults only. A fetch fault is inhibited one stage earlier --
     -- main_ctrl's squash clears both enables on imrd_fault_i and the zero rides

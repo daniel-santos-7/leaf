@@ -108,12 +108,9 @@ architecture rtl of id_stage is
     signal trap_ctrl_exc_taken : std_logic;
     signal trap_ctrl_taken     : std_logic;
     signal trap_ctrl_target    : std_logic_vector(XLEN-1 downto 0);
-    signal trap_ctrl_ecall     : std_logic;
-    signal trap_ctrl_ebreak    : std_logic;
+    signal trap_ctrl_mcause_exc : std_logic_vector(4 downto 0);
     signal trap_ctrl_mret      : std_logic;
-    signal trap_ctrl_wfi         : std_logic;
-    signal trap_ctrl_instr_err   : std_logic;
-    signal trap_ctrl_fetch_fault : std_logic;
+    signal trap_ctrl_wfi       : std_logic;
     signal trap_ctrl_regwr_en  : std_logic;
     signal trap_ctrl_csrwr_en  : std_logic;
     signal trap_ctrl_retire    : std_logic;
@@ -173,15 +170,7 @@ begin
         ex_irq_i     => ex_irq_i,
         sw_irq_i     => sw_irq_i,
         tm_irq_i     => tm_irq_i,
-        imrd_malgn_i => imrd_malgn_i,
-        imrd_fault_i => trap_ctrl_fetch_fault,
-        instr_err_i  => trap_ctrl_instr_err,
-        dmld_malgn_i => dmld_malgn_i,
-        dmld_fault_i => dmld_fault_i,
-        dmst_malgn_i => dmst_malgn_i,
-        dmst_fault_i => dmst_fault_i,
-        ecall_i      => trap_ctrl_ecall,
-        ebreak_i     => trap_ctrl_ebreak,
+        mcause_exc_i => trap_ctrl_mcause_exc,
         mret_i       => trap_ctrl_mret,
         wfi_i        => trap_ctrl_wfi,
         exc_taken_i  => trap_ctrl_exc_taken,
@@ -237,12 +226,9 @@ begin
         exc_taken_o    => trap_ctrl_exc_taken,
         taken_o        => trap_ctrl_taken,
         target_o       => trap_ctrl_target,
-        ecall_o        => trap_ctrl_ecall,
-        ebreak_o       => trap_ctrl_ebreak,
+        mcause_exc_o   => trap_ctrl_mcause_exc,
         mret_o         => trap_ctrl_mret,
         wfi_o          => trap_ctrl_wfi,
-        instr_err_o    => trap_ctrl_instr_err,
-        fetch_fault_o  => trap_ctrl_fetch_fault,
         regwr_en_o     => trap_ctrl_regwr_en,
         csrwr_en_o     => trap_ctrl_csrwr_en,
         retire_o       => trap_ctrl_retire
