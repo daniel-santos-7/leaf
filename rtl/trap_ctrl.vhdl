@@ -25,8 +25,14 @@ entity trap_ctrl is
         -- ID time, from main_ctrl: the cause it decodes, already qualified by
         -- the decode squash. Registered here with the rest of the cause set.
         instr_err_i    : in  std_logic;
-        -- Evaluated in csrs, from mie/mip/mstatus and their write bypass.
-        int_taken_i    : in  std_logic;
+        -- The four operands of the interrupt decision, out of csrs: mie & mip
+        -- per cause, and mstatus.MIE, all three registers owned over there and
+        -- all four already write-bypassed. Reading them is a CSR job, ranking
+        -- and masking them is a trap one, so the decision itself is made here.
+        exi_taken_i    : in  std_logic;
+        tmi_taken_i    : in  std_logic;
+        swi_taken_i    : in  std_logic;
+        mstatus_mie_i  : in  std_logic;
         imrd_fault_i   : in  std_logic;
         ready_i        : in  std_logic;
 
@@ -46,12 +52,16 @@ entity trap_ctrl is
         csrwr_en_i     : in  std_logic;
 
         pipe_en_o      : out std_logic;
+        -- Back to csrs for the interrupt bit of mcause and the mtval guard, and
+        -- to main_ctrl, whose decode a pending interrupt squashes.
+        int_taken_o    : out std_logic;
         exc_taken_o    : out std_logic;
         taken_o        : out std_logic;
         target_o       : out std_logic_vector(XLEN-1 downto 0);
-        -- The exception code for mcause. Picking one cause out of the set is
-        -- the same priority decision exc_taken already makes, over the same
-        -- signals, so it is resolved here and csrs only registers the result.
+        -- The mcause code field, interrupt or exception. Picking one cause out
+        -- of the set is the same priority decision exc_taken already makes,
+        -- over the same signals, so it is resolved here and csrs only registers
+        -- the result.
         mcause_exc_o   : out std_logic_vector(4 downto 0);
         -- Registered, for csrs: it commits at EX time, so a combinational twin
         -- of either would pair a cause with the following instruction.
@@ -81,6 +91,7 @@ architecture rtl of trap_ctrl is
     signal mret   : std_logic;
     signal wfi    : std_logic;
 
+    signal int_taken : std_logic;
     signal exc_cause : std_logic;
     signal pipe_en   : std_logic;
     signal retire    : std_logic;
@@ -106,13 +117,18 @@ begin
 
     fetch_fault  <= imrd_fault_i and id_valid_i;
 
+    -- mstatus.MIE gates the three the same way for all of them, so it masks the
+    -- OR rather than each cause. Below, the encoding needs the three apart and
+    -- everything else needs only this.
+    int_taken    <= (exi_taken_i or tmi_taken_i or swi_taken_i) and mstatus_mie_i;
+
     -- Only speculation annuls a wfi: it parks the pipeline and is released by
-    -- int_taken_i, so it must survive a pending interrupt. ecall/ebreak/mret
+    -- int_taken, so it must survive a pending interrupt. ecall/ebreak/mret
     -- take the extra term because a faulted fetch delivers a garbage instruction
     -- -- the same reason main_ctrl suppresses instr_err -- and because a pending
     -- interrupt outranks both a synchronous trap and an mret redirect.
     gtd_sys_ctrl <= sys_ctrl_i and id_valid_i;
-    gtd_sys_trap <= gtd_sys_ctrl and not (imrd_fault_i or int_taken_i);
+    gtd_sys_trap <= gtd_sys_ctrl and not (imrd_fault_i or int_taken);
 
     -- Equality comparators rather than a case over funct12: the four encodings
     -- are sparse and a case costs far more area here.
@@ -121,19 +137,19 @@ begin
     ebreak <= '1' when gtd_sys_trap = '1' and funct12_i = x"001" else '0';
     mret   <= '1' when gtd_sys_trap = '1' and funct12_i = x"302" else '0';
 
-    -- int_taken_i is the one cause the decode does not qualify -- a real
+    -- int_taken is the one cause the decode does not qualify -- a real
     -- interrupt is independent of whichever instruction occupies the slot --
     -- and so the one that needs the one-shot. csrs commits from exc_cause_reg a
     -- cycle after this line asserts, clearing mstatus.MIE with it, but
-    -- int_taken_i is still high through that extra cycle: without `and not
+    -- int_taken is still high through that extra cycle: without `and not
     -- exc_cause_reg` the trap commits twice, the second time with pc_reg
     -- advanced and int_taken already dropped, leaving a wrong mepc and an
     -- mcause without the interrupt bit. Covered by verif/tests/wfi_timer.
     exc_cause <= instr_err_i or fetch_fault or ecall or ebreak
-                 or (int_taken_i and not exc_cause_reg);
+                 or (int_taken and not exc_cause_reg);
 
     -- A parked wfi must still wait on EX. The earlier form,
-    -- `int_taken_i when wfi = '1' else ready_i`, dropped ready_i while parked,
+    -- `int_taken when wfi = '1' else ready_i`, dropped ready_i while parked,
     -- so an interrupt landing in the few cycles a load still occupies EX would
     -- advance the ID/EX register over it.
     --
@@ -142,7 +158,7 @@ begin
     -- the delay to land there would pass for a reason no later change
     -- preserves. This form can only delay an advance, never allow one the old
     -- form refused, so it is safe to carry unverified.
-    pipe_en   <= ready_i and (int_taken_i or not wfi);
+    pipe_en   <= ready_i and (int_taken or not wfi);
 
     -- id_valid_i excludes an empty instruction buffer (the decode inputs are
     -- then stale FIFO output), the cycle a taken branch resolves in EX, and the
@@ -177,26 +193,66 @@ begin
     exc_fault <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or
                  dmst_malgn_i or dmst_fault_i;
 
-    -- The spec's exception priority, in order. Both halves are EX-aligned, so
-    -- the registered ID causes and the live EX faults rank against each other
-    -- directly. ecall_reg is the only case left once the eight above are ruled
-    -- out, so it needs no guard and the chain stays a mux instead of an
+    -- The spec's trap priority, in order: an interrupt outranks every
+    -- exception, then the eight faults rank among themselves. The registered ID
+    -- causes and the live EX faults are both EX-aligned, so they compare
+    -- directly. ecall_reg is the only case left once the eight above it are
+    -- ruled out, so it is the else and the chain stays a mux instead of an
     -- encoder. Reached only under exc_taken; csrs ignores it otherwise.
-    mcause_exc <= b"00000" when imrd_malgn_i    = '1' else  -- instr addr misaligned
-                  b"00001" when fetch_fault_reg = '1' else  -- instr access fault
-                  b"00010" when instr_err_reg   = '1' else  -- illegal instruction
-                  b"00011" when ebreak_reg      = '1' else  -- breakpoint
-                  b"00100" when dmld_malgn_i    = '1' else  -- load addr misaligned
-                  b"00101" when dmld_fault_i    = '1' else  -- load access fault
-                  b"00110" when dmst_malgn_i    = '1' else  -- store addr misaligned
-                  b"00111" when dmst_fault_i    = '1' else  -- store access fault
-                  b"01011";                                 -- ecall
+    --
+    -- int_taken sits in its own if because the *i_taken_i inputs carry no
+    -- mstatus.MIE mask -- it is what turns them into a taken interrupt -- and
+    -- because the two numberings collide: 00011, 00111 and 01011 appear in both
+    -- halves. That collision is why csrs rules out an interrupt before decoding
+    -- this for mtval.
+    encode_mcause: process(int_taken, swi_taken_i, tmi_taken_i, exi_taken_i,
+                           imrd_malgn_i, fetch_fault_reg, instr_err_reg,
+                           ebreak_reg, dmld_malgn_i, dmld_fault_i,
+                           dmst_malgn_i, dmst_fault_i)
+    begin
+        if int_taken = '1' then
+            if swi_taken_i = '1' then
+                mcause_exc <= b"00011";     -- machine software interrupt
+            elsif tmi_taken_i = '1' then
+                mcause_exc <= b"00111";     -- machine timer interrupt
+            elsif exi_taken_i = '1' then
+                mcause_exc <= b"01011";     -- machine external interrupt
+            else
+                -- Unreachable: int_taken is the OR of the three, masked by
+                -- mstatus.MIE. The branch exists so the if is closed and infers
+                -- no latch. Zero rather than '-' because a later change that
+                -- does make it reachable should land a defined cause in mcause,
+                -- and because the don't-care measured 10 transistors larger --
+                -- ghdl/yosys did not use the freedom.
+                mcause_exc <= (others => '0');
+            end if;
+        elsif imrd_malgn_i = '1' then
+            mcause_exc <= b"00000";     -- instruction address misaligned
+        elsif fetch_fault_reg = '1' then
+            mcause_exc <= b"00001";     -- instruction access fault
+        elsif instr_err_reg = '1' then
+            mcause_exc <= b"00010";     -- illegal instruction
+        elsif ebreak_reg = '1' then
+            mcause_exc <= b"00011";     -- breakpoint
+        elsif dmld_malgn_i = '1' then
+            mcause_exc <= b"00100";     -- load address misaligned
+        elsif dmld_fault_i = '1' then
+            mcause_exc <= b"00101";     -- load access fault
+        elsif dmst_malgn_i = '1' then
+            mcause_exc <= b"00110";     -- store address misaligned
+        elsif dmst_fault_i = '1' then
+            mcause_exc <= b"00111";     -- store access fault
+        else
+            mcause_exc <= b"01011";     -- environment call
+        end if;
+    end process encode_mcause;
 
     -- Both terms are EX-aligned: exc_cause_reg is the registered cause set,
     -- exc_fault the live EX fault. They commit in the same cycle.
     exc_taken <= exc_cause_reg or exc_fault;
 
     pipe_en_o   <= pipe_en;
+    int_taken_o <= int_taken;
     exc_taken_o <= exc_taken;
 
     -- An mret redirects the fetch too, but commits nothing in csrs beyond the

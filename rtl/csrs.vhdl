@@ -20,9 +20,16 @@ entity csrs is
         ex_irq_i     : in  std_logic;
         sw_irq_i     : in  std_logic;
         tm_irq_i     : in  std_logic;
-        -- The exception code, already prioritised in trap_ctrl, which owns the
-        -- cause set. The interrupt code is built here instead: it comes out of
-        -- mie/mip/mstatus, and those live here.
+        -- Decided in trap_ctrl, out of the four signals exported below. It
+        -- comes back because two writes here need it: the interrupt bit of
+        -- mcause, and the guard that keeps write_mtval from decoding an
+        -- interrupt code as an exception one.
+        int_taken_i  : in  std_logic;
+        -- The whole mcause code field, prioritised in trap_ctrl: the interrupt
+        -- code while int_taken is up, the exception code otherwise. The two
+        -- numberings collide -- 3, 7 and 11 name something in each -- so
+        -- anything decoding this has to rule out an interrupt first, the way
+        -- write_mtval does. The three *_taken_o below feed the interrupt half.
         mcause_exc_i : in  std_logic_vector(4 downto 0);
         mret_i       : in  std_logic;
         wfi_i        : in  std_logic;
@@ -41,7 +48,14 @@ entity csrs is
         cop_adr_o    : out std_logic_vector(5 downto 0);
         cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o     : out std_logic;
-        int_taken_o  : out std_logic;
+        -- The four operands of the interrupt decision, which trap_ctrl makes.
+        -- mie, mip and mstatus are registers owned here, so their read is here;
+        -- ORing the three and masking them with MIE is a trap decision and
+        -- happens over there. All four carry the write bypass.
+        exi_taken_o   : out std_logic;
+        tmi_taken_o   : out std_logic;
+        swi_taken_o   : out std_logic;
+        mstatus_mie_o : out std_logic;
         mepc_o       : out std_logic_vector(XLEN-1 downto 2);
         mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
         csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
@@ -75,10 +89,10 @@ architecture rtl of csrs is
     signal mepc_bypassed       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_bypassed : std_logic_vector(XLEN-1 downto 2);
 
-    -- The interrupt decision is made here because every operand is a register
-    -- owned here. mie/mstatus go through the same write-forwarding bypass as
-    -- mepc/mtvec, so a csrrs that sets MIE arms the interrupt in the cycle it
-    -- commits rather than one cycle later.
+    -- mie/mstatus go through the same write-forwarding bypass as mepc/mtvec, so
+    -- a csrrs that sets MIE arms the interrupt in the cycle it commits rather
+    -- than one cycle later. The four results leave for trap_ctrl, which makes
+    -- the decision out of them.
     signal mie_meie_bypassed    : std_logic;
     signal mie_mtie_bypassed    : std_logic;
     signal mie_msie_bypassed    : std_logic;
@@ -86,11 +100,6 @@ architecture rtl of csrs is
     signal exi_taken            : std_logic;
     signal tmi_taken            : std_logic;
     signal swi_taken            : std_logic;
-    signal int_taken            : std_logic;
-    -- The interrupt half of mcause. The exception half arrives already encoded
-    -- as mcause_exc_i, so nothing here has to rank the two against each other
-    -- beyond int_taken, which both writes below test.
-    signal int_cause            : std_logic_vector(4 downto 0);
 
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
@@ -213,7 +222,7 @@ begin
 
     -- The write is unconditional under exc_taken_i, where the old form held
     -- the previous mcause whenever no cause matched. The only way to reach it
-    -- is int_taken dropping between the cycle trap_ctrl arms the trap and the
+    -- is int_taken_i dropping between the cycle trap_ctrl arms the trap and the
     -- cycle it commits, and a held stale cause is no better an answer there.
     write_mcause: process(clk_i)
     begin
@@ -222,12 +231,8 @@ begin
                 mcause_int <= '0';
                 mcause_exc <= (others => '0');
             elsif exc_taken_i = '1' then
-                mcause_int <= int_taken;
-                if int_taken = '1' then
-                    mcause_exc <= int_cause;
-                else
-                    mcause_exc <= mcause_exc_i;
-                end if;
+                mcause_int <= int_taken_i;
+                mcause_exc <= mcause_exc_i;
             elsif wr_addr_i = CSR_ADDR_MCAUSE and wr_en_i = '1' then
                 mcause_int <= wr_data_i(XLEN-1);
                 mcause_exc <= wr_data_i(4 downto 0);
@@ -239,6 +244,10 @@ begin
     -- address that faulted for the four misaligned/access faults and the
     -- misaligned jump target, the PC for a fetch fault and a breakpoint, zero
     -- for everything else.
+    --
+    -- The int_taken_i test below is not a shortcut: mcause_exc_i carries the
+    -- interrupt code too, and 3, 7 and 11 name a different cause there, so the
+    -- case only means anything once an interrupt is ruled out.
     --
     -- The pick stays here rather than joining the cause encoding in trap_ctrl.
     -- Both operands are local -- exec_res_i comes in for this and nothing
@@ -253,7 +262,7 @@ begin
             if reset_i = '1' then
                 mtval <= (others => '0');
             elsif exc_taken_i = '1' then
-                if int_taken = '1' then
+                if int_taken_i = '1' then
                     mtval <= (others => '0');
                 else
                     case mcause_exc_i is
@@ -314,18 +323,14 @@ begin
     exi_taken <= mie_meie_bypassed and mip_meip;
     tmi_taken <= mie_mtie_bypassed and mip_mtip;
     swi_taken <= mie_msie_bypassed and mip_msip;
-    int_taken <= (exi_taken or tmi_taken or swi_taken) and mstatus_mie_bypassed;
-
-    -- Same shape as trap_ctrl's exception chain: the last cause needs no guard
-    -- because int_taken already says one of the three is up.
-    int_cause <= b"00011" when swi_taken = '1' else   -- machine software
-                 b"00111" when tmi_taken = '1' else   -- machine timer
-                 b"01011";                            -- machine external
 
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
     cop_dat_o       <= wr_data_i;
-    int_taken_o     <= int_taken;
+    exi_taken_o     <= exi_taken;
+    tmi_taken_o     <= tmi_taken;
+    swi_taken_o     <= swi_taken;
+    mstatus_mie_o   <= mstatus_mie_bypassed;
     mepc_o          <= mepc_reg;
     mtvec_base_o    <= mtvec_base_reg;
     csrrd_data_o    <= csrrd_data_reg;

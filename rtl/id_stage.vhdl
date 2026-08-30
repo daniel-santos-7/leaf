@@ -91,7 +91,10 @@ architecture rtl of id_stage is
     -- csrs owns the interrupt decision (all of mie/mip/mstatus live there);
     -- main_ctrl consumes it to squash the decode, trap_ctrl to take the trap
     -- and to wake a parked wfi.
-    signal csrs_int_taken   : std_logic;
+    signal csrs_exi_taken   : std_logic;
+    signal csrs_tmi_taken   : std_logic;
+    signal csrs_swi_taken   : std_logic;
+    signal csrs_mstatus_mie : std_logic;
     signal csrs_mepc        : std_logic_vector(XLEN-1 downto 2);
     signal csrs_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
     signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
@@ -105,6 +108,7 @@ architecture rtl of id_stage is
     -- trap_ctrl owns the whole trap decision: the pipeline advance, the
     -- redirect, the write inhibits and the retire qualifier.
     signal trap_ctrl_pipe_en   : std_logic;
+    signal trap_ctrl_int_taken : std_logic;
     signal trap_ctrl_exc_taken : std_logic;
     signal trap_ctrl_taken     : std_logic;
     signal trap_ctrl_target    : std_logic_vector(XLEN-1 downto 0);
@@ -125,7 +129,7 @@ begin
         imrd_fault_i   => fault_i,
         instr_i        => instr_i,
         id_valid_i     => id_valid,
-        int_taken_i    => csrs_int_taken,
+        int_taken_i    => trap_ctrl_int_taken,
         pipe_en_i      => trap_ctrl_pipe_en,
         instr_err_o    => main_ctrl_instr_err,
         sys_ctrl_o     => main_ctrl_sys_ctrl,
@@ -170,6 +174,7 @@ begin
         ex_irq_i     => ex_irq_i,
         sw_irq_i     => sw_irq_i,
         tm_irq_i     => tm_irq_i,
+        int_taken_i  => trap_ctrl_int_taken,
         mcause_exc_i => trap_ctrl_mcause_exc,
         mret_i       => trap_ctrl_mret,
         wfi_i        => trap_ctrl_wfi,
@@ -188,7 +193,10 @@ begin
         cop_adr_o    => csrs_cop_adr,
         cop_dat_o    => csrs_cop_dat,
         cop_we_o     => csrs_cop_we,
-        int_taken_o  => csrs_int_taken,
+        exi_taken_o   => csrs_exi_taken,
+        tmi_taken_o   => csrs_tmi_taken,
+        swi_taken_o   => csrs_swi_taken,
+        mstatus_mie_o => csrs_mstatus_mie,
         mepc_o       => csrs_mepc,
         mtvec_base_o => csrs_mtvec_base,
         csrrd_data_o => csrs_csrrd_data,
@@ -210,7 +218,10 @@ begin
         funct12_i      => instr_i(31 downto 20),
         id_valid_i     => id_valid,
         instr_err_i    => main_ctrl_instr_err,
-        int_taken_i    => csrs_int_taken,
+        exi_taken_i    => csrs_exi_taken,
+        tmi_taken_i    => csrs_tmi_taken,
+        swi_taken_i    => csrs_swi_taken,
+        mstatus_mie_i  => csrs_mstatus_mie,
         imrd_fault_i   => fault_i,
         ready_i        => ready_i,
         imrd_malgn_i   => imrd_malgn_i,
@@ -223,6 +234,7 @@ begin
         regwr_en_i     => main_ctrl_regwr_en,
         csrwr_en_i     => main_ctrl_csrwr_en,
         pipe_en_o      => trap_ctrl_pipe_en,
+        int_taken_o    => trap_ctrl_int_taken,
         exc_taken_o    => trap_ctrl_exc_taken,
         taken_o        => trap_ctrl_taken,
         target_o       => trap_ctrl_target,
