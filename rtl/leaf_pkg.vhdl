@@ -327,7 +327,8 @@ package leaf_pkg is
             opd_pass_i     : in  std_logic_vector(1  downto 0);
             op_i           : in  std_logic_vector(5        downto 0);
             res_o          : out std_logic_vector(XLEN-1 downto 0);
-            arith_res_o    : out std_logic_vector(XLEN-1 downto 0)
+            arith_res_o    : out std_logic_vector(XLEN-1 downto 0);
+            pc_next_o      : out std_logic_vector(XLEN-1 downto 0)
         );
     end component alu;
 

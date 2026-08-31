@@ -21,7 +21,12 @@ entity alu is
         opd_pass_i     : in  std_logic_vector(1        downto 0);
         op_i           : in  std_logic_vector(5        downto 0);
         res_o          : out std_logic_vector(XLEN-1 downto 0);
-        arith_res_o    : out std_logic_vector(XLEN-1 downto 0)
+        arith_res_o    : out std_logic_vector(XLEN-1 downto 0);
+        -- pc+4: the JAL/JALR link address and the mepc a wfi trap stacks. It
+        -- cannot come out of arith_unit -- for those very instructions the one
+        -- adder is busy computing the jump target -- so it gets a second,
+        -- narrow incrementer here, where pc_i already is.
+        pc_next_o      : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity alu;
 
@@ -154,5 +159,7 @@ begin
 
     res_o       <= shifter_res;
     arith_res_o <= arith_res;
+    -- pc_i is word-aligned, so +4 is an increment of the word address
+    pc_next_o   <= std_logic_vector(unsigned(pc_i(XLEN-1 downto 2)) + 1) & b"00";
 
 end architecture alu_arch;
