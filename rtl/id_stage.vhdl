@@ -113,6 +113,7 @@ architecture rtl of id_stage is
     signal trap_ctrl_taken     : std_logic;
     signal trap_ctrl_target    : std_logic_vector(XLEN-1 downto 0);
     signal trap_ctrl_mcause_exc : std_logic_vector(4 downto 0);
+    signal trap_ctrl_mtval      : std_logic_vector(XLEN-1 downto 0);
     signal trap_ctrl_mret      : std_logic;
     signal trap_ctrl_wfi       : std_logic;
     signal trap_ctrl_regwr_en  : std_logic;
@@ -176,6 +177,7 @@ begin
         tm_irq_i     => tm_irq_i,
         int_taken_i  => trap_ctrl_int_taken,
         mcause_exc_i => trap_ctrl_mcause_exc,
+        mtval_i      => trap_ctrl_mtval,
         mret_i       => trap_ctrl_mret,
         wfi_i        => trap_ctrl_wfi,
         exc_taken_i  => trap_ctrl_exc_taken,
@@ -184,7 +186,6 @@ begin
         rw_addr_i    => instr_i(31 downto 20),
         wr_data_i    => csrs_logic_csrwr_data,
         pipe_en_i    => trap_ctrl_pipe_en,
-        exec_res_i   => exec_res_i,
         pc_i         => pc_i,
         pc_next_i    => pc_next_i(XLEN-1 downto 2),
         cycle_i      => cycle_i,
@@ -230,6 +231,8 @@ begin
         dmld_fault_i   => dmld_fault_i,
         dmst_malgn_i   => dmst_malgn_i,
         dmst_fault_i   => dmst_fault_i,
+        exec_res_i     => exec_res_i,
+        pc_i           => csrs_pc,
         mepc_i         => csrs_mepc,
         mtvec_base_i   => csrs_mtvec_base,
         regwr_en_i     => main_ctrl_regwr_en,
@@ -240,6 +243,7 @@ begin
         taken_o        => trap_ctrl_taken,
         target_o       => trap_ctrl_target,
         mcause_exc_o   => trap_ctrl_mcause_exc,
+        mtval_o        => trap_ctrl_mtval,
         mret_o         => trap_ctrl_mret,
         wfi_o          => trap_ctrl_wfi,
         regwr_en_o     => trap_ctrl_regwr_en,

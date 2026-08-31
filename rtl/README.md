@@ -35,7 +35,7 @@ leaf (top)
     ├── if_stage     Fetch FSM + pipeline regs → inst Wishbone
     ├── id_stage     Decode + reg file + CSRs + pipeline reg
     │   ├── main_ctrl   Decoder, immediate gen, ALU op decode
-    │   ├── trap_ctrl   Trap/interrupt decision, mcause cause code,
+    │   ├── trap_ctrl   Trap/interrupt decision, mcause + mtval,
     │                   ecall/ebreak/mret/wfi
     │   ├── reg_file    32×XLEN register file
     │   └── csrs        Machine-mode CSRs, interrupt operands, trap commit
@@ -469,12 +469,13 @@ write data when write address matches read address and write is active.
 
 File: `rtl/csrs.vhdl`
 
-Implements the machine-mode CSR registers and the trap state commit. Both trap
-decisions live in `trap_ctrl`: whether an interrupt is taken, out of the four
+Implements the machine-mode CSR registers and the trap state commit. Every trap
+decision lives in `trap_ctrl`: whether an interrupt is taken, out of the four
 write-bypassed operands exported from here (`exi_taken_o`, `tmi_taken_o`,
-`swi_taken_o`, `mstatus_mie_o`), and which cause the trap reports, out of those
-plus the fault set `trap_ctrl` owns. Both come back — `int_taken_i` and
-`mcause_exc_i` — for the writes here.
+`swi_taken_o`, `mstatus_mie_o`), and what the trap reports — cause and `mtval`
+both — out of those plus the fault set `trap_ctrl` owns. The results come back
+as `int_taken_i`, `mcause_exc_i` and `mtval_i`, and the writes here register
+them.
 
 ##### Machine-Mode CSRs
 
@@ -515,11 +516,11 @@ plus the fault set `trap_ctrl` owns. Both come back — `int_taken_i` and
 
 ##### Trap/Exception Handling
 
-Exception sources and `mcause` codes. Both tables are encoded by one priority
-chain in `trap_ctrl` (`mcause_exc_o`), interrupts first; `csrs` registers the
-code and picks the `mtval` source from it. The two numberings collide -- 3, 7
-and 11 appear in both -- so `csrs` rules out an interrupt before decoding the
-code for `mtval`.
+Exception sources and `mcause` codes. The two columns are two processes in
+`trap_ctrl` -- `encode_mcause` and `select_mtval` -- walking the same causes in
+the same priority order, interrupts first; `csrs` only registers what comes
+out. The `mtval` is picked off the cause rather than decoded back out of the
+code because the two numberings collide: 3, 7 and 11 appear in both halves.
 
 | Code | Source | mtval |
 |------|--------|-------|

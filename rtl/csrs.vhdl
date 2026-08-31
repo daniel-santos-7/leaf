@@ -30,6 +30,9 @@ entity csrs is
         -- anything decoding this has to rule out an interrupt first, the way
         -- write_mtval does. The three *_taken_o below feed the interrupt half.
         mcause_exc_i : in  std_logic_vector(4 downto 0);
+        -- Picked in trap_ctrl by select_mtval, off the same cause chain that
+        -- names mcause_exc_i: the spec pairs an mtval with each cause.
+        mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
         mret_i       : in  std_logic;
         wfi_i        : in  std_logic;
         exc_taken_i  : in  std_logic;
@@ -38,7 +41,6 @@ entity csrs is
         rw_addr_i    : in  std_logic_vector(11 downto 0);
         wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
         pipe_en_i    : in  std_logic;
-        exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
         pc_i         : in  std_logic_vector(XLEN-1 downto 2);
         -- pc + 4 out of ex_block's incrementer. It pairs with pc_o, not with
         -- pc_i: ex_block is fed by pc_o, so this is the EX-aligned pc_reg plus
@@ -244,40 +246,13 @@ begin
         end if;
     end process write_mcause;
 
-    -- The mtval source follows from the cause, as the spec defines it: the
-    -- address that faulted for the four misaligned/access faults and the
-    -- misaligned jump target, the PC for a fetch fault and a breakpoint, zero
-    -- for everything else.
-    --
-    -- The int_taken_i test below is not a shortcut: mcause_exc_i carries the
-    -- interrupt code too, and 3, 7 and 11 name a different cause there, so the
-    -- case only means anything once an interrupt is ruled out.
-    --
-    -- The pick stays here rather than joining the cause encoding in trap_ctrl.
-    -- Both operands are local -- exec_res_i comes in for this and nothing
-    -- else, pc_reg is our own register, shared with mepc -- so moving the
-    -- value would drag 96 bits of datapath through a control block. Moving
-    -- only the select would hand trap_ctrl a second encoding of a decision it
-    -- already emits as mcause_exc_o, free to drift from it; as a function of
-    -- the cause the two cannot.
     write_mtval: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 mtval <= (others => '0');
             elsif exc_taken_i = '1' then
-                if int_taken_i = '1' then
-                    mtval <= (others => '0');
-                else
-                    case mcause_exc_i is
-                        when b"00000" | b"00100" | b"00101" | b"00110" | b"00111" =>
-                            mtval <= exec_res_i;
-                        when b"00001" | b"00011" =>
-                            mtval <= pc_reg;
-                        when others =>
-                            mtval <= (others => '0');
-                    end case;
-                end if;
+                mtval <= mtval_i;
             elsif wr_addr_i = CSR_ADDR_MTVAL and wr_en_i = '1' then
                 mtval <= wr_data_i;
             end if;

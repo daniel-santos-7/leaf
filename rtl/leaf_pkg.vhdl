@@ -203,6 +203,8 @@ package leaf_pkg is
             dmld_fault_i   : in  std_logic;
             dmst_malgn_i   : in  std_logic;
             dmst_fault_i   : in  std_logic;
+            exec_res_i     : in  std_logic_vector(XLEN-1 downto 0);
+            pc_i           : in  std_logic_vector(XLEN-1 downto 0);
             mepc_i         : in  std_logic_vector(XLEN-1 downto 2);
             mtvec_base_i   : in  std_logic_vector(XLEN-1 downto 2);
             regwr_en_i     : in  std_logic;
@@ -213,6 +215,7 @@ package leaf_pkg is
             taken_o        : out std_logic;
             target_o       : out std_logic_vector(XLEN-1 downto 0);
             mcause_exc_o   : out std_logic_vector(4 downto 0);
+            mtval_o        : out std_logic_vector(XLEN-1 downto 0);
             mret_o         : out std_logic;
             wfi_o          : out std_logic;
             regwr_en_o     : out std_logic;
@@ -233,6 +236,7 @@ package leaf_pkg is
             tm_irq_i     : in  std_logic;
             int_taken_i  : in  std_logic;
             mcause_exc_i : in  std_logic_vector(4 downto 0);
+            mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
             mret_i       : in  std_logic;
             wfi_i        : in  std_logic;
             exc_taken_i  : in  std_logic;
@@ -241,7 +245,6 @@ package leaf_pkg is
             rw_addr_i    : in  std_logic_vector(11 downto 0);
             wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
             pipe_en_i    : in  std_logic;
-            exec_res_i   : in  std_logic_vector(XLEN-1 downto 0);
             pc_i         : in  std_logic_vector(XLEN-1 downto 2);
             pc_next_i    : in  std_logic_vector(XLEN-1 downto 2);
             cycle_i      : in  std_logic_vector(63 downto 0);

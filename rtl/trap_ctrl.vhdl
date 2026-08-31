@@ -45,6 +45,12 @@ entity trap_ctrl is
         dmst_malgn_i   : in  std_logic;
         dmst_fault_i   : in  std_logic;
 
+        -- The two mtval sources, picked per cause below. exec_res_i is the
+        -- address that faulted; pc_i is the EX-aligned PC out of csrs's
+        -- pipeline register, the same one ex_block is fed.
+        exec_res_i     : in  std_logic_vector(XLEN-1 downto 0);
+        pc_i           : in  std_logic_vector(XLEN-1 downto 0);
+
         mepc_i         : in  std_logic_vector(XLEN-1 downto 2);
         mtvec_base_i   : in  std_logic_vector(XLEN-1 downto 2);
 
@@ -58,11 +64,13 @@ entity trap_ctrl is
         exc_taken_o    : out std_logic;
         taken_o        : out std_logic;
         target_o       : out std_logic_vector(XLEN-1 downto 0);
-        -- The mcause code field, interrupt or exception. Picking one cause out
-        -- of the set is the same priority decision exc_taken already makes,
-        -- over the same signals, so it is resolved here and csrs only registers
-        -- the result.
+        -- What the trap reports, both fields. Picking one cause out of the set
+        -- is the same priority decision exc_taken already makes, over the same
+        -- signals, and the spec pairs an mtval with each cause -- so both are
+        -- resolved here, by encode_mcause and select_mtval, and csrs only
+        -- registers the results.
         mcause_exc_o   : out std_logic_vector(4 downto 0);
+        mtval_o        : out std_logic_vector(XLEN-1 downto 0);
         -- Registered, for csrs: it commits at EX time, so a combinational twin
         -- of either would pair a cause with the following instruction.
         mret_o         : out std_logic;
@@ -99,6 +107,7 @@ architecture rtl of trap_ctrl is
     signal exc_fault  : std_logic;
     signal exc_taken  : std_logic;
     signal mcause_exc : std_logic_vector(4 downto 0);
+    signal mtval      : std_logic_vector(XLEN-1 downto 0);
 
     -- The cause set is registered because the trap commits at EX time: a
     -- combinational twin would pair a cause with the following instruction.
@@ -201,10 +210,13 @@ begin
     -- encoder. Reached only under exc_taken; csrs ignores it otherwise.
     --
     -- int_taken sits in its own if because the *i_taken_i inputs carry no
-    -- mstatus.MIE mask -- it is what turns them into a taken interrupt -- and
-    -- because the two numberings collide: 00011, 00111 and 01011 appear in both
-    -- halves. That collision is why csrs rules out an interrupt before decoding
-    -- this for mtval.
+    -- mstatus.MIE mask -- it is what turns them into a taken interrupt.
+    --
+    -- select_mtval below walks the same causes in the same order, because the
+    -- spec pairs an mtval with each cause and the pair has to agree. The two
+    -- chains are written line for line alike so that reordering one without the
+    -- other shows up as a diff that no longer lines up. They cannot be folded
+    -- into one process: an output belongs to one process.
     encode_mcause: process(int_taken, swi_taken_i, tmi_taken_i, exi_taken_i,
                            imrd_malgn_i, fetch_fault_reg, instr_err_reg,
                            ebreak_reg, dmld_malgn_i, dmld_fault_i,
@@ -247,6 +259,38 @@ begin
         end if;
     end process encode_mcause;
 
+    -- The mtval the spec pairs with each cause: the address that faulted, the
+    -- PC, or nothing. Same causes and same order as encode_mcause above -- the
+    -- two must stay in step -- with only the interrupt half collapsed, since
+    -- none of the three is attached to an address.
+    select_mtval: process(int_taken, imrd_malgn_i, fetch_fault_reg,
+                          instr_err_reg, ebreak_reg, dmld_malgn_i,
+                          dmld_fault_i, dmst_malgn_i, dmst_fault_i,
+                          exec_res_i, pc_i)
+    begin
+        if int_taken = '1' then
+            mtval <= (others => '0');   -- any machine interrupt
+        elsif imrd_malgn_i = '1' then
+            mtval <= exec_res_i;        -- the misaligned jump target
+        elsif fetch_fault_reg = '1' then
+            mtval <= pc_i;              -- the fetch that faulted
+        elsif instr_err_reg = '1' then
+            mtval <= (others => '0');
+        elsif ebreak_reg = '1' then
+            mtval <= pc_i;              -- the breakpoint itself
+        elsif dmld_malgn_i = '1' then
+            mtval <= exec_res_i;        -- the effective address, for all four
+        elsif dmld_fault_i = '1' then
+            mtval <= exec_res_i;
+        elsif dmst_malgn_i = '1' then
+            mtval <= exec_res_i;
+        elsif dmst_fault_i = '1' then
+            mtval <= exec_res_i;
+        else
+            mtval <= (others => '0');   -- environment call
+        end if;
+    end process select_mtval;
+
     -- Both terms are EX-aligned: exc_cause_reg is the registered cause set,
     -- exc_fault the live EX fault. They commit in the same cycle.
     exc_taken <= exc_cause_reg or exc_fault;
@@ -267,6 +311,7 @@ begin
                    mtvec_base_i & b"00";
 
     mcause_exc_o  <= mcause_exc;
+    mtval_o       <= mtval;
     mret_o        <= mret_reg;
     wfi_o         <= wfi_reg;
 
