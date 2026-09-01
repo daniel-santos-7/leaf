@@ -448,10 +448,14 @@ ALU op decode is inside `main_ctrl` (not a separate entity):
 Interrupts are taken when `mstatus_MIE = 1` and the corresponding `mie` and
 `mip` bits are set:
 
-- `exi_taken = mie_meie and mip_meip`
-- `tmi_taken = mie_mtie and mip_mtip`
-- `swi_taken = mie_msie and mip_msip`
-- `int_taken = (exi or tmi or swi) and mstatus_mie`
+The whole mask is applied in `csrs`, per cause rather than once over the OR, so
+each of the three leaves as a complete "this interrupt is taken" and `trap_ctrl`
+only ranks them:
+
+- `exi_taken = mie_meie and mip_meip and mstatus_mie` (in `csrs`)
+- `tmi_taken = mie_mtie and mip_mtip and mstatus_mie` (in `csrs`)
+- `swi_taken = mie_msie and mip_msip and mstatus_mie` (in `csrs`)
+- `int_taken = exi_taken or tmi_taken or swi_taken` (in `trap_ctrl`)
 
 #### 1.4.2 `reg_file` — Register File
 
@@ -470,9 +474,9 @@ write data when write address matches read address and write is active.
 File: `rtl/csrs.vhdl`
 
 Implements the machine-mode CSR registers and the trap state commit. Every trap
-decision lives in `trap_ctrl`: whether an interrupt is taken, out of the four
-write-bypassed operands exported from here (`exi_taken_o`, `tmi_taken_o`,
-`swi_taken_o`, `mstatus_mie_o`), and what the trap stacks — cause, `mtval` and
+decision lives in `trap_ctrl`: which interrupt is taken, out of the three
+write-bypassed and already MIE-masked causes exported from here (`exi_taken_o`,
+`tmi_taken_o`, `swi_taken_o`), and what the trap stacks — cause, `mtval` and
 `mepc` alike — out of those plus the fault set `trap_ctrl` owns. The results
 come back as `int_taken_i`, `mcause_exc_i`, `mtval_i` and `mepc_i`, and the
 three writes here only register them.

@@ -88,13 +88,13 @@ architecture rtl of id_stage is
     signal reg_file_rd_data0 : std_logic_vector(XLEN-1 downto 0);
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
-    -- csrs owns the interrupt decision (all of mie/mip/mstatus live there);
-    -- main_ctrl consumes it to squash the decode, trap_ctrl to take the trap
-    -- and to wake a parked wfi.
+    -- The three interrupt causes, already masked by mstatus.MIE in csrs, which
+    -- owns mie/mip/mstatus. trap_ctrl ranks them into int_taken: main_ctrl
+    -- consumes that to squash the decode, trap_ctrl to take the trap and to
+    -- wake a parked wfi.
     signal csrs_exi_taken   : std_logic;
     signal csrs_tmi_taken   : std_logic;
     signal csrs_swi_taken   : std_logic;
-    signal csrs_mstatus_mie : std_logic;
     signal csrs_mepc        : std_logic_vector(XLEN-1 downto 2);
     signal csrs_mtvec_base  : std_logic_vector(XLEN-1 downto 2);
     signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
@@ -199,7 +199,6 @@ begin
         exi_taken_o   => csrs_exi_taken,
         tmi_taken_o   => csrs_tmi_taken,
         swi_taken_o   => csrs_swi_taken,
-        mstatus_mie_o => csrs_mstatus_mie,
         mepc_o       => csrs_mepc,
         mtvec_base_o => csrs_mtvec_base,
         csrrd_data_o => csrs_csrrd_data,
@@ -224,7 +223,6 @@ begin
         exi_taken_i    => csrs_exi_taken,
         tmi_taken_i    => csrs_tmi_taken,
         swi_taken_i    => csrs_swi_taken,
-        mstatus_mie_i  => csrs_mstatus_mie,
         imrd_fault_i   => fault_i,
         ready_i        => ready_i,
         imrd_malgn_i   => imrd_malgn_i,

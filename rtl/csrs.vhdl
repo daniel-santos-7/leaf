@@ -52,14 +52,13 @@ entity csrs is
         cop_adr_o    : out std_logic_vector(5 downto 0);
         cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o     : out std_logic;
-        -- The four operands of the interrupt decision, which trap_ctrl makes.
-        -- mie, mip and mstatus are registers owned here, so their read is here;
-        -- ORing the three and masking them with MIE is a trap decision and
-        -- happens over there. All four carry the write bypass.
+        -- One armed interrupt per cause: its mie bit, its mip bit and
+        -- mstatus.MIE. All three are registers owned here, so the whole mask is
+        -- applied here and carries the write bypass. What is left for trap_ctrl
+        -- is ranking the three and naming the cause.
         exi_taken_o   : out std_logic;
         tmi_taken_o   : out std_logic;
         swi_taken_o   : out std_logic;
-        mstatus_mie_o : out std_logic;
         mepc_o       : out std_logic_vector(XLEN-1 downto 2);
         mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
         csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
@@ -95,8 +94,8 @@ architecture rtl of csrs is
 
     -- mie/mstatus go through the same write-forwarding bypass as mepc/mtvec, so
     -- a csrrs that sets MIE arms the interrupt in the cycle it commits rather
-    -- than one cycle later. The four results leave for trap_ctrl, which makes
-    -- the decision out of them.
+    -- than one cycle later. The three masked results leave for trap_ctrl, which
+    -- ranks them.
     signal mie_meie_bypassed    : std_logic;
     signal mie_mtie_bypassed    : std_logic;
     signal mie_msie_bypassed    : std_logic;
@@ -289,9 +288,12 @@ begin
     mtvec_base_bypassed  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
 
     -- mip needs no bypass: it is not writable, it just samples the irq inputs.
-    exi_taken <= mie_meie_bypassed and mip_meip;
-    tmi_taken <= mie_mtie_bypassed and mip_mtip;
-    swi_taken <= mie_msie_bypassed and mip_msip;
+    -- mstatus.MIE gates all three alike, but it is ANDed per cause rather than
+    -- once over the OR, so each output is already a complete "this interrupt is
+    -- taken" and trap_ctrl needs no mask of its own.
+    exi_taken <= mie_meie_bypassed and mip_meip and mstatus_mie_bypassed;
+    tmi_taken <= mie_mtie_bypassed and mip_mtip and mstatus_mie_bypassed;
+    swi_taken <= mie_msie_bypassed and mip_msip and mstatus_mie_bypassed;
 
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
@@ -299,7 +301,6 @@ begin
     exi_taken_o     <= exi_taken;
     tmi_taken_o     <= tmi_taken;
     swi_taken_o     <= swi_taken;
-    mstatus_mie_o   <= mstatus_mie_bypassed;
     mepc_o          <= mepc_reg;
     mtvec_base_o    <= mtvec_base_reg;
     csrrd_data_o    <= csrrd_data_reg;

@@ -25,14 +25,13 @@ entity trap_ctrl is
         -- ID time, from main_ctrl: the cause it decodes, already qualified by
         -- the decode squash. Registered here with the rest of the cause set.
         instr_err_i    : in  std_logic;
-        -- The four operands of the interrupt decision, out of csrs: mie & mip
-        -- per cause, and mstatus.MIE, all three registers owned over there and
-        -- all four already write-bypassed. Reading them is a CSR job, ranking
-        -- and masking them is a trap one, so the decision itself is made here.
+        -- The three armed interrupts, out of csrs: mie & mip per cause, masked
+        -- there by mstatus.MIE and write-bypassed, since all three registers
+        -- are owned over there. Reading them is a CSR job; what is left --
+        -- ranking them and naming the cause -- is a trap one, and happens here.
         exi_taken_i    : in  std_logic;
         tmi_taken_i    : in  std_logic;
         swi_taken_i    : in  std_logic;
-        mstatus_mie_i  : in  std_logic;
         imrd_fault_i   : in  std_logic;
         ready_i        : in  std_logic;
 
@@ -134,10 +133,10 @@ begin
 
     fetch_fault  <= imrd_fault_i and id_valid_i;
 
-    -- mstatus.MIE gates the three the same way for all of them, so it masks the
-    -- OR rather than each cause. Below, the encoding needs the three apart and
-    -- everything else needs only this.
-    int_taken    <= (exi_taken_i or tmi_taken_i or swi_taken_i) and mstatus_mie_i;
+    -- Each input arrives masked, so nothing is left of the decision but the OR.
+    -- Below, encode_mcause needs the three apart to name the cause; everything
+    -- else needs only this.
+    int_taken    <= exi_taken_i or tmi_taken_i or swi_taken_i;
 
     -- Only speculation annuls a wfi: it parks the pipeline and is released by
     -- int_taken, so it must survive a pending interrupt. ecall/ebreak/mret

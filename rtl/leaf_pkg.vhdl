@@ -195,7 +195,6 @@ package leaf_pkg is
             exi_taken_i    : in  std_logic;
             tmi_taken_i    : in  std_logic;
             swi_taken_i    : in  std_logic;
-            mstatus_mie_i  : in  std_logic;
             imrd_fault_i   : in  std_logic;
             ready_i        : in  std_logic;
             imrd_malgn_i   : in  std_logic;
@@ -257,7 +256,6 @@ package leaf_pkg is
             exi_taken_o   : out std_logic;
             tmi_taken_o   : out std_logic;
             swi_taken_o   : out std_logic;
-            mstatus_mie_o : out std_logic;
             mepc_o       : out std_logic_vector(XLEN-1 downto 2);
             mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
             csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
