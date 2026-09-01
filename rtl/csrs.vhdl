@@ -20,21 +20,24 @@ entity csrs is
         sw_irq_i     : in  std_logic;
         tm_irq_i     : in  std_logic;
         -- Decided in trap_ctrl, out of the four signals exported below. It
-        -- comes back because two writes here need it: the interrupt bit of
-        -- mcause, and the guard that keeps write_mtval from decoding an
-        -- interrupt code as an exception one.
+        -- comes back for the one write here that still needs it: the interrupt
+        -- bit of mcause.
         int_taken_i  : in  std_logic;
         -- The whole mcause code field, prioritised in trap_ctrl: the interrupt
         -- code while int_taken is up, the exception code otherwise. The two
         -- numberings collide -- 3, 7 and 11 name something in each -- so
-        -- anything decoding this has to rule out an interrupt first, the way
-        -- write_mtval does. The three *_taken_o below feed the interrupt half.
+        -- nothing here reads it back apart; it is stored as it arrives. The
+        -- three *_taken_o below feed the interrupt half.
         mcause_exc_i : in  std_logic_vector(4 downto 0);
         -- Picked in trap_ctrl by select_mtval, off the same cause chain that
         -- names mcause_exc_i: the spec pairs an mtval with each cause.
         mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
+        -- The PC to stack, off that same chain: the trapping instruction's own,
+        -- or the word past it when the trap releases a parked wfi. It is not
+        -- the mepc_o below -- that one is this register read back out, for the
+        -- mret redirect.
+        mepc_i       : in  std_logic_vector(XLEN-1 downto 2);
         mret_i       : in  std_logic;
-        wfi_i        : in  std_logic;
         exc_taken_i  : in  std_logic;
         wr_en_i      : in  std_logic;
         wr_addr_i    : in  std_logic_vector(11 downto 0);
@@ -42,10 +45,6 @@ entity csrs is
         wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
         pipe_en_i    : in  std_logic;
         pc_i         : in  std_logic_vector(XLEN-1 downto 2);
-        -- pc + 4 out of ex_block's incrementer. It pairs with pc_o, not with
-        -- pc_i: ex_block is fed by pc_o, so this is the EX-aligned pc_reg plus
-        -- one word, which is exactly the mepc a wfi trap has to stack.
-        pc_next_i    : in  std_logic_vector(XLEN-1 downto 2);
         cycle_i      : in  std_logic_vector(63 downto 0);
         timer_i      : in  std_logic_vector(63 downto 0);
         instret_i    : in  std_logic_vector(63 downto 0);
@@ -210,16 +209,7 @@ begin
             if reset_i = '1' then
                 mepc <= (others => '0');
             elsif exc_taken_i = '1' then
-                -- Every cause reaching here is EX-aligned, so pc_reg is the
-                -- trapping instruction's PC whichever stage produced it.
-                if wfi_i = '1' then
-                    -- mepc must point past the WFI, so the handler's mret does
-                    -- not fall back into it and sleep again. pc_next_i is that
-                    -- word, already incremented in ex_block for JAL/JALR.
-                    mepc <= pc_next_i;
-                else
-                    mepc <= pc_reg(XLEN-1 downto 2);
-                end if;
+                mepc <= mepc_i;
             elsif wr_addr_i = CSR_ADDR_MEPC and wr_en_i = '1' then
                 mepc <= wr_data_i(XLEN-1 downto 2);
             end if;

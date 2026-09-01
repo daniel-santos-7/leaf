@@ -114,8 +114,10 @@ architecture rtl of id_stage is
     signal trap_ctrl_target    : std_logic_vector(XLEN-1 downto 0);
     signal trap_ctrl_mcause_exc : std_logic_vector(4 downto 0);
     signal trap_ctrl_mtval      : std_logic_vector(XLEN-1 downto 0);
+    -- The two directions of mepc: trap_ctrl_mepc is the PC a trap stacks,
+    -- csrs_mepc above is that register read back out, for the mret redirect.
+    signal trap_ctrl_mepc       : std_logic_vector(XLEN-1 downto 2);
     signal trap_ctrl_mret      : std_logic;
-    signal trap_ctrl_wfi       : std_logic;
     signal trap_ctrl_regwr_en  : std_logic;
     signal trap_ctrl_csrwr_en  : std_logic;
     signal trap_ctrl_retire    : std_logic;
@@ -178,8 +180,8 @@ begin
         int_taken_i  => trap_ctrl_int_taken,
         mcause_exc_i => trap_ctrl_mcause_exc,
         mtval_i      => trap_ctrl_mtval,
+        mepc_i       => trap_ctrl_mepc,
         mret_i       => trap_ctrl_mret,
-        wfi_i        => trap_ctrl_wfi,
         exc_taken_i  => trap_ctrl_exc_taken,
         wr_en_i      => trap_ctrl_csrwr_en,
         wr_addr_i    => main_ctrl_csrs_addr,
@@ -187,7 +189,6 @@ begin
         wr_data_i    => csrs_logic_csrwr_data,
         pipe_en_i    => trap_ctrl_pipe_en,
         pc_i         => pc_i,
-        pc_next_i    => pc_next_i(XLEN-1 downto 2),
         cycle_i      => cycle_i,
         timer_i      => timer_i,
         instret_i    => instret_i,
@@ -233,6 +234,7 @@ begin
         dmst_fault_i   => dmst_fault_i,
         exec_res_i     => exec_res_i,
         pc_i           => csrs_pc,
+        pc_next_i      => pc_next_i(XLEN-1 downto 2),
         mepc_i         => csrs_mepc,
         mtvec_base_i   => csrs_mtvec_base,
         regwr_en_i     => main_ctrl_regwr_en,
@@ -244,8 +246,8 @@ begin
         target_o       => trap_ctrl_target,
         mcause_exc_o   => trap_ctrl_mcause_exc,
         mtval_o        => trap_ctrl_mtval,
+        mepc_o         => trap_ctrl_mepc,
         mret_o         => trap_ctrl_mret,
-        wfi_o          => trap_ctrl_wfi,
         regwr_en_o     => trap_ctrl_regwr_en,
         csrwr_en_o     => trap_ctrl_csrwr_en,
         retire_o       => trap_ctrl_retire

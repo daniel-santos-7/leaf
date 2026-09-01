@@ -9,7 +9,7 @@
 | `rtl/if_stage.vhdl` | `if_stage` | Fetch FSM + pipeline regs, drives instruction Wishbone port |
 | `rtl/id_stage.vhdl` | `id_stage` | Decode, reg file, CSRs, pipeline reg |
 | `rtl/main_ctrl.vhdl` | `main_ctrl` | Decoder + immediate gen + ALU op decode |
-| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | Trap and interrupt decision, mcause cause encoding, ecall/ebreak/mret/wfi qualification |
+| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | Trap and interrupt decision, what the trap stacks (mcause, mtval, mepc), ecall/ebreak/mret/wfi qualification |
 | `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file (SIZE=16 or 32) |
 | `rtl/csrs.vhdl` | `csrs` | Machine CSRs, interrupt operands, trap state commit |
 | `rtl/ex_block.vhdl` | `ex_block` | ALU, branch, load/store, CSR write mux |
@@ -35,7 +35,7 @@ leaf (top)
     ├── if_stage     Fetch FSM + pipeline regs → inst Wishbone
     ├── id_stage     Decode + reg file + CSRs + pipeline reg
     │   ├── main_ctrl   Decoder, immediate gen, ALU op decode
-    │   ├── trap_ctrl   Trap/interrupt decision, mcause + mtval,
+    │   ├── trap_ctrl   Trap/interrupt decision, mcause + mtval + mepc,
     │                   ecall/ebreak/mret/wfi
     │   ├── reg_file    32×XLEN register file
     │   └── csrs        Machine-mode CSRs, interrupt operands, trap commit
@@ -472,10 +472,10 @@ File: `rtl/csrs.vhdl`
 Implements the machine-mode CSR registers and the trap state commit. Every trap
 decision lives in `trap_ctrl`: whether an interrupt is taken, out of the four
 write-bypassed operands exported from here (`exi_taken_o`, `tmi_taken_o`,
-`swi_taken_o`, `mstatus_mie_o`), and what the trap reports — cause and `mtval`
-both — out of those plus the fault set `trap_ctrl` owns. The results come back
-as `int_taken_i`, `mcause_exc_i` and `mtval_i`, and the writes here register
-them.
+`swi_taken_o`, `mstatus_mie_o`), and what the trap stacks — cause, `mtval` and
+`mepc` alike — out of those plus the fault set `trap_ctrl` owns. The results
+come back as `int_taken_i`, `mcause_exc_i`, `mtval_i` and `mepc_i`, and the
+three writes here only register them.
 
 ##### Machine-Mode CSRs
 
@@ -543,7 +543,9 @@ Interrupt codes (mcause bit 31 = 1):
 | 11 | Machine external interrupt |
 
 Trap flow:
-1. Current PC saved to `mepc` (PC for exceptions, `next_pc` for WFI, `fault_pc` for EX-stage faults)
+1. `trap_ctrl` picks the PC to stack — the EX-aligned PC of the trapping
+   instruction, or the word past it when the trap releases a parked WFI — and
+   `csrs` registers it into `mepc`
 2. `mstatus.MIE` saved to `mstatus.MPIE`, then `MIE` cleared
 3. `mcause` and `mtval` set
 4. PC jumps to `mtvec` (via `ex_block` combinatorial mux)

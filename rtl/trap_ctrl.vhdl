@@ -45,12 +45,18 @@ entity trap_ctrl is
         dmst_malgn_i   : in  std_logic;
         dmst_fault_i   : in  std_logic;
 
-        -- The two mtval sources, picked per cause below. exec_res_i is the
-        -- address that faulted; pc_i is the EX-aligned PC out of csrs's
-        -- pipeline register, the same one ex_block is fed.
+        -- What the trap stacks is picked out of these, per cause below.
+        -- exec_res_i is the address that faulted; pc_i is the EX-aligned PC out
+        -- of csrs's pipeline register, the same one ex_block is fed.
         exec_res_i     : in  std_logic_vector(XLEN-1 downto 0);
         pc_i           : in  std_logic_vector(XLEN-1 downto 0);
+        -- pc_i + 4, out of the alu's incrementer: the two are aligned, so this
+        -- is the word past the instruction in EX. Only a wfi stacks it.
+        pc_next_i      : in  std_logic_vector(XLEN-1 downto 2);
 
+        -- The two redirect targets, read out of csrs. mepc_i is where an mret
+        -- returns to -- the value some earlier trap stacked, not the mepc_o
+        -- this one is about to.
         mepc_i         : in  std_logic_vector(XLEN-1 downto 2);
         mtvec_base_i   : in  std_logic_vector(XLEN-1 downto 2);
 
@@ -64,17 +70,18 @@ entity trap_ctrl is
         exc_taken_o    : out std_logic;
         taken_o        : out std_logic;
         target_o       : out std_logic_vector(XLEN-1 downto 0);
-        -- What the trap reports, both fields. Picking one cause out of the set
-        -- is the same priority decision exc_taken already makes, over the same
-        -- signals, and the spec pairs an mtval with each cause -- so both are
-        -- resolved here, by encode_mcause and select_mtval, and csrs only
-        -- registers the results.
+        -- What the trap stacks, all three fields. Picking one cause out of the
+        -- set is the same priority decision exc_taken already makes, over the
+        -- same signals, and the spec pairs an mtval and a PC with each cause --
+        -- so all three are resolved here, by encode_mcause, select_mtval and
+        -- the mepc pick below, and csrs only registers the results.
         mcause_exc_o   : out std_logic_vector(4 downto 0);
         mtval_o        : out std_logic_vector(XLEN-1 downto 0);
+        -- The PC this trap stacks, as opposed to the mepc_i read back above.
+        mepc_o         : out std_logic_vector(XLEN-1 downto 2);
         -- Registered, for csrs: it commits at EX time, so a combinational twin
-        -- of either would pair a cause with the following instruction.
+        -- would pair the mstatus unstacking with the following instruction.
         mret_o         : out std_logic;
-        wfi_o          : out std_logic;
         regwr_en_o     : out std_logic;
         csrwr_en_o     : out std_logic;
         retire_o       : out std_logic
@@ -108,6 +115,7 @@ architecture rtl of trap_ctrl is
     signal exc_taken  : std_logic;
     signal mcause_exc : std_logic_vector(4 downto 0);
     signal mtval      : std_logic_vector(XLEN-1 downto 0);
+    signal mepc       : std_logic_vector(XLEN-1 downto 2);
 
     -- The cause set is registered because the trap commits at EX time: a
     -- combinational twin would pair a cause with the following instruction.
@@ -291,6 +299,14 @@ begin
         end if;
     end process select_mtval;
 
+    -- The PC the trap stacks. All but one cause take pc_i, the PC of the
+    -- instruction sitting in EX, which is the one they belong to. The exception
+    -- is a wfi released by an interrupt: mepc has to point past it, so the
+    -- handler's mret does not fall back in and sleep again. wfi_reg rather than
+    -- wfi, because only the registered copy is EX-aligned like pc_i.
+    mepc <= pc_next_i when wfi_reg = '1' else
+            pc_i(XLEN-1 downto 2);
+
     -- Both terms are EX-aligned: exc_cause_reg is the registered cause set,
     -- exc_fault the live EX fault. They commit in the same cycle.
     exc_taken <= exc_cause_reg or exc_fault;
@@ -312,8 +328,8 @@ begin
 
     mcause_exc_o  <= mcause_exc;
     mtval_o       <= mtval;
+    mepc_o        <= mepc;
     mret_o        <= mret_reg;
-    wfi_o         <= wfi_reg;
 
     -- EX-time faults only. A fetch fault is inhibited one stage earlier --
     -- main_ctrl's squash clears both enables on imrd_fault_i and the zero rides
