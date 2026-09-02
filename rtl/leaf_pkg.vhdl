@@ -219,7 +219,6 @@ package leaf_pkg is
             exc_cause_i    : in  std_logic;
             retire_i       : in  std_logic;
             pipe_en_i      : in  std_logic;
-            int_taken_i    : in  std_logic;
             exi_taken_i    : in  std_logic;
             tmi_taken_i    : in  std_logic;
             swi_taken_i    : in  std_logic;
@@ -329,7 +328,6 @@ package leaf_pkg is
             mret_o        : out std_logic;
             wfi_o         : out std_logic;
             exc_cause_o   : out std_logic;
-            int_taken_o   : out std_logic;
             exi_taken_o   : out std_logic;
             tmi_taken_o   : out std_logic;
             swi_taken_o   : out std_logic;
@@ -410,7 +408,6 @@ package leaf_pkg is
             exc_cause_i    : in  std_logic;
             retire_i       : in  std_logic;
             pipe_en_i      : in  std_logic;
-            int_taken_i    : in  std_logic;
             exi_taken_i    : in  std_logic;
             tmi_taken_i    : in  std_logic;
             swi_taken_i    : in  std_logic;

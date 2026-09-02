@@ -74,7 +74,6 @@ architecture rtl of core is
     signal id_stage_mret        : std_logic;
     signal id_stage_wfi         : std_logic;
     signal id_stage_exc_cause   : std_logic;
-    signal id_stage_int_taken   : std_logic;
     signal id_stage_exi_taken   : std_logic;
     signal id_stage_tmi_taken   : std_logic;
     signal id_stage_swi_taken   : std_logic;
@@ -185,7 +184,6 @@ begin
         mret_o        => id_stage_mret,
         wfi_o         => id_stage_wfi,
         exc_cause_o   => id_stage_exc_cause,
-        int_taken_o   => id_stage_int_taken,
         exi_taken_o   => id_stage_exi_taken,
         tmi_taken_o   => id_stage_tmi_taken,
         swi_taken_o   => id_stage_swi_taken,
@@ -215,7 +213,6 @@ begin
         -- id_stage.ready_o is trap_decode's pipe_en: the ID/EX advance, which
         -- qualifies the retire count on the way out of trap_ctrl.
         pipe_en_i      => id_stage_ready,
-        int_taken_i    => id_stage_int_taken,
         exi_taken_i    => id_stage_exi_taken,
         tmi_taken_i    => id_stage_tmi_taken,
         swi_taken_i    => id_stage_swi_taken,

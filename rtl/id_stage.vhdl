@@ -61,7 +61,6 @@ entity id_stage is
         mret_o        : out std_logic;
         wfi_o         : out std_logic;
         exc_cause_o   : out std_logic;
-        int_taken_o   : out std_logic;
         exi_taken_o   : out std_logic;
         tmi_taken_o   : out std_logic;
         swi_taken_o   : out std_logic;
@@ -121,7 +120,7 @@ architecture rtl of id_stage is
     -- owns mie/mip/mstatus. trap_decode ORs them into int_taken: main_ctrl
     -- consumes that to squash the decode, trap_decode to take the trap and to
     -- wake a parked wfi. trap_ctrl, over in ex_block, ranks the three apart to
-    -- name the cause, so all four leave this block.
+    -- name the cause and rebuilds the OR there, so only the three leave.
     signal csrs_exi_taken   : std_logic;
     signal csrs_tmi_taken   : std_logic;
     signal csrs_swi_taken   : std_logic;
@@ -264,7 +263,6 @@ begin
     mret_o        <= trap_decode_mret;
     wfi_o         <= trap_decode_wfi;
     exc_cause_o   <= trap_decode_exc_cause;
-    int_taken_o   <= trap_decode_int_taken;
     exi_taken_o   <= csrs_exi_taken;
     tmi_taken_o   <= csrs_tmi_taken;
     swi_taken_o   <= csrs_swi_taken;

@@ -41,7 +41,6 @@ entity ex_block is
         exc_cause_i    : in  std_logic;
         retire_i       : in  std_logic;
         pipe_en_i      : in  std_logic;
-        int_taken_i    : in  std_logic;
         exi_taken_i    : in  std_logic;
         tmi_taken_i    : in  std_logic;
         swi_taken_i    : in  std_logic;
@@ -189,7 +188,6 @@ begin
         exc_cause_i    => exc_cause_i,
         retire_i       => retire_i,
         pipe_en_i      => pipe_en_i,
-        int_taken_i    => int_taken_i,
         exi_taken_i    => exi_taken_i,
         tmi_taken_i    => tmi_taken_i,
         swi_taken_i    => swi_taken_i,
