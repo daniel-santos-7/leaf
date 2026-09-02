@@ -13,10 +13,9 @@ entity ex_block is
     port (
         clk_i          : in  std_logic;
         reset_i        : in  std_logic;
-        -- Trap redirect, already resolved in id_stage. Exception versus mret
-        -- only matters for picking mtvec over mepc, and both registers live in
-        -- csrs, so that mux stays next to them.
-        trap_taken_i   : in  std_logic;
+        -- The trap redirect target, resolved in csrs: exception versus mret
+        -- only picks mtvec over mepc, and both registers live over there. Its
+        -- taken side is decided here, in trap_ctrl.
         trap_target_i  : in  std_logic_vector(XLEN-1 downto 0);
         func3_i        : in  std_logic_vector(2  downto 0);
         reg0_i         : in  std_logic_vector(XLEN-1 downto 0);
@@ -31,6 +30,26 @@ entity ex_block is
         dmls_ctrl_i    : in  std_logic_vector(1  downto 0);
         redirect_ack_i : in  std_logic;
 
+        -- The trap cause set, decoded and registered in trap_decode, plus the
+        -- pipeline advance and the interrupts it ranks. trap_ctrl below closes
+        -- the decision over the faults raised here.
+        instr_err_i    : in  std_logic;
+        fetch_fault_i  : in  std_logic;
+        ebreak_i       : in  std_logic;
+        mret_i         : in  std_logic;
+        wfi_i          : in  std_logic;
+        exc_cause_i    : in  std_logic;
+        retire_i       : in  std_logic;
+        pipe_en_i      : in  std_logic;
+        int_taken_i    : in  std_logic;
+        exi_taken_i    : in  std_logic;
+        tmi_taken_i    : in  std_logic;
+        swi_taken_i    : in  std_logic;
+        -- main_ctrl's write enables, registered there; they leave gated by the
+        -- EX faults below.
+        regwr_en_i     : in  std_logic;
+        csrwr_en_i     : in  std_logic;
+
         ready_o        : out std_logic;
         flush_o        : out std_logic;
         taken_o        : out std_logic;
@@ -44,12 +63,18 @@ entity ex_block is
         -- csrs write port in id_stage: its operands are the same post-pipeline
         -- values the alu reads, so the mux belongs on this side of the register.
         csrwr_data_o   : out std_logic_vector(XLEN-1 downto 0);
-        imrd_malgn_o   : out std_logic;
-        dmld_malgn_o   : out std_logic;
-        dmld_fault_o   : out std_logic;
-        dmst_malgn_o   : out std_logic;
-        dmst_fault_o   : out std_logic;
         dmld_data_o    : out std_logic_vector(XLEN-1 downto 0);
+
+        -- What the trap commits, for csrs and the register file back in
+        -- id_stage. The five faults these are resolved from stay here: nothing
+        -- outside trap_ctrl reads them apart.
+        exc_taken_o    : out std_logic;
+        mcause_exc_o   : out std_logic_vector(4 downto 0);
+        mtval_o        : out std_logic_vector(XLEN-1 downto 0);
+        mepc_o         : out std_logic_vector(XLEN-1 downto 2);
+        regwr_en_o     : out std_logic;
+        csrwr_en_o     : out std_logic;
+        retire_o       : out std_logic;
 
         data_cyc_o     : out std_logic;
         data_stb_o     : out std_logic;
@@ -75,6 +100,15 @@ architecture ex_block_arch of ex_block is
     signal br_detector_imrd_malgn : std_logic;
 
     signal csrs_logic_csrwr_data : std_logic_vector(XLEN-1 downto 0);
+
+    signal trap_ctrl_exc_taken  : std_logic;
+    signal trap_ctrl_taken      : std_logic;
+    signal trap_ctrl_mcause_exc : std_logic_vector(4 downto 0);
+    signal trap_ctrl_mtval      : std_logic_vector(XLEN-1 downto 0);
+    signal trap_ctrl_mepc       : std_logic_vector(XLEN-1 downto 2);
+    signal trap_ctrl_regwr_en   : std_logic;
+    signal trap_ctrl_csrwr_en   : std_logic;
+    signal trap_ctrl_retire     : std_logic;
 
     signal dmls_block_dmls_ready : std_logic;
     signal dmls_block_dmld_data  : std_logic_vector(XLEN-1 downto 0);
@@ -114,7 +148,7 @@ begin
         en_i           => branch_op_i(0),
         jmp_i          => branch_op_i(1),
         arith_res_i    => alu_arith_res,
-        trap_taken_i   => trap_taken_i,
+        trap_taken_i   => trap_ctrl_taken,
         trap_target_i  => trap_target_i,
         taken_o        => br_detector_taken,
         target_o       => br_detector_target,
@@ -146,6 +180,39 @@ begin
         dmld_data_o  => dmls_block_dmld_data
     );
 
+    exec_trap_ctrl: trap_ctrl port map (
+        instr_err_i    => instr_err_i,
+        fetch_fault_i  => fetch_fault_i,
+        ebreak_i       => ebreak_i,
+        mret_i         => mret_i,
+        wfi_i          => wfi_i,
+        exc_cause_i    => exc_cause_i,
+        retire_i       => retire_i,
+        pipe_en_i      => pipe_en_i,
+        int_taken_i    => int_taken_i,
+        exi_taken_i    => exi_taken_i,
+        tmi_taken_i    => tmi_taken_i,
+        swi_taken_i    => swi_taken_i,
+        imrd_malgn_i   => br_detector_imrd_malgn,
+        dmld_malgn_i   => dmls_block_dmld_malgn,
+        dmld_fault_i   => dmls_block_dmld_fault,
+        dmst_malgn_i   => dmls_block_dmst_malgn,
+        dmst_fault_i   => dmls_block_dmst_fault,
+        exec_res_i     => alu_res,
+        pc_i           => pc_i,
+        pc_next_i      => alu_pc_next(XLEN-1 downto 2),
+        regwr_en_i     => regwr_en_i,
+        csrwr_en_i     => csrwr_en_i,
+        exc_taken_o    => trap_ctrl_exc_taken,
+        taken_o        => trap_ctrl_taken,
+        mcause_exc_o   => trap_ctrl_mcause_exc,
+        mtval_o        => trap_ctrl_mtval,
+        mepc_o         => trap_ctrl_mepc,
+        regwr_en_o     => trap_ctrl_regwr_en,
+        csrwr_en_o     => trap_ctrl_csrwr_en,
+        retire_o       => trap_ctrl_retire
+    );
+
     exec_csrs_logic: csrs_logic port map (
         csrwr_mode_i => func3_i,
         csrrd_data_i => csrrd_data_i,
@@ -161,13 +228,15 @@ begin
     res_o        <= alu_res;
     pc_next_o    <= alu_pc_next;
     csrwr_data_o <= csrs_logic_csrwr_data;
-
-    imrd_malgn_o <= br_detector_imrd_malgn;
-    dmld_malgn_o <= dmls_block_dmld_malgn;
-    dmld_fault_o <= dmls_block_dmld_fault;
-    dmst_malgn_o <= dmls_block_dmst_malgn;
-    dmst_fault_o <= dmls_block_dmst_fault;
     dmld_data_o  <= dmls_block_dmld_data;
+
+    exc_taken_o  <= trap_ctrl_exc_taken;
+    mcause_exc_o <= trap_ctrl_mcause_exc;
+    mtval_o      <= trap_ctrl_mtval;
+    mepc_o       <= trap_ctrl_mepc;
+    regwr_en_o   <= trap_ctrl_regwr_en;
+    csrwr_en_o   <= trap_ctrl_csrwr_en;
+    retire_o     <= trap_ctrl_retire;
 
     data_cyc_o   <= dmls_block_data_cyc;
     data_stb_o   <= dmls_block_data_stb;

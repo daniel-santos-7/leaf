@@ -34,8 +34,8 @@ entity csrs is
         mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
         -- The PC to stack, off that same chain: the trapping instruction's own,
         -- or the word past it when the trap releases a parked wfi. It is not
-        -- the mepc_o below -- that one is this register read back out, for the
-        -- mret redirect.
+        -- the trap_target_o below -- that one is this register read back out,
+        -- for the mret redirect.
         mepc_i       : in  std_logic_vector(XLEN-1 downto 2);
         mret_i       : in  std_logic;
         exc_taken_i  : in  std_logic;
@@ -59,8 +59,10 @@ entity csrs is
         exi_taken_o   : out std_logic;
         tmi_taken_o   : out std_logic;
         swi_taken_o   : out std_logic;
-        mepc_o       : out std_logic_vector(XLEN-1 downto 2);
-        mtvec_base_o : out std_logic_vector(XLEN-1 downto 2);
+        -- The fully resolved trap redirect: mepc for an mret, mtvec for every
+        -- other trap. Both registers are owned here, so the 2:1 mux stays next
+        -- to them and 32 bits cross into ex_block instead of 60.
+        trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
         pc_o         : out std_logic_vector(XLEN-1 downto 0)
     );
@@ -103,6 +105,8 @@ architecture rtl of csrs is
     signal exi_taken            : std_logic;
     signal tmi_taken            : std_logic;
     signal swi_taken            : std_logic;
+
+    signal trap_target    : std_logic_vector(XLEN-1 downto 0);
 
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
@@ -295,14 +299,18 @@ begin
     tmi_taken <= mie_mtie_bypassed and mip_mtip and mstatus_mie_bypassed;
     swi_taken <= mie_msie_bypassed and mip_msip and mstatus_mie_bypassed;
 
+    -- mret_i is the registered copy out of trap_decode, EX-aligned like the two
+    -- pipeline registers it picks between.
+    trap_target <= mepc_reg & b"00" when mret_i = '1' else
+                   mtvec_base_reg & b"00";
+
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
     cop_dat_o       <= wr_data_i;
     exi_taken_o     <= exi_taken;
     tmi_taken_o     <= tmi_taken;
     swi_taken_o     <= swi_taken;
-    mepc_o          <= mepc_reg;
-    mtvec_base_o    <= mtvec_base_reg;
+    trap_target_o   <= trap_target;
     csrrd_data_o    <= csrrd_data_reg;
     pc_o            <= pc_reg;
 

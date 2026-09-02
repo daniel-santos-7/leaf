@@ -65,8 +65,21 @@ architecture rtl of core is
     signal id_stage_branch_op   : std_logic_vector(1  downto 0);
     signal id_stage_alu_op      : std_logic_vector(5  downto 0);
     signal id_stage_dmls_ctrl   : std_logic_vector(1  downto 0);
-    signal id_stage_trap_taken  : std_logic;
     signal id_stage_trap_target : std_logic_vector(XLEN-1 downto 0);
+    -- The trap cause set and the interrupts: decided in id_stage, ranked in
+    -- ex_block's trap_ctrl against the faults raised there.
+    signal id_stage_instr_err   : std_logic;
+    signal id_stage_fetch_fault : std_logic;
+    signal id_stage_ebreak      : std_logic;
+    signal id_stage_mret        : std_logic;
+    signal id_stage_wfi         : std_logic;
+    signal id_stage_exc_cause   : std_logic;
+    signal id_stage_int_taken   : std_logic;
+    signal id_stage_exi_taken   : std_logic;
+    signal id_stage_tmi_taken   : std_logic;
+    signal id_stage_swi_taken   : std_logic;
+    signal id_stage_regwr_en    : std_logic;
+    signal id_stage_csrwr_en    : std_logic;
     signal id_stage_rd_data0    : std_logic_vector(XLEN-1 downto 0);
     signal id_stage_rd_data1    : std_logic_vector(XLEN-1 downto 0);
     signal id_stage_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
@@ -87,11 +100,14 @@ architecture rtl of core is
     signal ex_block_pc_next    : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_csrwr_data : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_dmld_data  : std_logic_vector(XLEN-1 downto 0);
-    signal ex_block_imrd_malgn : std_logic;
-    signal ex_block_dmld_malgn : std_logic;
-    signal ex_block_dmld_fault : std_logic;
-    signal ex_block_dmst_malgn : std_logic;
-    signal ex_block_dmst_fault : std_logic;
+    -- What the trap commits, back to csrs and the register file in id_stage.
+    signal ex_block_exc_taken  : std_logic;
+    signal ex_block_mcause_exc : std_logic_vector(4 downto 0);
+    signal ex_block_mtval      : std_logic_vector(XLEN-1 downto 0);
+    signal ex_block_mepc       : std_logic_vector(XLEN-1 downto 2);
+    signal ex_block_regwr_en   : std_logic;
+    signal ex_block_csrwr_en   : std_logic;
+    signal ex_block_retire     : std_logic;
     signal ex_block_data_cyc   : std_logic;
     signal ex_block_data_stb   : std_logic;
     signal ex_block_data_we    : std_logic;
@@ -133,11 +149,12 @@ begin
         ex_irq_i      => ex_irq_i,
         sw_irq_i      => sw_irq_i,
         tm_irq_i      => tm_irq_i,
-        imrd_malgn_i  => ex_block_imrd_malgn,
-        dmld_malgn_i  => ex_block_dmld_malgn,
-        dmld_fault_i  => ex_block_dmld_fault,
-        dmst_malgn_i  => ex_block_dmst_malgn,
-        dmst_fault_i  => ex_block_dmst_fault,
+        exc_taken_i   => ex_block_exc_taken,
+        mcause_exc_i  => ex_block_mcause_exc,
+        mtval_i       => ex_block_mtval,
+        mepc_i        => ex_block_mepc,
+        regwr_en_i    => ex_block_regwr_en,
+        csrwr_en_i    => ex_block_csrwr_en,
         cycle_i       => cycle_i,
         timer_i       => timer_i,
         instret_i     => instret_i,
@@ -161,8 +178,19 @@ begin
         branch_op_o   => id_stage_branch_op,
         alu_op_o      => id_stage_alu_op,
         dmls_ctrl_o   => id_stage_dmls_ctrl,
-        trap_taken_o  => id_stage_trap_taken,
         trap_target_o => id_stage_trap_target,
+        instr_err_o   => id_stage_instr_err,
+        fetch_fault_o => id_stage_fetch_fault,
+        ebreak_o      => id_stage_ebreak,
+        mret_o        => id_stage_mret,
+        wfi_o         => id_stage_wfi,
+        exc_cause_o   => id_stage_exc_cause,
+        int_taken_o   => id_stage_int_taken,
+        exi_taken_o   => id_stage_exi_taken,
+        tmi_taken_o   => id_stage_tmi_taken,
+        swi_taken_o   => id_stage_swi_taken,
+        regwr_en_o    => id_stage_regwr_en,
+        csrwr_en_o    => id_stage_csrwr_en,
         rd_data0_o    => id_stage_rd_data0,
         rd_data1_o    => id_stage_rd_data1,
         csrrd_data_o  => id_stage_csrrd_data,
@@ -176,8 +204,23 @@ begin
     core_ex_block: ex_block port map (
         clk_i          => clk_i,
         reset_i        => reset_i,
-        trap_taken_i   => id_stage_trap_taken,
         trap_target_i  => id_stage_trap_target,
+        instr_err_i    => id_stage_instr_err,
+        fetch_fault_i  => id_stage_fetch_fault,
+        ebreak_i       => id_stage_ebreak,
+        mret_i         => id_stage_mret,
+        wfi_i          => id_stage_wfi,
+        exc_cause_i    => id_stage_exc_cause,
+        retire_i       => id_stage_retire,
+        -- id_stage.ready_o is trap_decode's pipe_en: the ID/EX advance, which
+        -- qualifies the retire count on the way out of trap_ctrl.
+        pipe_en_i      => id_stage_ready,
+        int_taken_i    => id_stage_int_taken,
+        exi_taken_i    => id_stage_exi_taken,
+        tmi_taken_i    => id_stage_tmi_taken,
+        swi_taken_i    => id_stage_swi_taken,
+        regwr_en_i     => id_stage_regwr_en,
+        csrwr_en_i     => id_stage_csrwr_en,
         func3_i        => id_stage_func3,
         reg0_i         => id_stage_rd_data0,
         reg1_i         => id_stage_rd_data1,
@@ -194,11 +237,13 @@ begin
         data_err_i     => data_err_i,
         data_stall_i   => data_stall_i,
         redirect_ack_i => if_stage_redirect_ack,
-        imrd_malgn_o   => ex_block_imrd_malgn,
-        dmld_malgn_o   => ex_block_dmld_malgn,
-        dmld_fault_o   => ex_block_dmld_fault,
-        dmst_malgn_o   => ex_block_dmst_malgn,
-        dmst_fault_o   => ex_block_dmst_fault,
+        exc_taken_o    => ex_block_exc_taken,
+        mcause_exc_o   => ex_block_mcause_exc,
+        mtval_o        => ex_block_mtval,
+        mepc_o         => ex_block_mepc,
+        regwr_en_o     => ex_block_regwr_en,
+        csrwr_en_o     => ex_block_csrwr_en,
+        retire_o       => ex_block_retire,
         data_cyc_o     => ex_block_data_cyc,
         data_stb_o     => ex_block_data_stb,
         data_we_o      => ex_block_data_we,
@@ -215,7 +260,7 @@ begin
         flush_o        => ex_block_flush
     );
 
-    retire_o     <= id_stage_retire;
+    retire_o     <= ex_block_retire;
 
     cop_adr_o    <= id_stage_cop_adr;
     cop_dat_o    <= id_stage_cop_dat;

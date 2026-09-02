@@ -9,7 +9,8 @@
 | `rtl/if_stage.vhdl` | `if_stage` | Fetch FSM + pipeline regs, drives instruction Wishbone port |
 | `rtl/id_stage.vhdl` | `id_stage` | Decode, reg file, CSRs, pipeline reg |
 | `rtl/main_ctrl.vhdl` | `main_ctrl` | Decoder + immediate gen + ALU op decode |
-| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | Trap and interrupt decision, what the trap stacks (mcause, mtval, mepc), ecall/ebreak/mret/wfi qualification |
+| `rtl/trap_decode.vhdl` | `trap_decode` | ID-time trap decode: ecall/ebreak/mret/wfi qualification, pipeline advance, cause set register |
+| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | EX-time trap decision (in `ex_block`): priority, what the trap stacks (mcause, mtval, mepc), write inhibits |
 | `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file (SIZE=16 or 32) |
 | `rtl/csrs.vhdl` | `csrs` | Machine CSRs, interrupt operands, trap state commit |
 | `rtl/ex_block.vhdl` | `ex_block` | ALU, branch, load/store, CSR write mux |
