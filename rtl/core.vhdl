@@ -69,6 +69,7 @@ architecture rtl of core is
     signal id_stage_trap_target : std_logic_vector(XLEN-1 downto 0);
     signal id_stage_rd_data0    : std_logic_vector(XLEN-1 downto 0);
     signal id_stage_rd_data1    : std_logic_vector(XLEN-1 downto 0);
+    signal id_stage_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
     signal id_stage_imm         : std_logic_vector(XLEN-1 downto 0);
     signal id_stage_opd_src_sel : std_logic_vector(1  downto 0);
     signal id_stage_opd_pass    : std_logic_vector(1  downto 0);
@@ -84,6 +85,7 @@ architecture rtl of core is
     signal ex_block_flush      : std_logic;
     signal ex_block_res        : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_pc_next    : std_logic_vector(XLEN-1 downto 0);
+    signal ex_block_csrwr_data : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_dmld_data  : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_imrd_malgn : std_logic;
     signal ex_block_dmld_malgn : std_logic;
@@ -142,6 +144,7 @@ begin
         exec_res_i    => ex_block_res,
         pc_next_i     => ex_block_pc_next,
         dmld_data_i   => ex_block_dmld_data,
+        csrwr_data_i  => ex_block_csrwr_data,
         pc_i          => if_stage_pc,
         instr_i       => if_stage_inst,
         fault_i       => if_stage_inst_err,
@@ -162,6 +165,7 @@ begin
         trap_target_o => id_stage_trap_target,
         rd_data0_o    => id_stage_rd_data0,
         rd_data1_o    => id_stage_rd_data1,
+        csrrd_data_o  => id_stage_csrrd_data,
         imm_o         => id_stage_imm,
         opd_src_sel_o => id_stage_opd_src_sel,
         opd_pass_o    => id_stage_opd_pass,
@@ -181,6 +185,7 @@ begin
         alu_op_i       => id_stage_alu_op,
         dmls_ctrl_i    => id_stage_dmls_ctrl,
         immwr_data_i   => id_stage_imm,
+        csrrd_data_i   => id_stage_csrrd_data,
         opd_src_sel_i  => id_stage_opd_src_sel,
         opd_pass_i     => id_stage_opd_pass,
         pc_i           => id_stage_pc_full,
@@ -205,6 +210,7 @@ begin
         target_o       => ex_block_target,
         res_o          => ex_block_res,
         pc_next_o      => ex_block_pc_next,
+        csrwr_data_o   => ex_block_csrwr_data,
         ready_o        => ex_block_ready,
         flush_o        => ex_block_flush
     );

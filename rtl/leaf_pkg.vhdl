@@ -292,6 +292,7 @@ package leaf_pkg is
             exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
             pc_next_i     : in  std_logic_vector(XLEN-1 downto 0);
             dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+            csrwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
 
             flush_i       : in  std_logic;
             ready_i       : in  std_logic;
@@ -305,6 +306,7 @@ package leaf_pkg is
             trap_target_o : out std_logic_vector(XLEN-1 downto 0);
             rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
             rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
+            csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
             imm_o         : out std_logic_vector(XLEN-1 downto 0);
             opd_src_sel_o : out std_logic_vector(1  downto 0);
             opd_pass_o    : out std_logic_vector(1  downto 0);
@@ -363,6 +365,7 @@ package leaf_pkg is
             reg1_i         : in  std_logic_vector(XLEN-1 downto 0);
             pc_i           : in  std_logic_vector(XLEN-1 downto 0);
             immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+            csrrd_data_i   : in  std_logic_vector(XLEN-1 downto 0);
             opd_src_sel_i  : in  std_logic_vector(1  downto 0);
             opd_pass_i     : in  std_logic_vector(1  downto 0);
             branch_op_i    : in  std_logic_vector(1  downto 0);
@@ -376,6 +379,7 @@ package leaf_pkg is
             target_o       : out std_logic_vector(XLEN-1 downto 0);
             res_o          : out std_logic_vector(XLEN-1 downto 0);
             pc_next_o      : out std_logic_vector(XLEN-1 downto 0);
+            csrwr_data_o   : out std_logic_vector(XLEN-1 downto 0);
             imrd_malgn_o   : out std_logic;
             dmld_malgn_o   : out std_logic;
             dmld_fault_o   : out std_logic;

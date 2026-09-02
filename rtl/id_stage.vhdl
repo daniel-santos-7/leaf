@@ -31,6 +31,9 @@ entity id_stage is
         exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
         pc_next_i     : in  std_logic_vector(XLEN-1 downto 0);
         dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+        -- The csr write data, muxed by funct3 out in ex_block off csrrd_data_o
+        -- below. Only the register write itself stays here, next to csrs.
+        csrwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
 
         flush_i       : in  std_logic;
         ready_i       : in  std_logic;
@@ -45,6 +48,7 @@ entity id_stage is
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
         rd_data1_o    : out std_logic_vector(XLEN-1 downto 0);
+        csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
         imm_o         : out std_logic_vector(XLEN-1 downto 0);
         opd_src_sel_o : out std_logic_vector(1  downto 0);
         opd_pass_o    : out std_logic_vector(1  downto 0);
@@ -102,8 +106,6 @@ architecture rtl of id_stage is
     signal csrs_cop_adr     : std_logic_vector(5      downto 0);
     signal csrs_cop_dat     : std_logic_vector(XLEN-1 downto 0);
     signal csrs_cop_we      : std_logic;
-
-    signal csrs_logic_csrwr_data : std_logic_vector(XLEN-1 downto 0);
 
     -- trap_ctrl owns the whole trap decision: the pipeline advance, the
     -- redirect, the write inhibits and the retire qualifier.
@@ -186,7 +188,7 @@ begin
         wr_en_i      => trap_ctrl_csrwr_en,
         wr_addr_i    => main_ctrl_csrs_addr,
         rw_addr_i    => instr_i(31 downto 20),
-        wr_data_i    => csrs_logic_csrwr_data,
+        wr_data_i    => csrwr_data_i,
         pipe_en_i    => trap_ctrl_pipe_en,
         pc_i         => pc_i,
         cycle_i      => cycle_i,
@@ -203,14 +205,6 @@ begin
         mtvec_base_o => csrs_mtvec_base,
         csrrd_data_o => csrs_csrrd_data,
         pc_o         => csrs_pc
-    );
-
-    id_stage_csrs_logic: csrs_logic port map (
-        csrwr_mode_i => main_ctrl_func3,
-        csrrd_data_i => csrs_csrrd_data,
-        regwr_data_i => reg_file_rd_data0,
-        immwr_data_i => main_ctrl_imm,
-        csrwr_data_o => csrs_logic_csrwr_data
     );
 
     id_stage_trap_ctrl: trap_ctrl port map (
@@ -260,6 +254,7 @@ begin
     trap_target_o <= trap_ctrl_target;
     rd_data0_o    <= reg_file_rd_data0;
     rd_data1_o    <= reg_file_rd_data1;
+    csrrd_data_o  <= csrs_csrrd_data;
     imm_o         <= main_ctrl_imm;
     opd_src_sel_o <= main_ctrl_opd_src_sel;
     opd_pass_o    <= main_ctrl_opd_pass;

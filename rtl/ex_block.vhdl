@@ -23,6 +23,7 @@ entity ex_block is
         reg1_i         : in  std_logic_vector(XLEN-1 downto 0);
         pc_i           : in  std_logic_vector(XLEN-1 downto 0);
         immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+        csrrd_data_i   : in  std_logic_vector(XLEN-1 downto 0);
         opd_src_sel_i  : in  std_logic_vector(1  downto 0);
         opd_pass_i     : in  std_logic_vector(1  downto 0);
         branch_op_i    : in  std_logic_vector(1  downto 0);
@@ -39,6 +40,10 @@ entity ex_block is
         -- and the mepc a wfi trap stacks -- csrs reads this one instead of
         -- building a second.
         pc_next_o      : out std_logic_vector(XLEN-1 downto 0);
+        -- The funct3 mux over csrrd_data/reg0/imm, handed straight back to the
+        -- csrs write port in id_stage: its operands are the same post-pipeline
+        -- values the alu reads, so the mux belongs on this side of the register.
+        csrwr_data_o   : out std_logic_vector(XLEN-1 downto 0);
         imrd_malgn_o   : out std_logic;
         dmld_malgn_o   : out std_logic;
         dmld_fault_o   : out std_logic;
@@ -68,6 +73,8 @@ architecture ex_block_arch of ex_block is
     signal br_detector_taken      : std_logic;
     signal br_detector_target     : std_logic_vector(XLEN-1 downto 0);
     signal br_detector_imrd_malgn : std_logic;
+
+    signal csrs_logic_csrwr_data : std_logic_vector(XLEN-1 downto 0);
 
     signal dmls_block_dmls_ready : std_logic;
     signal dmls_block_dmld_data  : std_logic_vector(XLEN-1 downto 0);
@@ -139,12 +146,21 @@ begin
         dmld_data_o  => dmls_block_dmld_data
     );
 
+    exec_csrs_logic: csrs_logic port map (
+        csrwr_mode_i => func3_i,
+        csrrd_data_i => csrrd_data_i,
+        regwr_data_i => reg0_i,
+        immwr_data_i => immwr_data_i,
+        csrwr_data_o => csrs_logic_csrwr_data
+    );
+
     ready_o      <= dmls_block_dmls_ready;
     flush_o      <= br_detector_taken;
     taken_o      <= br_detector_taken;
     target_o     <= br_detector_target;
     res_o        <= alu_res;
     pc_next_o    <= alu_pc_next;
+    csrwr_data_o <= csrs_logic_csrwr_data;
 
     imrd_malgn_o <= br_detector_imrd_malgn;
     dmld_malgn_o <= dmls_block_dmld_malgn;
