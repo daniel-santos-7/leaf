@@ -453,7 +453,7 @@ only ranks them:
 - `exi_taken = mie_meie and mip_meip and mstatus_mie` (in `csrs`)
 - `tmi_taken = mie_mtie and mip_mtip and mstatus_mie` (in `csrs`)
 - `swi_taken = mie_msie and mip_msip and mstatus_mie` (in `csrs`)
-- `int_taken = exi_taken or tmi_taken or swi_taken` (in `trap_ctrl`)
+- `int_taken = exi_taken or tmi_taken or swi_taken` (in `csrs`)
 
 #### 1.4.2 `reg_file` — Register File
 
@@ -476,8 +476,10 @@ decision lives in `trap_ctrl`: which interrupt is taken, out of the three
 write-bypassed and already MIE-masked causes exported from here (`exi_taken_o`,
 `tmi_taken_o`, `swi_taken_o`), and what the trap stacks — cause, `mtval` and
 `mepc` alike — out of those plus the fault set `trap_ctrl` owns. The results
-come back as `int_taken_i`, `mcause_exc_i`, `mtval_i` and `mepc_i`, and the
-three writes here only register them.
+come back as `mcause_exc_i`, `mtval_i` and `mepc_i`, and the three writes here
+only register them. Their OR, `int_taken_o`, is built here instead: it is the
+interrupt bit of `mcause` and `main_ctrl`'s squash/wake condition, and neither
+needs the ranking.
 
 ##### Machine-Mode CSRs
 

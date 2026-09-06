@@ -19,18 +19,16 @@ entity main_ctrl is
         -- The ID slot holds a real instruction: not empty, not wrong-path, not
         -- flushed. Built in id_stage, which owns all three terms.
         id_valid_i     : in  std_logic;
-        -- The three interrupt causes, already masked by mstatus.MIE in csrs.
-        -- Only the OR of them is an ID-time decision; trap_ctrl ranks the three
-        -- apart in ex_block to name the cause.
-        exi_taken_i    : in  std_logic;
-        tmi_taken_i    : in  std_logic;
-        swi_taken_i    : in  std_logic;
+        -- Some interrupt is armed: the three causes ORed in csrs, which owns
+        -- mie/mip/mstatus and masks each one with mstatus.MIE. Only the OR is
+        -- an ID-time decision; trap_ctrl ranks the three apart in ex_block to
+        -- name the cause.
+        int_taken_i    : in  std_logic;
         -- The one EX signal read here: pipe_en_o below is the ID/EX advance,
         -- and an advance waits on EX.
         ready_i        : in  std_logic;
 
         pipe_en_o      : out std_logic;
-        int_taken_o    : out std_logic;
 
         -- The cause set, registered here and EX-aligned from here on. trap_ctrl
         -- ranks it in ex_block against the faults raised there.
@@ -87,7 +85,6 @@ architecture rtl of main_ctrl is
     signal mret   : std_logic;
     signal wfi    : std_logic;
 
-    signal int_taken : std_logic;
     signal exc_cause : std_logic;
     signal pipe_en   : std_logic;
     signal retire    : std_logic;
@@ -151,9 +148,9 @@ begin
     -- instruction occupying the slot. sys_ctrl falls with it: the wfi it also
     -- covers must outlive a pending interrupt, and the park register below is
     -- what carries it across.
-    main_ctrl_proc: process(opcode, instr_i, id_valid_i, imrd_fault_i, int_taken)
+    main_ctrl_proc: process(opcode, instr_i, id_valid_i, imrd_fault_i, int_taken_i)
     begin
-        if id_valid_i = '0' or imrd_fault_i = '1' or int_taken = '1' then
+        if id_valid_i = '0' or imrd_fault_i = '1' or int_taken_i = '1' then
             dmls_ctrl    <= DMLS_IDLE;
             instr_err    <= '0';
             imm_type     <= (others => '-');
@@ -371,10 +368,6 @@ begin
     -- or every fetch fault taken in its shadow would be silently dropped.
     fetch_fault  <= imrd_fault_i and id_valid_i;
 
-    -- Each input arrives masked by mstatus.MIE in csrs, so nothing is left of
-    -- the decision here but the OR.
-    int_taken    <= exi_taken_i or tmi_taken_i or swi_taken_i;
-
     -- Equality comparators rather than a case over funct12: the four encodings
     -- are sparse and a case costs far more area here.
     wfi    <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"105" else '0';
@@ -382,16 +375,16 @@ begin
     ebreak <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"001" else '0';
     mret   <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"302" else '0';
 
-    -- `and not exc_cause_reg` is a one-shot. int_taken is still high through the
+    -- `and not exc_cause_reg` is a one-shot. int_taken_i is still high through the
     -- cycle csrs commits from exc_cause_reg; without it the trap commits twice,
     -- the second time with pc_reg advanced and int_taken already dropped,
     -- leaving a wrong mepc and an mcause without the interrupt bit. Covered by
     -- verif/tests/wfi_timer.
     exc_cause <= instr_err or fetch_fault or ecall or ebreak
-                 or (int_taken and not exc_cause_reg);
+                 or (int_taken_i and not exc_cause_reg);
 
     -- A parked wfi must still wait on EX. The earlier form,
-    -- `int_taken when wfi = '1' else ready_i`, dropped ready_i while parked, so
+    -- `int_taken_i when wfi = '1' else ready_i`, dropped ready_i while parked, so
     -- an interrupt landing in the few cycles a load still occupies EX would
     -- advance the ID/EX register over it.
     --
@@ -413,7 +406,7 @@ begin
             if reset_i = '1' then
                 parked_reg <= '0';
             elsif parked_reg = '1' then
-                if int_taken = '1' then
+                if int_taken_i = '1' then
                     parked_reg <= '0';
                 end if;
             elsif wfi_reg = '1' then
@@ -470,7 +463,6 @@ begin
     end process pipeline_reg;
 
     pipe_en_o     <= pipe_en;
-    int_taken_o   <= int_taken;
 
     instr_err_o   <= instr_err_reg;
     fetch_fault_o <= fetch_fault_reg;

@@ -19,10 +19,6 @@ entity csrs is
         ex_irq_i     : in  std_logic;
         sw_irq_i     : in  std_logic;
         tm_irq_i     : in  std_logic;
-        -- Decided in trap_ctrl, out of the four signals exported below. It
-        -- comes back for the one write here that still needs it: the interrupt
-        -- bit of mcause.
-        int_taken_i  : in  std_logic;
         -- The whole mcause code field, prioritised in trap_ctrl: the interrupt
         -- code while int_taken is up, the exception code otherwise. The two
         -- numberings collide -- 3, 7 and 11 name something in each -- so
@@ -59,6 +55,10 @@ entity csrs is
         exi_taken_o   : out std_logic;
         tmi_taken_o   : out std_logic;
         swi_taken_o   : out std_logic;
+        -- Their OR: "some interrupt is armed". main_ctrl squashes the decode
+        -- and wakes a parked wfi with it, and it is the interrupt bit of
+        -- mcause here.
+        int_taken_o   : out std_logic;
         -- The fully resolved trap redirect: mepc for an mret, mtvec for every
         -- other trap. Both registers are owned here, so the 2:1 mux stays next
         -- to them and 32 bits cross into ex_block instead of 60.
@@ -105,6 +105,7 @@ architecture rtl of csrs is
     signal exi_taken            : std_logic;
     signal tmi_taken            : std_logic;
     signal swi_taken            : std_logic;
+    signal int_taken            : std_logic;
 
     signal trap_target    : std_logic_vector(XLEN-1 downto 0);
 
@@ -221,7 +222,7 @@ begin
 
     -- The write is unconditional under exc_taken_i, where the old form held
     -- the previous mcause whenever no cause matched. The only way to reach it
-    -- is int_taken_i dropping between the cycle trap_ctrl arms the trap and the
+    -- is int_taken dropping between the cycle trap_ctrl arms the trap and the
     -- cycle it commits, and a held stale cause is no better an answer there.
     write_mcause: process(clk_i)
     begin
@@ -230,7 +231,7 @@ begin
                 mcause_int <= '0';
                 mcause_exc <= (others => '0');
             elsif exc_taken_i = '1' then
-                mcause_int <= int_taken_i;
+                mcause_int <= int_taken;
                 mcause_exc <= mcause_exc_i;
             elsif wr_addr_i = CSR_ADDR_MCAUSE and wr_en_i = '1' then
                 mcause_int <= wr_data_i(XLEN-1);
@@ -298,6 +299,7 @@ begin
     exi_taken <= mie_meie_bypassed and mip_meip and mstatus_mie_bypassed;
     tmi_taken <= mie_mtie_bypassed and mip_mtip and mstatus_mie_bypassed;
     swi_taken <= mie_msie_bypassed and mip_msip and mstatus_mie_bypassed;
+    int_taken <= exi_taken or tmi_taken or swi_taken;
 
     -- mret_i is the registered copy out of main_ctrl, EX-aligned like the two
     -- pipeline registers it picks between.
@@ -310,6 +312,7 @@ begin
     exi_taken_o     <= exi_taken;
     tmi_taken_o     <= tmi_taken;
     swi_taken_o     <= swi_taken;
+    int_taken_o     <= int_taken;
     trap_target_o   <= trap_target;
     csrrd_data_o    <= csrrd_data_reg;
     pc_o            <= pc_reg;

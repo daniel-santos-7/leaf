@@ -113,13 +113,14 @@ architecture rtl of id_stage is
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
     -- The three interrupt causes, already masked by mstatus.MIE in csrs, which
-    -- owns mie/mip/mstatus. main_ctrl ORs them into int_taken, which squashes
-    -- the decode, takes the trap and wakes a parked wfi. trap_ctrl, over in
-    -- ex_block, ranks the three apart to name the cause and rebuilds the OR
-    -- there, so only the three leave.
+    -- owns mie/mip/mstatus, plus their OR. The OR stays here, for main_ctrl:
+    -- it squashes the decode, takes the trap and wakes a parked wfi. trap_ctrl,
+    -- over in ex_block, ranks the three apart to name the cause, so only the
+    -- three leave.
     signal csrs_exi_taken   : std_logic;
     signal csrs_tmi_taken   : std_logic;
     signal csrs_swi_taken   : std_logic;
+    signal csrs_int_taken   : std_logic;
     signal csrs_trap_target : std_logic_vector(XLEN-1 downto 0);
     signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
     signal csrs_pc          : std_logic_vector(XLEN-1 downto 0);
@@ -132,7 +133,6 @@ architecture rtl of id_stage is
     -- faults raised there. main_ctrl also owns the pipeline advance, since a
     -- parked wfi is an ID-time decision.
     signal main_ctrl_pipe_en     : std_logic;
-    signal main_ctrl_int_taken   : std_logic;
     signal main_ctrl_instr_err   : std_logic;
     signal main_ctrl_fetch_fault : std_logic;
     signal main_ctrl_ebreak      : std_logic;
@@ -151,12 +151,9 @@ begin
         imrd_fault_i   => fault_i,
         instr_i        => instr_i,
         id_valid_i     => id_valid,
-        exi_taken_i    => csrs_exi_taken,
-        tmi_taken_i    => csrs_tmi_taken,
-        swi_taken_i    => csrs_swi_taken,
+        int_taken_i    => csrs_int_taken,
         ready_i        => ready_i,
         pipe_en_o      => main_ctrl_pipe_en,
-        int_taken_o    => main_ctrl_int_taken,
         instr_err_o    => main_ctrl_instr_err,
         fetch_fault_o  => main_ctrl_fetch_fault,
         ebreak_o       => main_ctrl_ebreak,
@@ -205,7 +202,6 @@ begin
         ex_irq_i     => ex_irq_i,
         sw_irq_i     => sw_irq_i,
         tm_irq_i     => tm_irq_i,
-        int_taken_i  => main_ctrl_int_taken,
         mcause_exc_i => mcause_exc_i,
         mtval_i      => mtval_i,
         mepc_i       => mepc_i,
@@ -227,6 +223,7 @@ begin
         exi_taken_o   => csrs_exi_taken,
         tmi_taken_o   => csrs_tmi_taken,
         swi_taken_o   => csrs_swi_taken,
+        int_taken_o   => csrs_int_taken,
         trap_target_o => csrs_trap_target,
         csrrd_data_o => csrs_csrrd_data,
         pc_o         => csrs_pc

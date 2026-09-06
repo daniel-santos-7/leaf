@@ -133,12 +133,9 @@ package leaf_pkg is
             imrd_fault_i   : in  std_logic;
             instr_i        : in  std_logic_vector(XLEN-1 downto 0);
             id_valid_i     : in  std_logic;
-            exi_taken_i    : in  std_logic;
-            tmi_taken_i    : in  std_logic;
-            swi_taken_i    : in  std_logic;
+            int_taken_i    : in  std_logic;
             ready_i        : in  std_logic;
             pipe_en_o      : out std_logic;
-            int_taken_o    : out std_logic;
             instr_err_o    : out std_logic;
             fetch_fault_o  : out std_logic;
             ebreak_o       : out std_logic;
@@ -232,7 +229,6 @@ package leaf_pkg is
             ex_irq_i     : in  std_logic;
             sw_irq_i     : in  std_logic;
             tm_irq_i     : in  std_logic;
-            int_taken_i  : in  std_logic;
             mcause_exc_i : in  std_logic_vector(4 downto 0);
             mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
             mepc_i       : in  std_logic_vector(XLEN-1 downto 2);
@@ -254,6 +250,7 @@ package leaf_pkg is
             exi_taken_o   : out std_logic;
             tmi_taken_o   : out std_logic;
             swi_taken_o   : out std_logic;
+            int_taken_o   : out std_logic;
             trap_target_o : out std_logic_vector(XLEN-1 downto 0);
             csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
             pc_o         : out std_logic_vector(XLEN-1 downto 0)
