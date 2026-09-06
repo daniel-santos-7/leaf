@@ -13,9 +13,6 @@ entity ex_block is
     port (
         clk_i          : in  std_logic;
         reset_i        : in  std_logic;
-        -- The trap redirect target, resolved in csrs: exception versus mret
-        -- only picks mtvec over mepc, and both registers live over there. Its
-        -- taken side is decided here, in trap_ctrl.
         trap_target_i  : in  std_logic_vector(XLEN-1 downto 0);
         func3_i        : in  std_logic_vector(2  downto 0);
         reg0_i         : in  std_logic_vector(XLEN-1 downto 0);
@@ -30,9 +27,6 @@ entity ex_block is
         dmls_ctrl_i    : in  std_logic_vector(1  downto 0);
         redirect_ack_i : in  std_logic;
 
-        -- The trap cause set, decoded and registered in trap_decode, plus the
-        -- pipeline advance and the interrupts it ranks. trap_ctrl below closes
-        -- the decision over the faults raised here.
         instr_err_i    : in  std_logic;
         fetch_fault_i  : in  std_logic;
         ebreak_i       : in  std_logic;
@@ -44,8 +38,6 @@ entity ex_block is
         exi_taken_i    : in  std_logic;
         tmi_taken_i    : in  std_logic;
         swi_taken_i    : in  std_logic;
-        -- main_ctrl's write enables, registered there; they leave gated by the
-        -- EX faults below.
         regwr_en_i     : in  std_logic;
         csrwr_en_i     : in  std_logic;
 
@@ -54,19 +46,10 @@ entity ex_block is
         taken_o        : out std_logic;
         target_o       : out std_logic_vector(XLEN-1 downto 0);
         res_o          : out std_logic_vector(XLEN-1 downto 0);
-        -- pc+4, out of the alu's own incrementer: the JAL/JALR link address,
-        -- and the mepc a wfi trap stacks -- csrs reads this one instead of
-        -- building a second.
         pc_next_o      : out std_logic_vector(XLEN-1 downto 0);
-        -- The funct3 mux over csrrd_data/reg0/imm, handed straight back to the
-        -- csrs write port in id_stage: its operands are the same post-pipeline
-        -- values the alu reads, so the mux belongs on this side of the register.
         csrwr_data_o   : out std_logic_vector(XLEN-1 downto 0);
         dmld_data_o    : out std_logic_vector(XLEN-1 downto 0);
 
-        -- What the trap commits, for csrs and the register file back in
-        -- id_stage. The five faults these are resolved from stay here: nothing
-        -- outside trap_ctrl reads them apart.
         exc_taken_o    : out std_logic;
         mcause_exc_o   : out std_logic_vector(4 downto 0);
         mtval_o        : out std_logic_vector(XLEN-1 downto 0);
