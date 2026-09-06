@@ -133,10 +133,19 @@ package leaf_pkg is
             imrd_fault_i   : in  std_logic;
             instr_i        : in  std_logic_vector(XLEN-1 downto 0);
             id_valid_i     : in  std_logic;
-            int_taken_i    : in  std_logic;
-            pipe_en_i      : in  std_logic;
+            exi_taken_i    : in  std_logic;
+            tmi_taken_i    : in  std_logic;
+            swi_taken_i    : in  std_logic;
+            ready_i        : in  std_logic;
+            pipe_en_o      : out std_logic;
+            int_taken_o    : out std_logic;
             instr_err_o    : out std_logic;
-            sys_ctrl_o     : out std_logic;
+            fetch_fault_o  : out std_logic;
+            ebreak_o       : out std_logic;
+            mret_o         : out std_logic;
+            wfi_o          : out std_logic;
+            exc_cause_o    : out std_logic;
+            retire_o       : out std_logic;
             func3_o        : out std_logic_vector(2  downto 0);
             branch_op_o    : out std_logic_vector(1  downto 0);
             alu_op_o       : out std_logic_vector(5  downto 0);
@@ -173,31 +182,6 @@ package leaf_pkg is
             rd_data1_o : out std_logic_vector(XLEN-1 downto 0)
         );
     end component reg_file;
-
-    component trap_decode is
-        port (
-            clk_i         : in  std_logic;
-            reset_i       : in  std_logic;
-            sys_ctrl_i    : in  std_logic;
-            funct12_i     : in  std_logic_vector(11 downto 0);
-            id_valid_i    : in  std_logic;
-            instr_err_i   : in  std_logic;
-            imrd_fault_i  : in  std_logic;
-            exi_taken_i   : in  std_logic;
-            tmi_taken_i   : in  std_logic;
-            swi_taken_i   : in  std_logic;
-            ready_i       : in  std_logic;
-            pipe_en_o     : out std_logic;
-            int_taken_o   : out std_logic;
-            instr_err_o   : out std_logic;
-            fetch_fault_o : out std_logic;
-            ebreak_o      : out std_logic;
-            mret_o        : out std_logic;
-            wfi_o         : out std_logic;
-            exc_cause_o   : out std_logic;
-            retire_o      : out std_logic
-        );
-    end component trap_decode;
 
     component trap_ctrl is
         port (

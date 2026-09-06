@@ -19,17 +19,29 @@ entity main_ctrl is
         -- The ID slot holds a real instruction: not empty, not wrong-path, not
         -- flushed. Built in id_stage, which owns all three terms.
         id_valid_i     : in  std_logic;
-        -- Evaluated in csrs, from mie/mip/mstatus and their write bypass.
-        int_taken_i    : in  std_logic;
-        -- The ID/EX advance. trap_ctrl owns it because a parked wfi holds it.
-        pipe_en_i      : in  std_logic;
-        -- The one cause decoded here, at ID time: trap_ctrl ORs it into its
-        -- cause set, decides the advance from that and registers it for csrs.
+        -- The three interrupt causes, already masked by mstatus.MIE in csrs.
+        -- Only the OR of them is an ID-time decision; trap_ctrl ranks the three
+        -- apart in ex_block to name the cause.
+        exi_taken_i    : in  std_logic;
+        tmi_taken_i    : in  std_logic;
+        swi_taken_i    : in  std_logic;
+        -- The one EX signal read here: pipe_en_o below is the ID/EX advance,
+        -- and an advance waits on EX.
+        ready_i        : in  std_logic;
+
+        pipe_en_o      : out std_logic;
+        int_taken_o    : out std_logic;
+
+        -- The cause set, registered here and EX-aligned from here on. trap_ctrl
+        -- ranks it in ex_block against the faults raised there.
         instr_err_o    : out std_logic;
-        -- SYSTEM with funct3 = 000, i.e. ecall/ebreak/mret/wfi, squashed like
-        -- the rest of the decode. trap_decode picks which one from funct12 and
-        -- holds the wfi across the squash in a register of its own.
-        sys_ctrl_o     : out std_logic;
+        fetch_fault_o  : out std_logic;
+        ebreak_o       : out std_logic;
+        mret_o         : out std_logic;
+        wfi_o          : out std_logic;
+        exc_cause_o    : out std_logic;
+        retire_o       : out std_logic;
+
         -- Registered (pipeline) outputs.
         func3_o       : out std_logic_vector(2  downto 0);
         branch_op_o   : out std_logic_vector(1  downto 0);
@@ -57,11 +69,29 @@ architecture rtl of main_ctrl is
     signal regwr_en  : std_logic;
     signal sys_ctrl  : std_logic;
 
-    -- The only cause decoded here. ecall/ebreak/wfi/mret are not among them:
-    -- they are pure trap control and are decoded in trap_ctrl, and so is the
-    -- fetch fault, which is a qualified input rather than decode. trap_ctrl
-    -- registers this one too, so no registered twin lives here.
-    signal instr_err : std_logic;
+    signal instr_err   : std_logic;
+    signal fetch_fault : std_logic;
+
+    -- The processor is in wait. sys_ctrl falls to the same squash as the rest
+    -- of the decode, and a pending interrupt is part of that squash -- but the
+    -- interrupt is also what releases a wfi, so in the release cycle the decode
+    -- is already gone. This register carries the wait across that cycle: EX
+    -- still has to learn it was a wfi, to stack pc+4 and to count the retire.
+    signal parked     : std_logic;
+    signal parked_reg : std_logic;
+
+    -- ecall has no registered twin: it is the else of the cause chain in
+    -- trap_ctrl, so nothing over there reads it. It crosses the boundary
+    -- inside exc_cause.
+    signal ecall  : std_logic;
+    signal ebreak : std_logic;
+    signal mret   : std_logic;
+    signal wfi    : std_logic;
+
+    signal int_taken : std_logic;
+    signal exc_cause : std_logic;
+    signal pipe_en   : std_logic;
+    signal retire    : std_logic;
 
     signal branch_op     : std_logic_vector(1  downto 0);
     signal alu_op        : std_logic_vector(5  downto 0);
@@ -85,6 +115,14 @@ architecture rtl of main_ctrl is
     signal regwr_addr_reg   : std_logic_vector(4 downto 0);
     signal csrwr_en_reg     : std_logic;
     signal csrs_addr_reg    : std_logic_vector(11 downto 0);
+
+    signal exc_cause_reg   : std_logic;
+    signal retire_reg      : std_logic;
+    signal instr_err_reg   : std_logic;
+    signal fetch_fault_reg : std_logic;
+    signal ebreak_reg      : std_logic;
+    signal mret_reg        : std_logic;
+    signal wfi_reg         : std_logic;
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -112,11 +150,11 @@ begin
     -- The decode falls to an invalid slot, to a faulted fetch, which delivers a
     -- garbage instr_i, and to a pending interrupt, which outranks the
     -- instruction occupying the slot. sys_ctrl falls with it: the wfi it also
-    -- covers must outlive a pending interrupt, and trap_decode's park register
-    -- is what carries it across.
-    main_ctrl_proc: process(opcode, instr_i, id_valid_i, imrd_fault_i, int_taken_i)
+    -- covers must outlive a pending interrupt, and the park register below is
+    -- what carries it across.
+    main_ctrl_proc: process(opcode, instr_i, id_valid_i, imrd_fault_i, int_taken)
     begin
-        if id_valid_i = '0' or imrd_fault_i = '1' or int_taken_i = '1' then
+        if id_valid_i = '0' or imrd_fault_i = '1' or int_taken = '1' then
             dmls_ctrl    <= DMLS_IDLE;
             instr_err    <= '0';
             imm_type     <= (others => '-');
@@ -330,10 +368,70 @@ begin
         end if;
     end process alu_op_ctrl;
 
+    -- Only id_valid_i annuls the fetch error bit: a pending interrupt must not,
+    -- or every fetch fault taken in its shadow would be silently dropped.
+    fetch_fault  <= imrd_fault_i and id_valid_i;
+
+    -- Each input arrives masked by mstatus.MIE in csrs, so nothing is left of
+    -- the decision here but the OR.
+    int_taken    <= exi_taken_i or tmi_taken_i or swi_taken_i;
+
+    -- Equality comparators rather than a case over funct12: the four encodings
+    -- are sparse and a case costs far more area here.
+    wfi    <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"105" else '0';
+    ecall  <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"000" else '0';
+    ebreak <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"001" else '0';
+    mret   <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"302" else '0';
+
+    parked <= wfi or parked_reg;
+
+    -- `and not exc_cause_reg` is a one-shot. int_taken is still high through the
+    -- cycle csrs commits from exc_cause_reg; without it the trap commits twice,
+    -- the second time with pc_reg advanced and int_taken already dropped,
+    -- leaving a wrong mepc and an mcause without the interrupt bit. Covered by
+    -- verif/tests/wfi_timer.
+    exc_cause <= instr_err or fetch_fault or ecall or ebreak
+                 or (int_taken and not exc_cause_reg);
+
+    -- A parked wfi must still wait on EX. The earlier form,
+    -- `int_taken when wfi = '1' else ready_i`, dropped ready_i while parked, so
+    -- an interrupt landing in the few cycles a load still occupies EX would
+    -- advance the ID/EX register over it.
+    --
+    -- NOT COVERED: hitting that window needs the interrupt to fire inside those
+    -- few cycles, and wfi_timer's park is thousands of cycles long. This form
+    -- can only delay an advance, never allow one the old form refused, so it is
+    -- safe to carry unverified.
+    pipe_en   <= ready_i and (int_taken or not parked);
+
+    retire    <= id_valid_i and ((not exc_cause) or parked);
+
+    -- Its own process: pipeline_reg below only clocks under pipe_en, which a
+    -- park holds at '0', so the wait would never be recorded there. id_valid_i
+    -- releases it as well as int_taken -- a redirect can flush the slot the wfi
+    -- sits in, and a flushed wfi must not keep the pipeline parked.
+    park_reg: process(clk_i)
+    begin
+        if rising_edge(clk_i) then
+            if reset_i = '1' then
+                parked_reg <= '0';
+            else
+                parked_reg <= parked and id_valid_i and not int_taken;
+            end if;
+        end if;
+    end process park_reg;
+
     pipeline_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
+                exc_cause_reg    <= '0';
+                retire_reg       <= '0';
+                instr_err_reg    <= '0';
+                fetch_fault_reg  <= '0';
+                ebreak_reg       <= '0';
+                mret_reg         <= '0';
+                wfi_reg          <= '0';
                 func3_reg        <= (others => '0');
                 branch_op_reg    <= BR_NONE;
                 alu_op_reg       <= (others => '0');
@@ -346,7 +444,14 @@ begin
                 regwr_addr_reg   <= (others => '0');
                 csrwr_en_reg     <= '0';
                 csrs_addr_reg    <= (others => '0');
-            elsif pipe_en_i = '1' then
+            elsif pipe_en = '1' then
+                exc_cause_reg    <= exc_cause;
+                retire_reg       <= retire;
+                instr_err_reg    <= instr_err;
+                fetch_fault_reg  <= fetch_fault;
+                ebreak_reg       <= ebreak;
+                mret_reg         <= mret;
+                wfi_reg          <= parked;
                 func3_reg        <= instr_i(14 downto 12);
                 branch_op_reg    <= branch_op;
                 alu_op_reg       <= alu_op;
@@ -363,8 +468,16 @@ begin
         end if;
     end process pipeline_reg;
 
-    instr_err_o   <= instr_err;
-    sys_ctrl_o    <= sys_ctrl;
+    pipe_en_o     <= pipe_en;
+    int_taken_o   <= int_taken;
+
+    instr_err_o   <= instr_err_reg;
+    fetch_fault_o <= fetch_fault_reg;
+    ebreak_o      <= ebreak_reg;
+    mret_o        <= mret_reg;
+    wfi_o         <= wfi_reg;
+    exc_cause_o   <= exc_cause_reg;
+    retire_o      <= retire_reg;
 
     func3_o       <= func3_reg;
     branch_op_o   <= branch_op_reg;

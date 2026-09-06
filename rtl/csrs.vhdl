@@ -299,7 +299,7 @@ begin
     tmi_taken <= mie_mtie_bypassed and mip_mtip and mstatus_mie_bypassed;
     swi_taken <= mie_msie_bypassed and mip_msip and mstatus_mie_bypassed;
 
-    -- mret_i is the registered copy out of trap_decode, EX-aligned like the two
+    -- mret_i is the registered copy out of main_ctrl, EX-aligned like the two
     -- pipeline registers it picks between.
     trap_target <= mepc_reg & b"00" when mret_i = '1' else
                    mtvec_base_reg & b"00";

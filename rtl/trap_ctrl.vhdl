@@ -69,7 +69,7 @@ begin
                  dmst_malgn_i or dmst_fault_i;
 
     -- The spec's trap priority, in one chain. An ecall is the only cause left
-    -- once the eleven above it are ruled out, so it is the else and trap_decode
+    -- once the eleven above it are ruled out, so it is the else and main_ctrl
     -- registers no ecall.
     encode_trap: process(swi_taken_i, tmi_taken_i, exi_taken_i, imrd_malgn_i,
                          fetch_fault_i, instr_err_i, ebreak_i, dmld_malgn_i,

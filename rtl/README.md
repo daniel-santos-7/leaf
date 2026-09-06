@@ -8,8 +8,7 @@
 | `rtl/core.vhdl` | `core` | Pipeline wiring: IF + ID/EX |
 | `rtl/if_stage.vhdl` | `if_stage` | Fetch FSM + pipeline regs, drives instruction Wishbone port |
 | `rtl/id_stage.vhdl` | `id_stage` | Decode, reg file, CSRs, pipeline reg |
-| `rtl/main_ctrl.vhdl` | `main_ctrl` | Decoder + immediate gen + ALU op decode |
-| `rtl/trap_decode.vhdl` | `trap_decode` | ID-time trap decode: ecall/ebreak/mret/wfi qualification, pipeline advance, cause set register |
+| `rtl/main_ctrl.vhdl` | `main_ctrl` | Decoder + immediate gen + ALU op decode + ID-time trap decode (cause set register, park register, pipeline advance) |
 | `rtl/trap_ctrl.vhdl` | `trap_ctrl` | EX-time trap decision (in `ex_block`): priority, what the trap stacks (mcause, mtval, mepc), write inhibits, CSR write data mux |
 | `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file (SIZE=16 or 32) |
 | `rtl/csrs.vhdl` | `csrs` | Machine CSRs, interrupt operands, trap state commit |

@@ -210,7 +210,7 @@ begin
         wfi_i          => id_stage_wfi,
         exc_cause_i    => id_stage_exc_cause,
         retire_i       => id_stage_retire,
-        -- id_stage.ready_o is trap_decode's pipe_en: the ID/EX advance, which
+        -- id_stage.ready_o is main_ctrl's pipe_en: the ID/EX advance, which
         -- qualifies the retire count on the way out of trap_ctrl.
         pipe_en_i      => id_stage_ready,
         exi_taken_i    => id_stage_exi_taken,

@@ -52,7 +52,7 @@ entity id_stage is
         -- taken side is decided in ex_block, out of the cause set below.
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
 
-        -- The cause set, decoded and registered in trap_decode, and the
+        -- The cause set, decoded and registered in main_ctrl, and the
         -- interrupts csrs arms. trap_ctrl ranks them in ex_block, against the
         -- faults that are raised there.
         instr_err_o   : out std_logic;
@@ -89,13 +89,9 @@ end entity id_stage;
 architecture rtl of id_stage is
 
     -- The ID slot holds a real instruction: not empty, not wrong-path, not
-    -- flushed. main_ctrl squashes its decode with it, trap_decode qualifies its
-    -- own decode and counts retirements by it.
+    -- flushed. main_ctrl squashes its decode with it, qualifies the trap decode
+    -- with it and counts retirements by it.
     signal id_valid : std_logic;
-
-    -- ID-time decode, one cycle ahead of the registered copies below.
-    signal main_ctrl_instr_err : std_logic;
-    signal main_ctrl_sys_ctrl  : std_logic;
 
     -- main_ctrl registered (pipeline) outputs
     signal main_ctrl_func3       : std_logic_vector(2  downto 0);
@@ -117,10 +113,10 @@ architecture rtl of id_stage is
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
     -- The three interrupt causes, already masked by mstatus.MIE in csrs, which
-    -- owns mie/mip/mstatus. trap_decode ORs them into int_taken: main_ctrl
-    -- consumes that to squash the decode, trap_decode to take the trap and to
-    -- wake a parked wfi. trap_ctrl, over in ex_block, ranks the three apart to
-    -- name the cause and rebuilds the OR there, so only the three leave.
+    -- owns mie/mip/mstatus. main_ctrl ORs them into int_taken, which squashes
+    -- the decode, takes the trap and wakes a parked wfi. trap_ctrl, over in
+    -- ex_block, ranks the three apart to name the cause and rebuilds the OR
+    -- there, so only the three leave.
     signal csrs_exi_taken   : std_logic;
     signal csrs_tmi_taken   : std_logic;
     signal csrs_swi_taken   : std_logic;
@@ -131,19 +127,19 @@ architecture rtl of id_stage is
     signal csrs_cop_dat     : std_logic_vector(XLEN-1 downto 0);
     signal csrs_cop_we      : std_logic;
 
-    -- The ID half of the trap unit: it names and qualifies the cause and
-    -- registers the set for trap_ctrl, which ranks it in ex_block against the
-    -- faults raised there. trap_decode also owns the pipeline advance, since a
+    -- The ID half of the trap unit, decoded and registered in main_ctrl beside
+    -- the rest of the decode: trap_ctrl ranks the set in ex_block against the
+    -- faults raised there. main_ctrl also owns the pipeline advance, since a
     -- parked wfi is an ID-time decision.
-    signal trap_decode_pipe_en     : std_logic;
-    signal trap_decode_int_taken   : std_logic;
-    signal trap_decode_instr_err   : std_logic;
-    signal trap_decode_fetch_fault : std_logic;
-    signal trap_decode_ebreak      : std_logic;
-    signal trap_decode_mret        : std_logic;
-    signal trap_decode_wfi         : std_logic;
-    signal trap_decode_exc_cause   : std_logic;
-    signal trap_decode_retire      : std_logic;
+    signal main_ctrl_pipe_en     : std_logic;
+    signal main_ctrl_int_taken   : std_logic;
+    signal main_ctrl_instr_err   : std_logic;
+    signal main_ctrl_fetch_fault : std_logic;
+    signal main_ctrl_ebreak      : std_logic;
+    signal main_ctrl_mret        : std_logic;
+    signal main_ctrl_wfi         : std_logic;
+    signal main_ctrl_exc_cause   : std_logic;
+    signal main_ctrl_retire      : std_logic;
 
 begin
 
@@ -155,10 +151,19 @@ begin
         imrd_fault_i   => fault_i,
         instr_i        => instr_i,
         id_valid_i     => id_valid,
-        int_taken_i    => trap_decode_int_taken,
-        pipe_en_i      => trap_decode_pipe_en,
+        exi_taken_i    => csrs_exi_taken,
+        tmi_taken_i    => csrs_tmi_taken,
+        swi_taken_i    => csrs_swi_taken,
+        ready_i        => ready_i,
+        pipe_en_o      => main_ctrl_pipe_en,
+        int_taken_o    => main_ctrl_int_taken,
         instr_err_o    => main_ctrl_instr_err,
-        sys_ctrl_o     => main_ctrl_sys_ctrl,
+        fetch_fault_o  => main_ctrl_fetch_fault,
+        ebreak_o       => main_ctrl_ebreak,
+        mret_o         => main_ctrl_mret,
+        wfi_o          => main_ctrl_wfi,
+        exc_cause_o    => main_ctrl_exc_cause,
+        retire_o       => main_ctrl_retire,
         func3_o        => main_ctrl_func3,
         branch_op_o    => main_ctrl_branch_op,
         alu_op_o       => main_ctrl_alu_op,
@@ -187,7 +192,7 @@ begin
         wr_data3_i => csrs_csrrd_data,
         rd_addr0_i => instr_i(19 downto 15),
         rd_addr1_i => instr_i(24 downto 20),
-        re_i       => trap_decode_pipe_en,
+        re_i       => main_ctrl_pipe_en,
         rd_data0_o => reg_file_rd_data0,
         rd_data1_o => reg_file_rd_data1
     );
@@ -200,17 +205,17 @@ begin
         ex_irq_i     => ex_irq_i,
         sw_irq_i     => sw_irq_i,
         tm_irq_i     => tm_irq_i,
-        int_taken_i  => trap_decode_int_taken,
+        int_taken_i  => main_ctrl_int_taken,
         mcause_exc_i => mcause_exc_i,
         mtval_i      => mtval_i,
         mepc_i       => mepc_i,
-        mret_i       => trap_decode_mret,
+        mret_i       => main_ctrl_mret,
         exc_taken_i  => exc_taken_i,
         wr_en_i      => csrwr_en_i,
         wr_addr_i    => main_ctrl_csrs_addr,
         rw_addr_i    => instr_i(31 downto 20),
         wr_data_i    => csrwr_data_i,
-        pipe_en_i    => trap_decode_pipe_en,
+        pipe_en_i    => main_ctrl_pipe_en,
         pc_i         => pc_i,
         cycle_i      => cycle_i,
         timer_i      => timer_i,
@@ -227,42 +232,19 @@ begin
         pc_o         => csrs_pc
     );
 
-    id_stage_trap_decode: trap_decode port map (
-        clk_i         => clk_i,
-        reset_i       => reset_i,
-        sys_ctrl_i    => main_ctrl_sys_ctrl,
-        funct12_i     => instr_i(31 downto 20),
-        id_valid_i    => id_valid,
-        instr_err_i   => main_ctrl_instr_err,
-        imrd_fault_i  => fault_i,
-        exi_taken_i   => csrs_exi_taken,
-        tmi_taken_i   => csrs_tmi_taken,
-        swi_taken_i   => csrs_swi_taken,
-        ready_i       => ready_i,
-        pipe_en_o     => trap_decode_pipe_en,
-        int_taken_o   => trap_decode_int_taken,
-        instr_err_o   => trap_decode_instr_err,
-        fetch_fault_o => trap_decode_fetch_fault,
-        ebreak_o      => trap_decode_ebreak,
-        mret_o        => trap_decode_mret,
-        wfi_o         => trap_decode_wfi,
-        exc_cause_o   => trap_decode_exc_cause,
-        retire_o      => trap_decode_retire
-    );
-
-    ready_o       <= trap_decode_pipe_en;
+    ready_o       <= main_ctrl_pipe_en;
     func3_o       <= main_ctrl_func3;
     branch_op_o   <= main_ctrl_branch_op;
     alu_op_o      <= main_ctrl_alu_op;
     dmls_ctrl_o   <= main_ctrl_dmls_ctrl;
     trap_target_o <= csrs_trap_target;
 
-    instr_err_o   <= trap_decode_instr_err;
-    fetch_fault_o <= trap_decode_fetch_fault;
-    ebreak_o      <= trap_decode_ebreak;
-    mret_o        <= trap_decode_mret;
-    wfi_o         <= trap_decode_wfi;
-    exc_cause_o   <= trap_decode_exc_cause;
+    instr_err_o   <= main_ctrl_instr_err;
+    fetch_fault_o <= main_ctrl_fetch_fault;
+    ebreak_o      <= main_ctrl_ebreak;
+    mret_o        <= main_ctrl_mret;
+    wfi_o         <= main_ctrl_wfi;
+    exc_cause_o   <= main_ctrl_exc_cause;
     exi_taken_o   <= csrs_exi_taken;
     tmi_taken_o   <= csrs_tmi_taken;
     swi_taken_o   <= csrs_swi_taken;
@@ -275,7 +257,7 @@ begin
     opd_src_sel_o <= main_ctrl_opd_src_sel;
     opd_pass_o    <= main_ctrl_opd_pass;
     pc_full_o     <= csrs_pc;
-    retire_o      <= trap_decode_retire;
+    retire_o      <= main_ctrl_retire;
 
     cop_adr_o     <= csrs_cop_adr;
     cop_dat_o     <= csrs_cop_dat;
