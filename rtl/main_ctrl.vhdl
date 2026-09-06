@@ -26,9 +26,9 @@ entity main_ctrl is
         -- The one cause decoded here, at ID time: trap_ctrl ORs it into its
         -- cause set, decides the advance from that and registers it for csrs.
         instr_err_o    : out std_logic;
-        -- SYSTEM with funct3 = 000, i.e. ecall/ebreak/mret/wfi. trap_ctrl picks
-        -- which one from funct12 and qualifies it there: the four do not share
-        -- one squash condition, so this leaves here unqualified.
+        -- SYSTEM with funct3 = 000, i.e. ecall/ebreak/mret/wfi, squashed like
+        -- the rest of the decode. trap_decode picks which one from funct12 and
+        -- holds the wfi across the squash in a register of its own.
         sys_ctrl_o     : out std_logic;
         -- Registered (pipeline) outputs.
         func3_o       : out std_logic_vector(2  downto 0);
@@ -109,183 +109,13 @@ begin
         end case;
     end process gen;
 
-    -- Decode runs unconditionally and the override at the end squashes it.
+    -- The decode falls to an invalid slot, to a faulted fetch, which delivers a
+    -- garbage instr_i, and to a pending interrupt, which outranks the
+    -- instruction occupying the slot. sys_ctrl falls with it: the wfi it also
+    -- covers must outlive a pending interrupt, and trap_decode's park register
+    -- is what carries it across.
     main_ctrl_proc: process(opcode, instr_i, id_valid_i, imrd_fault_i, int_taken_i)
     begin
-        case opcode is
-            when RR_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= (others => '-');
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"00";
-                opd_pass     <= b"11";
-                ftype        <= '0';
-                op_en        <= '1';
-                regwr_sel    <= b"00";
-                csrwr_en     <= '0';
-                regwr_en     <= '1';
-                sys_ctrl     <= '0';
-            when IMM_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= IMM_I_TYPE;
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"10";
-                opd_pass     <= b"11";
-                ftype        <= '1';
-                op_en        <= '1';
-                regwr_sel    <= b"00";
-                csrwr_en     <= '0';
-                regwr_en     <= '1';
-                sys_ctrl     <= '0';
-            when JALR_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= IMM_I_TYPE;
-                branch_op    <= BR_JUMP;
-                opd_src_sel  <= b"10";
-                opd_pass     <= b"11";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"10";
-                csrwr_en     <= '0';
-                regwr_en     <= '1';
-                sys_ctrl     <= '0';
-            when LOAD_OPCODE =>
-                dmls_ctrl    <= DMLS_LOAD;
-                instr_err    <= '0';
-                imm_type     <= IMM_I_TYPE;
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"10";
-                opd_pass     <= b"11";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"01";
-                csrwr_en     <= '0';
-                regwr_en     <= '1';
-                sys_ctrl     <= '0';
-            when STORE_OPCODE =>
-                dmls_ctrl    <= DMLS_STORE;
-                instr_err    <= '0';
-                imm_type     <= IMM_S_TYPE;
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"10";
-                opd_pass     <= b"11";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"00";
-                csrwr_en     <= '0';
-                regwr_en     <= '0';
-                sys_ctrl     <= '0';
-            when BRANCH_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= IMM_B_TYPE;
-                branch_op    <= BR_BRANCH;
-                opd_src_sel  <= b"11";
-                opd_pass     <= b"11";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"00";
-                csrwr_en     <= '0';
-                regwr_en     <= '0';
-                sys_ctrl     <= '0';
-            when LUI_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= IMM_U_TYPE;
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"10";
-                opd_pass     <= b"10";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"00";
-                csrwr_en     <= '0';
-                regwr_en     <= '1';
-                sys_ctrl     <= '0';
-            when AUIPC_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= IMM_U_TYPE;
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"11";
-                opd_pass     <= b"11";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"00";
-                csrwr_en     <= '0';
-                regwr_en     <= '1';
-                sys_ctrl     <= '0';
-            when JAL_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= IMM_J_TYPE;
-                branch_op    <= BR_JUMP;
-                opd_src_sel  <= b"11";
-                opd_pass     <= b"11";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"10";
-                csrwr_en     <= '0';
-                regwr_en     <= '1';
-                sys_ctrl     <= '0';
-            when SYSTEM_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= IMM_Z_TYPE;
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"00";
-                opd_pass     <= b"00";
-                ftype        <= '0';
-                op_en        <= '0';
-                -- funct3 = 000 is ecall/ebreak/mret/wfi: here it only means the
-                -- instruction writes nothing back, trap_ctrl is what acts on
-                -- them.
-                if instr_i(14 downto 12) = b"000" then
-                    sys_ctrl  <= '1';
-                    regwr_sel <= b"00";
-                    csrwr_en  <= '0';
-                    regwr_en  <= '0';
-                else
-                    sys_ctrl  <= '0';
-                    regwr_sel <= b"11";
-                    csrwr_en  <= '1';
-                    regwr_en  <= '1';
-                end if;
-            when FENCE_OPCODE =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '0';
-                imm_type     <= (others => '-');
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"00";
-                opd_pass     <= b"00";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"00";
-                csrwr_en     <= '0';
-                regwr_en     <= '0';
-                sys_ctrl     <= '0';
-            when others =>
-                dmls_ctrl    <= DMLS_IDLE;
-                instr_err    <= '1';
-                imm_type     <= (others => '-');
-                branch_op    <= BR_NONE;
-                opd_src_sel  <= b"00";
-                opd_pass     <= b"00";
-                ftype        <= '0';
-                op_en        <= '0';
-                regwr_sel    <= b"00";
-                csrwr_en     <= '0';
-                regwr_en     <= '0';
-                sys_ctrl     <= '0';
-        end case;
-
-        -- The decode also falls to a faulted fetch, which delivers a garbage
-        -- instr_i, and to a pending interrupt, which outranks the instruction
-        -- occupying the slot. sys_ctrl is in neither: the four instructions it
-        -- covers do not share one condition -- a wfi must survive a pending
-        -- interrupt while an mret must not -- so trap_ctrl qualifies it.
         if id_valid_i = '0' or imrd_fault_i = '1' or int_taken_i = '1' then
             dmls_ctrl    <= DMLS_IDLE;
             instr_err    <= '0';
@@ -298,6 +128,176 @@ begin
             regwr_sel    <= b"00";
             csrwr_en     <= '0';
             regwr_en     <= '0';
+            sys_ctrl     <= '0';
+        else
+            case opcode is
+                when RR_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= (others => '-');
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"00";
+                    opd_pass     <= b"11";
+                    ftype        <= '0';
+                    op_en        <= '1';
+                    regwr_sel    <= b"00";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '1';
+                    sys_ctrl     <= '0';
+                when IMM_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_I_TYPE;
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"10";
+                    opd_pass     <= b"11";
+                    ftype        <= '1';
+                    op_en        <= '1';
+                    regwr_sel    <= b"00";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '1';
+                    sys_ctrl     <= '0';
+                when JALR_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_I_TYPE;
+                    branch_op    <= BR_JUMP;
+                    opd_src_sel  <= b"10";
+                    opd_pass     <= b"11";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"10";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '1';
+                    sys_ctrl     <= '0';
+                when LOAD_OPCODE =>
+                    dmls_ctrl    <= DMLS_LOAD;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_I_TYPE;
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"10";
+                    opd_pass     <= b"11";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"01";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '1';
+                    sys_ctrl     <= '0';
+                when STORE_OPCODE =>
+                    dmls_ctrl    <= DMLS_STORE;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_S_TYPE;
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"10";
+                    opd_pass     <= b"11";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"00";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '0';
+                    sys_ctrl     <= '0';
+                when BRANCH_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_B_TYPE;
+                    branch_op    <= BR_BRANCH;
+                    opd_src_sel  <= b"11";
+                    opd_pass     <= b"11";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"00";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '0';
+                    sys_ctrl     <= '0';
+                when LUI_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_U_TYPE;
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"10";
+                    opd_pass     <= b"10";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"00";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '1';
+                    sys_ctrl     <= '0';
+                when AUIPC_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_U_TYPE;
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"11";
+                    opd_pass     <= b"11";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"00";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '1';
+                    sys_ctrl     <= '0';
+                when JAL_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_J_TYPE;
+                    branch_op    <= BR_JUMP;
+                    opd_src_sel  <= b"11";
+                    opd_pass     <= b"11";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"10";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '1';
+                    sys_ctrl     <= '0';
+                when SYSTEM_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= IMM_Z_TYPE;
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"00";
+                    opd_pass     <= b"00";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    -- funct3 = 000 is ecall/ebreak/mret/wfi: here it only means the
+                    -- instruction writes nothing back, trap_ctrl is what acts on
+                    -- them.
+                    if instr_i(14 downto 12) = b"000" then
+                        regwr_sel <= b"00";
+                        csrwr_en  <= '0';
+                        regwr_en  <= '0';
+                        sys_ctrl  <= '1';
+                    else
+                        regwr_sel <= b"11";
+                        csrwr_en  <= '1';
+                        regwr_en  <= '1';
+                        sys_ctrl  <= '0';
+                    end if;
+                when FENCE_OPCODE =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '0';
+                    imm_type     <= (others => '-');
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"00";
+                    opd_pass     <= b"00";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"00";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '0';
+                    sys_ctrl     <= '0';
+                when others =>
+                    dmls_ctrl    <= DMLS_IDLE;
+                    instr_err    <= '1';
+                    imm_type     <= (others => '-');
+                    branch_op    <= BR_NONE;
+                    opd_src_sel  <= b"00";
+                    opd_pass     <= b"00";
+                    ftype        <= '0';
+                    op_en        <= '0';
+                    regwr_sel    <= b"00";
+                    csrwr_en     <= '0';
+                    regwr_en     <= '0';
+                    sys_ctrl     <= '0';
+            end case;
         end if;
     end process main_ctrl_proc;
 
