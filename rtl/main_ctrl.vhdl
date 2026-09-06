@@ -77,7 +77,6 @@ architecture rtl of main_ctrl is
     -- interrupt is also what releases a wfi, so in the release cycle the decode
     -- is already gone. This register carries the wait across that cycle: EX
     -- still has to learn it was a wfi, to stack pc+4 and to count the retire.
-    signal parked     : std_logic;
     signal parked_reg : std_logic;
 
     -- ecall has no registered twin: it is the else of the cause chain in
@@ -383,8 +382,6 @@ begin
     ebreak <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"001" else '0';
     mret   <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"302" else '0';
 
-    parked <= wfi or parked_reg;
-
     -- `and not exc_cause_reg` is a one-shot. int_taken is still high through the
     -- cycle csrs commits from exc_cause_reg; without it the trap commits twice,
     -- the second time with pc_reg advanced and int_taken already dropped,
@@ -402,21 +399,25 @@ begin
     -- few cycles, and wfi_timer's park is thousands of cycles long. This form
     -- can only delay an advance, never allow one the old form refused, so it is
     -- safe to carry unverified.
-    pipe_en   <= ready_i and (int_taken or not parked);
+    pipe_en   <= ready_i and not parked_reg;
 
-    retire    <= id_valid_i and ((not exc_cause) or parked);
+    retire    <= id_valid_i and ((not exc_cause) or parked_reg);
 
     -- Its own process: pipeline_reg below only clocks under pipe_en, which a
-    -- park holds at '0', so the wait would never be recorded there. id_valid_i
-    -- releases it as well as int_taken -- a redirect can flush the slot the wfi
-    -- sits in, and a flushed wfi must not keep the pipeline parked.
+    -- park holds at '0', so the wait would never be recorded there. The set
+    -- condition is the decoded wfi, not wfi_reg: wfi_reg is written under
+    -- pipe_en, and pipe_en is '0' for every cycle wfi is '1'.
     park_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 parked_reg <= '0';
-            else
-                parked_reg <= parked and id_valid_i and not int_taken;
+            elsif parked_reg = '1' then
+                if int_taken = '1' then
+                    parked_reg <= '0';
+                end if;
+            elsif wfi_reg = '1' then
+                parked_reg <= '1';
             end if;
         end if;
     end process park_reg;
@@ -451,7 +452,7 @@ begin
                 fetch_fault_reg  <= fetch_fault;
                 ebreak_reg       <= ebreak;
                 mret_reg         <= mret;
-                wfi_reg          <= parked;
+                wfi_reg          <= wfi;
                 func3_reg        <= instr_i(14 downto 12);
                 branch_op_reg    <= branch_op;
                 alu_op_reg       <= alu_op;
