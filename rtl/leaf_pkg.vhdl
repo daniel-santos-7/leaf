@@ -174,16 +174,6 @@ package leaf_pkg is
         );
     end component reg_file;
 
-    component csrs_logic is
-        port (
-            csrwr_mode_i : in  std_logic_vector(2           downto 0);
-            csrrd_data_i : in  std_logic_vector(XLEN-1      downto 0);
-            regwr_data_i : in  std_logic_vector(XLEN-1      downto 0);
-            immwr_data_i : in  std_logic_vector(XLEN-1      downto 0);
-            csrwr_data_o : out std_logic_vector(XLEN-1      downto 0)
-        );
-    end component csrs_logic;
-
     component trap_decode is
         port (
             clk_i         : in  std_logic;
@@ -232,6 +222,10 @@ package leaf_pkg is
             pc_next_i      : in  std_logic_vector(XLEN-1 downto 2);
             regwr_en_i     : in  std_logic;
             csrwr_en_i     : in  std_logic;
+            csrwr_mode_i   : in  std_logic_vector(2      downto 0);
+            csrrd_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+            regwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
+            immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
             exc_taken_o    : out std_logic;
             taken_o        : out std_logic;
             mcause_exc_o   : out std_logic_vector(4 downto 0);
@@ -239,6 +233,7 @@ package leaf_pkg is
             mepc_o         : out std_logic_vector(XLEN-1 downto 2);
             regwr_en_o     : out std_logic;
             csrwr_en_o     : out std_logic;
+            csrwr_data_o   : out std_logic_vector(XLEN-1 downto 0);
             retire_o       : out std_logic
         );
     end component trap_ctrl;

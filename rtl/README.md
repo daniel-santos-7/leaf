@@ -10,14 +10,13 @@
 | `rtl/id_stage.vhdl` | `id_stage` | Decode, reg file, CSRs, pipeline reg |
 | `rtl/main_ctrl.vhdl` | `main_ctrl` | Decoder + immediate gen + ALU op decode |
 | `rtl/trap_decode.vhdl` | `trap_decode` | ID-time trap decode: ecall/ebreak/mret/wfi qualification, pipeline advance, cause set register |
-| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | EX-time trap decision (in `ex_block`): priority, what the trap stacks (mcause, mtval, mepc), write inhibits |
+| `rtl/trap_ctrl.vhdl` | `trap_ctrl` | EX-time trap decision (in `ex_block`): priority, what the trap stacks (mcause, mtval, mepc), write inhibits, CSR write data mux |
 | `rtl/reg_file.vhdl` | `reg_file` | 32×32 register file (SIZE=16 or 32) |
 | `rtl/csrs.vhdl` | `csrs` | Machine CSRs, interrupt operands, trap state commit |
 | `rtl/ex_block.vhdl` | `ex_block` | ALU, branch, load/store, CSR write mux |
 | `rtl/alu.vhdl` | `alu` | ALU datapath (bypass chain) |
 | `rtl/br_detector.vhdl` | `br_detector` | Branch condition evaluation |
 | `rtl/dmls_block.vhdl` | `dmls_block` | Data load/store FSM, drives data Wishbone port |
-| `rtl/csrs_logic.vhdl` | `csrs_logic` | CSR write data mux (funct3-based) |
 | `rtl/counters.vhdl` | `counters` | mcycle, time, instret |
 | `rtl/wb_arbiter.vhdl` | `wb_arbiter` | Wishbone arbiter (used in testbench only) |
 | `rtl/leaf_pkg.vhdl` | `leaf_pkg` | ISA constants, opcodes, ALU ops |
@@ -44,7 +43,6 @@ leaf (top)
         ├── alu          ALU datapath (arith → comp → logic → shifter)
         ├── br_detector  Branch condition evaluation
         ├── dmls_block   Data load/store FSM → data Wishbone
-        └── csrs_logic   CSR write data mux
 ```
 
 ### Pipeline Operation
@@ -587,7 +585,7 @@ mux. Drives the data Wishbone master port.
         ├── data_adr_o, data_dat_o
         └── dmld_data_o
 
-    csrs_logic ◀── func3, csrrd_data, reg0, imm
+    trap_ctrl ◀── func3, csrrd_data, reg0, imm (CSR write data mux)
         └── csrwr_data_o
 
     Target MUX: target_o = trap_target when trap_taken else arith_res & 0
@@ -753,9 +751,9 @@ halfword requires `addr(0)=0`, word requires `addr(1:0)=00`.
 | `dmst_fault_o` | out | 1 | Store bus fault |
 | `dmld_data_o` | out | XLEN | Load result (aligned + extended) |
 
-#### 1.5.4 `csrs_logic` — CSR Write Data Mux
+#### 1.5.4 CSR Write Data Mux (in `trap_ctrl`)
 
-File: `rtl/csrs_logic.vhdl`
+File: `rtl/trap_ctrl.vhdl`
 
 Combinational mux computing CSR write data from funct3:
 

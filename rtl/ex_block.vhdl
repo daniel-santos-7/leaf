@@ -98,8 +98,6 @@ architecture ex_block_arch of ex_block is
     signal br_detector_target     : std_logic_vector(XLEN-1 downto 0);
     signal br_detector_imrd_malgn : std_logic;
 
-    signal csrs_logic_csrwr_data : std_logic_vector(XLEN-1 downto 0);
-
     signal trap_ctrl_exc_taken  : std_logic;
     signal trap_ctrl_taken      : std_logic;
     signal trap_ctrl_mcause_exc : std_logic_vector(4 downto 0);
@@ -107,6 +105,7 @@ architecture ex_block_arch of ex_block is
     signal trap_ctrl_mepc       : std_logic_vector(XLEN-1 downto 2);
     signal trap_ctrl_regwr_en   : std_logic;
     signal trap_ctrl_csrwr_en   : std_logic;
+    signal trap_ctrl_csrwr_data : std_logic_vector(XLEN-1 downto 0);
     signal trap_ctrl_retire     : std_logic;
 
     signal dmls_block_dmls_ready : std_logic;
@@ -201,6 +200,10 @@ begin
         pc_next_i      => alu_pc_next(XLEN-1 downto 2),
         regwr_en_i     => regwr_en_i,
         csrwr_en_i     => csrwr_en_i,
+        csrwr_mode_i   => func3_i,
+        csrrd_data_i   => csrrd_data_i,
+        regwr_data_i   => reg0_i,
+        immwr_data_i   => immwr_data_i,
         exc_taken_o    => trap_ctrl_exc_taken,
         taken_o        => trap_ctrl_taken,
         mcause_exc_o   => trap_ctrl_mcause_exc,
@@ -208,15 +211,8 @@ begin
         mepc_o         => trap_ctrl_mepc,
         regwr_en_o     => trap_ctrl_regwr_en,
         csrwr_en_o     => trap_ctrl_csrwr_en,
+        csrwr_data_o   => trap_ctrl_csrwr_data,
         retire_o       => trap_ctrl_retire
-    );
-
-    exec_csrs_logic: csrs_logic port map (
-        csrwr_mode_i => func3_i,
-        csrrd_data_i => csrrd_data_i,
-        regwr_data_i => reg0_i,
-        immwr_data_i => immwr_data_i,
-        csrwr_data_o => csrs_logic_csrwr_data
     );
 
     ready_o      <= dmls_block_dmls_ready;
@@ -225,7 +221,7 @@ begin
     target_o     <= br_detector_target;
     res_o        <= alu_res;
     pc_next_o    <= alu_pc_next;
-    csrwr_data_o <= csrs_logic_csrwr_data;
+    csrwr_data_o <= trap_ctrl_csrwr_data;
     dmld_data_o  <= dmls_block_dmld_data;
 
     exc_taken_o  <= trap_ctrl_exc_taken;
