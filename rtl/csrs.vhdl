@@ -59,6 +59,11 @@ entity csrs is
         -- and wakes a parked wfi with it, and it is the interrupt bit of
         -- mcause here.
         int_taken_o   : out std_logic;
+        -- The same OR made a one-shot and registered onto the ID/EX boundary:
+        -- the interrupt half of the cause set trap_ctrl ranks. It rides the
+        -- pipeline register below so it reaches ex_block beside the instruction
+        -- main_ctrl squashed for it -- that instruction's pc is the mepc.
+        int_trap_o    : out std_logic;
         -- The fully resolved trap redirect: mepc for an mret, mtvec for every
         -- other trap. Both registers are owned here, so the 2:1 mux stays next
         -- to them and 32 bits cross into ex_block instead of 60.
@@ -106,6 +111,7 @@ architecture rtl of csrs is
     signal tmi_taken            : std_logic;
     signal swi_taken            : std_logic;
     signal int_taken            : std_logic;
+    signal int_trap             : std_logic;
 
     signal trap_target    : std_logic_vector(XLEN-1 downto 0);
 
@@ -113,6 +119,7 @@ architecture rtl of csrs is
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
     signal csrrd_data_reg : std_logic_vector(XLEN-1 downto 0);
     signal pc_reg         : std_logic_vector(XLEN-1 downto 0);
+    signal int_trap_reg   : std_logic;
 
 begin
 
@@ -276,11 +283,13 @@ begin
                 mtvec_base_reg <= (others => '0');
                 csrrd_data_reg <= (others => '0');
                 pc_reg         <= (others => '0');
+                int_trap_reg   <= '0';
             elsif pipe_en_i = '1' then
                 mepc_reg       <= mepc_bypassed;
                 mtvec_base_reg <= mtvec_base_bypassed;
                 csrrd_data_reg <= rd_data_bypassed;
                 pc_reg         <= pc_full;
+                int_trap_reg   <= int_trap;
             end if;
         end if;
     end process pipeline_reg;
@@ -301,6 +310,15 @@ begin
     swi_taken <= mie_msie_bypassed and mip_msip and mstatus_mie_bypassed;
     int_taken <= exi_taken or tmi_taken or swi_taken;
 
+    -- The one-shot. mstatus.MIE only clears at the edge exc_taken_i commits the
+    -- trap, so int_taken is still up through that whole cycle; without the
+    -- guard the trap commits twice, the second time with pc_reg advanced and
+    -- the three causes above already dropped, leaving a wrong mepc and an
+    -- mcause the ranking in trap_ctrl can no longer name. Covered by
+    -- verif/tests/wfi_timer. exc_taken_i carries the EX faults too, which raise
+    -- the same hazard.
+    int_trap  <= int_taken and not exc_taken_i;
+
     -- mret_i is the registered copy out of main_ctrl, EX-aligned like the two
     -- pipeline registers it picks between.
     trap_target <= mepc_reg & b"00" when mret_i = '1' else
@@ -313,6 +331,7 @@ begin
     tmi_taken_o     <= tmi_taken;
     swi_taken_o     <= swi_taken;
     int_taken_o     <= int_taken;
+    int_trap_o      <= int_trap_reg;
     trap_target_o   <= trap_target;
     csrrd_data_o    <= csrrd_data_reg;
     pc_o            <= pc_reg;

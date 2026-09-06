@@ -29,10 +29,11 @@ entity ex_block is
 
         instr_err_i    : in  std_logic;
         fetch_fault_i  : in  std_logic;
+        ecall_i        : in  std_logic;
         ebreak_i       : in  std_logic;
         mret_i         : in  std_logic;
         wfi_i          : in  std_logic;
-        exc_cause_i    : in  std_logic;
+        int_trap_i     : in  std_logic;
         retire_i       : in  std_logic;
         pipe_en_i      : in  std_logic;
         exi_taken_i    : in  std_logic;
@@ -164,10 +165,11 @@ begin
     exec_trap_ctrl: trap_ctrl port map (
         instr_err_i    => instr_err_i,
         fetch_fault_i  => fetch_fault_i,
+        ecall_i        => ecall_i,
         ebreak_i       => ebreak_i,
         mret_i         => mret_i,
         wfi_i          => wfi_i,
-        exc_cause_i    => exc_cause_i,
+        int_trap_i     => int_trap_i,
         retire_i       => retire_i,
         pipe_en_i      => pipe_en_i,
         exi_taken_i    => exi_taken_i,

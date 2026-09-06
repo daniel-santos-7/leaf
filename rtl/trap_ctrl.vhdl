@@ -13,10 +13,11 @@ entity trap_ctrl is
     port (
         instr_err_i    : in  std_logic;
         fetch_fault_i  : in  std_logic;
+        ecall_i        : in  std_logic;
         ebreak_i       : in  std_logic;
         mret_i         : in  std_logic;
         wfi_i          : in  std_logic;
-        exc_cause_i    : in  std_logic;
+        int_trap_i     : in  std_logic;
         retire_i       : in  std_logic;
         pipe_en_i      : in  std_logic;
 
@@ -69,8 +70,8 @@ begin
                  dmst_malgn_i or dmst_fault_i;
 
     -- The spec's trap priority, in one chain. An ecall is the only cause left
-    -- once the eleven above it are ruled out, so it is the else and main_ctrl
-    -- registers no ecall.
+    -- once the eleven above it are ruled out, so it is the else -- ecall_i says
+    -- that a trap is taken at all, not which one.
     encode_trap: process(swi_taken_i, tmi_taken_i, exi_taken_i, imrd_malgn_i,
                          fetch_fault_i, instr_err_i, ebreak_i, dmld_malgn_i,
                          dmld_fault_i, dmst_malgn_i, dmst_fault_i,
@@ -133,7 +134,8 @@ begin
     mepc <= pc_next_i when wfi_i = '1' else
             pc_i(XLEN-1 downto 2);
 
-    exc_taken <= exc_cause_i or exc_fault;
+    exc_taken <= instr_err_i or fetch_fault_i or ecall_i or ebreak_i or
+                 int_trap_i or exc_fault;
 
     -- An mret redirects the fetch but commits nothing in csrs beyond the
     -- mstatus unstacking, so it joins the redirect and not exc_taken.
@@ -150,9 +152,11 @@ begin
 
     csrwr_data_o <= csrwr_data;
 
-    -- Qualified by pipe_en and not ready_i: while a wfi is parked ready_i still
-    -- reads '1' and retire_i still holds the bit of the instruction ahead of
-    -- it, which would be counted once per parked cycle. See verif/tests/wfi_timer.
-    retire_o    <= retire_i and pipe_en_i and not exc_fault;
+    -- retire_i is the raw "the ID slot held an instruction" bit; every reason
+    -- not to count it is here, where the whole cause set already is. Qualified
+    -- by pipe_en and not ready_i: while a wfi is parked ready_i still reads '1'
+    -- and retire_i still holds the bit of the instruction ahead of it, which
+    -- would be counted once per parked cycle. See verif/tests/wfi_timer.
+    retire_o    <= retire_i and pipe_en_i and not exc_taken;
 
 end architecture rtl;

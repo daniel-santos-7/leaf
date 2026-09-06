@@ -30,14 +30,16 @@ entity main_ctrl is
 
         pipe_en_o      : out std_logic;
 
-        -- The cause set, registered here and EX-aligned from here on. trap_ctrl
-        -- ranks it in ex_block against the faults raised there.
+        -- The synchronous half of the cause set, registered here and EX-aligned
+        -- from here on. trap_ctrl ranks it in ex_block against the faults raised
+        -- there and the interrupt csrs registers, and ORs the lot into its own
+        -- exc_taken -- nothing here is pre-ORed for it.
         instr_err_o    : out std_logic;
         fetch_fault_o  : out std_logic;
+        ecall_o        : out std_logic;
         ebreak_o       : out std_logic;
         mret_o         : out std_logic;
         wfi_o          : out std_logic;
-        exc_cause_o    : out std_logic;
         retire_o       : out std_logic;
 
         -- Registered (pipeline) outputs.
@@ -77,17 +79,12 @@ architecture rtl of main_ctrl is
     -- still has to learn it was a wfi, to stack pc+4 and to count the retire.
     signal parked_reg : std_logic;
 
-    -- ecall has no registered twin: it is the else of the cause chain in
-    -- trap_ctrl, so nothing over there reads it. It crosses the boundary
-    -- inside exc_cause.
     signal ecall  : std_logic;
     signal ebreak : std_logic;
     signal mret   : std_logic;
     signal wfi    : std_logic;
 
-    signal exc_cause : std_logic;
     signal pipe_en   : std_logic;
-    signal retire    : std_logic;
 
     signal branch_op     : std_logic_vector(1  downto 0);
     signal alu_op        : std_logic_vector(5  downto 0);
@@ -112,10 +109,10 @@ architecture rtl of main_ctrl is
     signal csrwr_en_reg     : std_logic;
     signal csrs_addr_reg    : std_logic_vector(11 downto 0);
 
-    signal exc_cause_reg   : std_logic;
     signal retire_reg      : std_logic;
     signal instr_err_reg   : std_logic;
     signal fetch_fault_reg : std_logic;
+    signal ecall_reg       : std_logic;
     signal ebreak_reg      : std_logic;
     signal mret_reg        : std_logic;
     signal wfi_reg         : std_logic;
@@ -375,14 +372,6 @@ begin
     ebreak <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"001" else '0';
     mret   <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"302" else '0';
 
-    -- `and not exc_cause_reg` is a one-shot. int_taken_i is still high through the
-    -- cycle csrs commits from exc_cause_reg; without it the trap commits twice,
-    -- the second time with pc_reg advanced and int_taken already dropped,
-    -- leaving a wrong mepc and an mcause without the interrupt bit. Covered by
-    -- verif/tests/wfi_timer.
-    exc_cause <= instr_err or fetch_fault or ecall or ebreak
-                 or (int_taken_i and not exc_cause_reg);
-
     -- A parked wfi must still wait on EX. The earlier form,
     -- `int_taken_i when wfi = '1' else ready_i`, dropped ready_i while parked, so
     -- an interrupt landing in the few cycles a load still occupies EX would
@@ -393,8 +382,6 @@ begin
     -- can only delay an advance, never allow one the old form refused, so it is
     -- safe to carry unverified.
     pipe_en   <= ready_i and not parked_reg;
-
-    retire    <= id_valid_i and ((not exc_cause) or parked_reg);
 
     -- Its own process: pipeline_reg below only clocks under pipe_en, which a
     -- park holds at '0', so the wait would never be recorded there. The set
@@ -419,10 +406,10 @@ begin
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
-                exc_cause_reg    <= '0';
                 retire_reg       <= '0';
                 instr_err_reg    <= '0';
                 fetch_fault_reg  <= '0';
+                ecall_reg        <= '0';
                 ebreak_reg       <= '0';
                 mret_reg         <= '0';
                 wfi_reg          <= '0';
@@ -439,10 +426,10 @@ begin
                 csrwr_en_reg     <= '0';
                 csrs_addr_reg    <= (others => '0');
             elsif pipe_en = '1' then
-                exc_cause_reg    <= exc_cause;
-                retire_reg       <= retire;
+                retire_reg       <= id_valid_i;
                 instr_err_reg    <= instr_err;
                 fetch_fault_reg  <= fetch_fault;
+                ecall_reg        <= ecall;
                 ebreak_reg       <= ebreak;
                 mret_reg         <= mret;
                 wfi_reg          <= wfi;
@@ -466,10 +453,10 @@ begin
 
     instr_err_o   <= instr_err_reg;
     fetch_fault_o <= fetch_fault_reg;
+    ecall_o       <= ecall_reg;
     ebreak_o      <= ebreak_reg;
     mret_o        <= mret_reg;
     wfi_o         <= wfi_reg;
-    exc_cause_o   <= exc_cause_reg;
     retire_o      <= retire_reg;
 
     func3_o       <= func3_reg;

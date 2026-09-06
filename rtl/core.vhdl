@@ -70,10 +70,11 @@ architecture rtl of core is
     -- ex_block's trap_ctrl against the faults raised there.
     signal id_stage_instr_err   : std_logic;
     signal id_stage_fetch_fault : std_logic;
+    signal id_stage_ecall       : std_logic;
     signal id_stage_ebreak      : std_logic;
     signal id_stage_mret        : std_logic;
     signal id_stage_wfi         : std_logic;
-    signal id_stage_exc_cause   : std_logic;
+    signal id_stage_int_trap    : std_logic;
     signal id_stage_exi_taken   : std_logic;
     signal id_stage_tmi_taken   : std_logic;
     signal id_stage_swi_taken   : std_logic;
@@ -180,10 +181,11 @@ begin
         trap_target_o => id_stage_trap_target,
         instr_err_o   => id_stage_instr_err,
         fetch_fault_o => id_stage_fetch_fault,
+        ecall_o       => id_stage_ecall,
         ebreak_o      => id_stage_ebreak,
         mret_o        => id_stage_mret,
         wfi_o         => id_stage_wfi,
-        exc_cause_o   => id_stage_exc_cause,
+        int_trap_o    => id_stage_int_trap,
         exi_taken_o   => id_stage_exi_taken,
         tmi_taken_o   => id_stage_tmi_taken,
         swi_taken_o   => id_stage_swi_taken,
@@ -205,10 +207,11 @@ begin
         trap_target_i  => id_stage_trap_target,
         instr_err_i    => id_stage_instr_err,
         fetch_fault_i  => id_stage_fetch_fault,
+        ecall_i        => id_stage_ecall,
         ebreak_i       => id_stage_ebreak,
         mret_i         => id_stage_mret,
         wfi_i          => id_stage_wfi,
-        exc_cause_i    => id_stage_exc_cause,
+        int_trap_i     => id_stage_int_trap,
         retire_i       => id_stage_retire,
         -- id_stage.ready_o is main_ctrl's pipe_en: the ID/EX advance, which
         -- qualifies the retire count on the way out of trap_ctrl.

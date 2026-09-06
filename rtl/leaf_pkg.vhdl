@@ -138,10 +138,10 @@ package leaf_pkg is
             pipe_en_o      : out std_logic;
             instr_err_o    : out std_logic;
             fetch_fault_o  : out std_logic;
+            ecall_o        : out std_logic;
             ebreak_o       : out std_logic;
             mret_o         : out std_logic;
             wfi_o          : out std_logic;
-            exc_cause_o    : out std_logic;
             retire_o       : out std_logic;
             func3_o        : out std_logic_vector(2  downto 0);
             branch_op_o    : out std_logic_vector(1  downto 0);
@@ -184,10 +184,11 @@ package leaf_pkg is
         port (
             instr_err_i    : in  std_logic;
             fetch_fault_i  : in  std_logic;
+            ecall_i        : in  std_logic;
             ebreak_i       : in  std_logic;
             mret_i         : in  std_logic;
             wfi_i          : in  std_logic;
-            exc_cause_i    : in  std_logic;
+            int_trap_i     : in  std_logic;
             retire_i       : in  std_logic;
             pipe_en_i      : in  std_logic;
             exi_taken_i    : in  std_logic;
@@ -251,6 +252,7 @@ package leaf_pkg is
             tmi_taken_o   : out std_logic;
             swi_taken_o   : out std_logic;
             int_taken_o   : out std_logic;
+            int_trap_o    : out std_logic;
             trap_target_o : out std_logic_vector(XLEN-1 downto 0);
             csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
             pc_o         : out std_logic_vector(XLEN-1 downto 0)
@@ -300,10 +302,11 @@ package leaf_pkg is
             trap_target_o : out std_logic_vector(XLEN-1 downto 0);
             instr_err_o   : out std_logic;
             fetch_fault_o : out std_logic;
+            ecall_o       : out std_logic;
             ebreak_o      : out std_logic;
             mret_o        : out std_logic;
             wfi_o         : out std_logic;
-            exc_cause_o   : out std_logic;
+            int_trap_o    : out std_logic;
             exi_taken_o   : out std_logic;
             tmi_taken_o   : out std_logic;
             swi_taken_o   : out std_logic;
@@ -378,10 +381,11 @@ package leaf_pkg is
             redirect_ack_i : in  std_logic;
             instr_err_i    : in  std_logic;
             fetch_fault_i  : in  std_logic;
+            ecall_i        : in  std_logic;
             ebreak_i       : in  std_logic;
             mret_i         : in  std_logic;
             wfi_i          : in  std_logic;
-            exc_cause_i    : in  std_logic;
+            int_trap_i     : in  std_logic;
             retire_i       : in  std_logic;
             pipe_en_i      : in  std_logic;
             exi_taken_i    : in  std_logic;

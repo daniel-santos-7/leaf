@@ -52,15 +52,16 @@ entity id_stage is
         -- taken side is decided in ex_block, out of the cause set below.
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
 
-        -- The cause set, decoded and registered in main_ctrl, and the
-        -- interrupts csrs arms. trap_ctrl ranks them in ex_block, against the
-        -- faults that are raised there.
+        -- The cause set: the synchronous half decoded and registered in
+        -- main_ctrl, the interrupt half armed and registered in csrs. trap_ctrl
+        -- ranks them in ex_block, against the faults that are raised there.
         instr_err_o   : out std_logic;
         fetch_fault_o : out std_logic;
+        ecall_o       : out std_logic;
         ebreak_o      : out std_logic;
         mret_o        : out std_logic;
         wfi_o         : out std_logic;
-        exc_cause_o   : out std_logic;
+        int_trap_o    : out std_logic;
         exi_taken_o   : out std_logic;
         tmi_taken_o   : out std_logic;
         swi_taken_o   : out std_logic;
@@ -113,14 +114,16 @@ architecture rtl of id_stage is
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
     -- The three interrupt causes, already masked by mstatus.MIE in csrs, which
-    -- owns mie/mip/mstatus, plus their OR. The OR stays here, for main_ctrl:
-    -- it squashes the decode, takes the trap and wakes a parked wfi. trap_ctrl,
-    -- over in ex_block, ranks the three apart to name the cause, so only the
-    -- three leave.
+    -- owns mie/mip/mstatus, plus two forms of their OR. int_taken is live and
+    -- stays here, for main_ctrl: it squashes the decode and wakes a parked wfi.
+    -- int_trap is the same OR registered onto the ID/EX boundary, and leaves
+    -- with the rest of the cause set. trap_ctrl, over in ex_block, ranks the
+    -- three apart to name the cause.
     signal csrs_exi_taken   : std_logic;
     signal csrs_tmi_taken   : std_logic;
     signal csrs_swi_taken   : std_logic;
     signal csrs_int_taken   : std_logic;
+    signal csrs_int_trap    : std_logic;
     signal csrs_trap_target : std_logic_vector(XLEN-1 downto 0);
     signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
     signal csrs_pc          : std_logic_vector(XLEN-1 downto 0);
@@ -135,10 +138,10 @@ architecture rtl of id_stage is
     signal main_ctrl_pipe_en     : std_logic;
     signal main_ctrl_instr_err   : std_logic;
     signal main_ctrl_fetch_fault : std_logic;
+    signal main_ctrl_ecall       : std_logic;
     signal main_ctrl_ebreak      : std_logic;
     signal main_ctrl_mret        : std_logic;
     signal main_ctrl_wfi         : std_logic;
-    signal main_ctrl_exc_cause   : std_logic;
     signal main_ctrl_retire      : std_logic;
 
 begin
@@ -156,10 +159,10 @@ begin
         pipe_en_o      => main_ctrl_pipe_en,
         instr_err_o    => main_ctrl_instr_err,
         fetch_fault_o  => main_ctrl_fetch_fault,
+        ecall_o        => main_ctrl_ecall,
         ebreak_o       => main_ctrl_ebreak,
         mret_o         => main_ctrl_mret,
         wfi_o          => main_ctrl_wfi,
-        exc_cause_o    => main_ctrl_exc_cause,
         retire_o       => main_ctrl_retire,
         func3_o        => main_ctrl_func3,
         branch_op_o    => main_ctrl_branch_op,
@@ -224,6 +227,7 @@ begin
         tmi_taken_o   => csrs_tmi_taken,
         swi_taken_o   => csrs_swi_taken,
         int_taken_o   => csrs_int_taken,
+        int_trap_o    => csrs_int_trap,
         trap_target_o => csrs_trap_target,
         csrrd_data_o => csrs_csrrd_data,
         pc_o         => csrs_pc
@@ -238,10 +242,11 @@ begin
 
     instr_err_o   <= main_ctrl_instr_err;
     fetch_fault_o <= main_ctrl_fetch_fault;
+    ecall_o       <= main_ctrl_ecall;
     ebreak_o      <= main_ctrl_ebreak;
     mret_o        <= main_ctrl_mret;
     wfi_o         <= main_ctrl_wfi;
-    exc_cause_o   <= main_ctrl_exc_cause;
+    int_trap_o    <= csrs_int_trap;
     exi_taken_o   <= csrs_exi_taken;
     tmi_taken_o   <= csrs_tmi_taken;
     swi_taken_o   <= csrs_swi_taken;
