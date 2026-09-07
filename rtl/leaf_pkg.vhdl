@@ -135,17 +135,26 @@ package leaf_pkg is
             valid_i        : in  std_logic;
             stale_i        : in  std_logic;
             flush_i        : in  std_logic;
-            int_taken_i    : in  std_logic;
-            int_pend_i     : in  std_logic;
+            mie_meie_i     : in  std_logic;
+            mie_mtie_i     : in  std_logic;
+            mie_msie_i     : in  std_logic;
+            mip_meip_i     : in  std_logic;
+            mip_mtip_i     : in  std_logic;
+            mip_msip_i     : in  std_logic;
+            mstatus_mie_i  : in  std_logic;
+            exc_taken_i    : in  std_logic;
             ready_i        : in  std_logic;
             pipe_en_o      : out std_logic;
-            id_valid_o     : out std_logic;
             instr_err_o    : out std_logic;
             fetch_fault_o  : out std_logic;
             ecall_o        : out std_logic;
             ebreak_o       : out std_logic;
             mret_o         : out std_logic;
             wfi_o          : out std_logic;
+            exi_trap_o     : out std_logic;
+            tmi_trap_o     : out std_logic;
+            swi_trap_o     : out std_logic;
+            int_trap_o     : out std_logic;
             retire_o       : out std_logic;
             func3_o        : out std_logic_vector(2  downto 0);
             branch_op_o    : out std_logic_vector(1  downto 0);
@@ -229,43 +238,44 @@ package leaf_pkg is
 
     component csrs is
         generic (
-            MHART_ID : std_logic_vector(XLEN-1 downto 0) := (others => '0')
+            MHART_ID      : std_logic_vector(XLEN-1 downto 0) := (others => '0')
         );
         port (
-            clk_i        : in  std_logic;
-            reset_i      : in  std_logic;
-            ex_irq_i     : in  std_logic;
-            sw_irq_i     : in  std_logic;
-            tm_irq_i     : in  std_logic;
-            mcause_exc_i : in  std_logic_vector(4 downto 0);
-            mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
-            mepc_i       : in  std_logic_vector(XLEN-1 downto 2);
-            mret_i       : in  std_logic;
-            exc_taken_i  : in  std_logic;
-            wr_en_i      : in  std_logic;
-            id_valid_i   : in  std_logic;
-            wr_addr_i    : in  std_logic_vector(11 downto 0);
-            rw_addr_i    : in  std_logic_vector(11 downto 0);
-            wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
-            pipe_en_i    : in  std_logic;
-            pc_i         : in  std_logic_vector(XLEN-1 downto 2);
-            cycle_i      : in  std_logic_vector(63 downto 0);
-            timer_i      : in  std_logic_vector(63 downto 0);
-            instret_i    : in  std_logic_vector(63 downto 0);
-            cop_dat_i    : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
-            cop_adr_o    : out std_logic_vector(5 downto 0);
-            cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
-            cop_we_o     : out std_logic;
-            exi_trap_o   : out std_logic;
-            tmi_trap_o   : out std_logic;
-            swi_trap_o   : out std_logic;
-            int_taken_o  : out std_logic;
-            int_pend_o   : out std_logic;
-            int_trap_o   : out std_logic;
-            mepc_reg_o   : out std_logic_vector(XLEN-1 downto 2);
-            mtvec_reg_o  : out std_logic_vector(XLEN-1 downto 2);
-            csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
-            pc_o         : out std_logic_vector(XLEN-1 downto 0)
+            clk_i         : in  std_logic;
+            reset_i       : in  std_logic;
+            ex_irq_i      : in  std_logic;
+            sw_irq_i      : in  std_logic;
+            tm_irq_i      : in  std_logic;
+            mcause_exc_i  : in  std_logic_vector(4 downto 0);
+            mtval_i       : in  std_logic_vector(XLEN-1 downto 0);
+            int_trap_i    : in  std_logic;
+            mepc_i        : in  std_logic_vector(XLEN-1 downto 2);
+            mret_i        : in  std_logic;
+            exc_taken_i   : in  std_logic;
+            wr_en_i       : in  std_logic;
+            wr_addr_i     : in  std_logic_vector(11 downto 0);
+            rw_addr_i     : in  std_logic_vector(11 downto 0);
+            wr_data_i     : in  std_logic_vector(XLEN-1 downto 0);
+            pipe_en_i     : in  std_logic;
+            pc_i          : in  std_logic_vector(XLEN-1 downto 2);
+            cycle_i       : in  std_logic_vector(63 downto 0);
+            timer_i       : in  std_logic_vector(63 downto 0);
+            instret_i     : in  std_logic_vector(63 downto 0);
+            cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
+            cop_adr_o     : out std_logic_vector(5 downto 0);
+            cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
+            cop_we_o      : out std_logic;
+            mie_meie_o    : out std_logic;
+            mie_mtie_o    : out std_logic;
+            mie_msie_o    : out std_logic;
+            mip_meip_o    : out std_logic;
+            mip_mtip_o    : out std_logic;
+            mip_msip_o    : out std_logic;
+            mstatus_mie_o : out std_logic;
+            mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
+            mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
+            csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
+            pc_o          : out std_logic_vector(XLEN-1 downto 0)
         );
     end component csrs;
 

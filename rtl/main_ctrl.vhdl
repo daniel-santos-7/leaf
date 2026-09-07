@@ -19,39 +19,48 @@ entity main_ctrl is
         valid_i        : in  std_logic;
         stale_i        : in  std_logic;
         flush_i        : in  std_logic;
-        -- The three csrs interrupt causes ORed, already masked by mstatus.MIE.
-        int_taken_i    : in  std_logic;
-        -- The same OR without that mask, for the park wake only.
-        int_pend_i     : in  std_logic;
+        -- The interrupt state, read out of csrs: one enable and one pending
+        -- bit per cause, plus the global enable. The interrupt is the last of
+        -- the ID-time causes, so it is named and armed here beside the others.
+        mie_meie_i     : in  std_logic;
+        mie_mtie_i     : in  std_logic;
+        mie_msie_i     : in  std_logic;
+        mip_meip_i     : in  std_logic;
+        mip_mtip_i     : in  std_logic;
+        mip_msip_i     : in  std_logic;
+        mstatus_mie_i  : in  std_logic;
+        exc_taken_i    : in  std_logic;
         ready_i        : in  std_logic;
 
         pipe_en_o      : out std_logic;
-        -- The ID slot really holds an instruction: csrs qualifies the interrupt
-        -- arm with it, so a squashed slot's pc never becomes the mepc.
-        id_valid_o     : out std_logic;
 
-        -- The cause set, registered here onto ID/EX. Nothing is pre-ORed.
+        -- The cause set, registered here onto ID/EX. Nothing is pre-ORed
+        -- except int_trap, which mcause's interrupt bit reads back.
         instr_err_o    : out std_logic;
         fetch_fault_o  : out std_logic;
         ecall_o        : out std_logic;
         ebreak_o       : out std_logic;
         mret_o         : out std_logic;
         wfi_o          : out std_logic;
+        exi_trap_o     : out std_logic;
+        tmi_trap_o     : out std_logic;
+        swi_trap_o     : out std_logic;
+        int_trap_o     : out std_logic;
         retire_o       : out std_logic;
 
         -- Registered (pipeline) outputs.
-        func3_o       : out std_logic_vector(2  downto 0);
-        branch_op_o   : out std_logic_vector(1  downto 0);
-        alu_op_o      : out std_logic_vector(5  downto 0);
-        dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-        imm_o         : out std_logic_vector(XLEN-1 downto 0);
-        opd_src_sel_o : out std_logic_vector(1  downto 0);
-        opd_pass_o    : out std_logic_vector(1  downto 0);
-        regwr_en_o    : out std_logic;
-        regwr_sel_o   : out std_logic_vector(1 downto 0);
-        regwr_addr_o  : out std_logic_vector(4 downto 0);
-        csrwr_en_o    : out std_logic;
-        csrs_addr_o   : out std_logic_vector(11 downto 0)
+        func3_o        : out std_logic_vector(2  downto 0);
+        branch_op_o    : out std_logic_vector(1  downto 0);
+        alu_op_o       : out std_logic_vector(5  downto 0);
+        dmls_ctrl_o    : out std_logic_vector(1  downto 0);
+        imm_o          : out std_logic_vector(XLEN-1 downto 0);
+        opd_src_sel_o  : out std_logic_vector(1  downto 0);
+        opd_pass_o     : out std_logic_vector(1  downto 0);
+        regwr_en_o     : out std_logic;
+        regwr_sel_o    : out std_logic_vector(1 downto 0);
+        regwr_addr_o   : out std_logic_vector(4 downto 0);
+        csrwr_en_o     : out std_logic;
+        csrs_addr_o    : out std_logic_vector(11 downto 0)
     );
 end entity main_ctrl;
 
@@ -69,6 +78,16 @@ architecture rtl of main_ctrl is
     signal id_valid    : std_logic;
     signal instr_err   : std_logic;
     signal fetch_fault : std_logic;
+
+    signal exi_pend    : std_logic;
+    signal tmi_pend    : std_logic;
+    signal swi_pend    : std_logic;
+    signal int_pend    : std_logic;
+    signal int_taken   : std_logic;
+    signal exi_trap    : std_logic;
+    signal tmi_trap    : std_logic;
+    signal swi_trap    : std_logic;
+    signal int_trap    : std_logic;
 
     -- The interrupt that releases a wfi also squashes its decode, so the wfi is
     -- gone by then. This carries it to EX, which stacks pc+4 and counts it.
@@ -111,6 +130,9 @@ architecture rtl of main_ctrl is
     signal ebreak_reg      : std_logic;
     signal mret_reg        : std_logic;
     signal wfi_reg         : std_logic;
+    signal exi_trap_reg    : std_logic;
+    signal tmi_trap_reg    : std_logic;
+    signal swi_trap_reg    : std_logic;
 
     function resize_signed(value: in std_logic_vector) return std_logic_vector is
     begin
@@ -123,6 +145,41 @@ begin
     payload  <= instr_i(31 downto  7);
 
     id_valid <= valid_i and not stale_i and not flush_i;
+
+    -- One pending line per cause, carrying its own mie bit and nothing else:
+    -- mstatus.MIE is added to int_taken and to the arms below, and never to
+    -- int_pend -- the wfi wake reads that one and must ignore the global
+    -- enable, per the spec. Covered by verif/tests/wfi_mie0.
+    exi_pend  <= mie_meie_i and mip_meip_i;
+    tmi_pend  <= mie_mtie_i and mip_mtip_i;
+    swi_pend  <= mie_msie_i and mip_msip_i;
+    int_pend  <= exi_pend or tmi_pend or swi_pend;
+
+    int_taken <= int_pend and mstatus_mie_i;
+
+    -- The armed trap, one cause per line, guarded three times: the global
+    -- enable the pending lines leave out, plus the two below.
+    --
+    -- The one-shot: mstatus.MIE only clears at the edge exc_taken_i commits the
+    -- trap, so the causes above are still up through that cycle and the trap
+    -- would commit twice. id_valid covers this on its own today -- flush_i is
+    -- already subtracted from it -- so exc_taken_i here is redundant, kept as
+    -- the local guard rather than a dependency on how far flush_i happens to
+    -- reach. Covered by verif/tests/wfi_timer.
+    --
+    -- id_valid pins the trap to a real instruction. The pc registered beside
+    -- these tracks the ID slot whether or not it decoded, so arming on a stale
+    -- or flushed slot stacks a wrong-path pc: an interrupt landing in an mret's
+    -- shadow took the handler's own address as its mepc and the mret then
+    -- returned into itself. Covered by verif/tests/int_mret_shadow.
+    exi_trap  <= exi_pend and mstatus_mie_i and not exc_taken_i and id_valid;
+    tmi_trap  <= tmi_pend and mstatus_mie_i and not exc_taken_i and id_valid;
+    swi_trap  <= swi_pend and mstatus_mie_i and not exc_taken_i and id_valid;
+
+    -- EX-aligned, and derived from the three registers rather than a fourth
+    -- flop of its own: mcause's interrupt bit and the cause trap_ctrl ranks
+    -- then cannot come from different snapshots.
+    int_trap  <= exi_trap_reg or tmi_trap_reg or swi_trap_reg;
 
     gen: process(imm_type, payload)
     begin
@@ -139,9 +196,9 @@ begin
 
     -- The decode falls to an invalid slot, a faulted fetch (garbage instr_i) or
     -- a pending interrupt; parked_reg carries a wfi across the last of those.
-    main_ctrl_proc: process(opcode, instr_i, id_valid, imrd_fault_i, int_taken_i)
+    main_ctrl_proc: process(opcode, instr_i, id_valid, imrd_fault_i, int_taken)
     begin
-        if id_valid = '0' or imrd_fault_i = '1' or int_taken_i = '1' then
+        if id_valid = '0' or imrd_fault_i = '1' or int_taken = '1' then
             dmls_ctrl    <= DMLS_IDLE;
             instr_err    <= '0';
             imm_type     <= (others => '-');
@@ -373,17 +430,15 @@ begin
     -- Its own process: pipeline_reg clocks under pipe_en, which a park holds at
     -- '0'. Same reason the set condition is the decoded wfi, not wfi_reg.
     --
-    -- The wake is int_pend, not int_taken: the spec makes WFI unaffected by
-    -- mstatus.MIE, so a locally enabled interrupt resumes the hart with the
-    -- global enable clear and then takes no trap. With int_taken the hart
-    -- parked forever. Covered by verif/tests/wfi_mie0.
+    -- The wake is int_pend, not int_taken: with the global enable in the way
+    -- the hart parked forever.
     park_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 parked_reg <= '0';
             elsif parked_reg = '1' then
-                if int_pend_i = '1' then
+                if int_pend = '1' then
                     parked_reg <= '0';
                 end if;
             elsif wfi_reg = '1' then
@@ -403,6 +458,9 @@ begin
                 ebreak_reg       <= '0';
                 mret_reg         <= '0';
                 wfi_reg          <= '0';
+                exi_trap_reg     <= '0';
+                tmi_trap_reg     <= '0';
+                swi_trap_reg     <= '0';
                 func3_reg        <= (others => '0');
                 branch_op_reg    <= BR_NONE;
                 alu_op_reg       <= (others => '0');
@@ -423,6 +481,9 @@ begin
                 ebreak_reg       <= ebreak;
                 mret_reg         <= mret;
                 wfi_reg          <= wfi;
+                exi_trap_reg     <= exi_trap;
+                tmi_trap_reg     <= tmi_trap;
+                swi_trap_reg     <= swi_trap;
                 func3_reg        <= instr_i(14 downto 12);
                 branch_op_reg    <= branch_op;
                 alu_op_reg       <= alu_op;
@@ -440,7 +501,6 @@ begin
     end process pipeline_reg;
 
     pipe_en_o     <= pipe_en;
-    id_valid_o    <= id_valid;
 
     instr_err_o   <= instr_err_reg;
     fetch_fault_o <= fetch_fault_reg;
@@ -448,6 +508,10 @@ begin
     ebreak_o      <= ebreak_reg;
     mret_o        <= mret_reg;
     wfi_o         <= wfi_reg;
+    exi_trap_o    <= exi_trap_reg;
+    tmi_trap_o    <= tmi_trap_reg;
+    swi_trap_o    <= swi_trap_reg;
+    int_trap_o    <= int_trap;
     retire_o      <= retire_reg;
 
     func3_o       <= func3_reg;

@@ -14,60 +14,55 @@ entity csrs is
         MHART_ID : std_logic_vector(XLEN-1 downto 0) := (others => '0')
     );
     port (
-        clk_i        : in  std_logic;
-        reset_i      : in  std_logic;
-        ex_irq_i     : in  std_logic;
-        sw_irq_i     : in  std_logic;
-        tm_irq_i     : in  std_logic;
+        clk_i         : in  std_logic;
+        reset_i       : in  std_logic;
+        ex_irq_i      : in  std_logic;
+        sw_irq_i      : in  std_logic;
+        tm_irq_i      : in  std_logic;
         -- The whole mcause code field, ranked in trap_ctrl. The interrupt and
         -- exception numberings collide (3, 7, 11), so it is stored as it arrives.
-        mcause_exc_i : in  std_logic_vector(4 downto 0);
-        mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
+        mcause_exc_i  : in  std_logic_vector(4 downto 0);
+        mtval_i       : in  std_logic_vector(XLEN-1 downto 0);
+        -- mcause's interrupt bit, armed and registered in main_ctrl. The two
+        -- numberings collide (3, 7, 11), so the bit and the code above must be
+        -- the same snapshot: both arrive from the ID/EX boundary, neither is
+        -- rebuilt here.
+        int_trap_i    : in  std_logic;
         -- The PC to stack, not mepc_reg_o below -- that is mepc read back out.
-        mepc_i       : in  std_logic_vector(XLEN-1 downto 2);
-        mret_i       : in  std_logic;
-        exc_taken_i  : in  std_logic;
-        wr_en_i      : in  std_logic;
-        id_valid_i   : in  std_logic;
-        wr_addr_i    : in  std_logic_vector(11 downto 0);
-        rw_addr_i    : in  std_logic_vector(11 downto 0);
-        wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
-        pipe_en_i    : in  std_logic;
-        pc_i         : in  std_logic_vector(XLEN-1 downto 2);
-        cycle_i      : in  std_logic_vector(63 downto 0);
-        timer_i      : in  std_logic_vector(63 downto 0);
-        instret_i    : in  std_logic_vector(63 downto 0);
-        cop_dat_i    : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
-        cop_adr_o    : out std_logic_vector(5 downto 0);
-        cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
-        cop_we_o     : out std_logic;
-        -- One armed interrupt per cause -- mie bit and mip bit, masked by
-        -- mstatus.MIE -- registered onto ID/EX beside int_trap_o. trap_ctrl
-        -- ranks these to name mcause, so they must be the same snapshot that
-        -- armed the trap: from the live causes the code and the interrupt bit
-        -- can disagree and mcause comes out as an unrelated exception.
-        exi_trap_o   : out std_logic;
-        tmi_trap_o   : out std_logic;
-        swi_trap_o   : out std_logic;
-        -- Their live OR: main_ctrl's decode squash and mcause's interrupt bit.
-        int_taken_o  : out std_logic;
-        -- The same OR without mstatus.MIE, for the wfi wake alone. The spec
-        -- makes WFI unaffected by the global enable: a locally enabled
-        -- interrupt must resume the hart even with MIE clear, and then simply
-        -- takes no trap. Covered by verif/tests/wfi_mie0.
-        int_pend_o   : out std_logic;
-        -- The OR of the three registered arms above, so it reaches ex_block
-        -- beside the instruction squashed for it -- whose pc is the mepc -- and
-        -- cannot drift from the cause trap_ctrl ranks the way a fourth flop of
-        -- its own could.
-        int_trap_o   : out std_logic;
+        mepc_i        : in  std_logic_vector(XLEN-1 downto 2);
+        mret_i        : in  std_logic;
+        exc_taken_i   : in  std_logic;
+        wr_en_i       : in  std_logic;
+        wr_addr_i     : in  std_logic_vector(11 downto 0);
+        rw_addr_i     : in  std_logic_vector(11 downto 0);
+        wr_data_i     : in  std_logic_vector(XLEN-1 downto 0);
+        pipe_en_i     : in  std_logic;
+        pc_i          : in  std_logic_vector(XLEN-1 downto 2);
+        cycle_i       : in  std_logic_vector(63 downto 0);
+        timer_i       : in  std_logic_vector(63 downto 0);
+        instret_i     : in  std_logic_vector(63 downto 0);
+        cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
+        cop_adr_o     : out std_logic_vector(5 downto 0);
+        cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
+        cop_we_o      : out std_logic;
+        -- The interrupt state itself, for main_ctrl to arm from: the enable
+        -- and pending bit of each cause, plus the global enable. The mie and
+        -- mstatus lines are the write-forwarded copies, so a csrrs that sets
+        -- one arms the interrupt in the cycle it commits, not one later.
+        mie_meie_o    : out std_logic;
+        mie_mtie_o    : out std_logic;
+        mie_msie_o    : out std_logic;
+        mip_meip_o    : out std_logic;
+        mip_mtip_o    : out std_logic;
+        mip_msip_o    : out std_logic;
+        mstatus_mie_o : out std_logic;
         -- The two redirect candidates, registered onto ID/EX. trap_ctrl picks
         -- between them with the same mret it drives taken_o from, so the whole
         -- redirect -- taken and target alike -- is decided there.
-        mepc_reg_o   : out std_logic_vector(XLEN-1 downto 2);
-        mtvec_reg_o  : out std_logic_vector(XLEN-1 downto 2);
-        csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
-        pc_o         : out std_logic_vector(XLEN-1 downto 0)
+        mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
+        mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
+        csrrd_data_o  : out std_logic_vector(XLEN-1 downto 0);
+        pc_o          : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity csrs;
 
@@ -101,23 +96,11 @@ architecture rtl of csrs is
     signal mie_mtie_bypassed    : std_logic;
     signal mie_msie_bypassed    : std_logic;
     signal mstatus_mie_bypassed : std_logic;
-    signal exi_pend             : std_logic;
-    signal tmi_pend             : std_logic;
-    signal swi_pend             : std_logic;
-    signal int_pend             : std_logic;
-    signal int_taken            : std_logic;
-    signal exi_trap             : std_logic;
-    signal tmi_trap             : std_logic;
-    signal swi_trap             : std_logic;
 
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
     signal csrrd_data_reg : std_logic_vector(XLEN-1 downto 0);
     signal pc_reg         : std_logic_vector(XLEN-1 downto 2);
-    signal exi_trap_reg   : std_logic;
-    signal tmi_trap_reg   : std_logic;
-    signal swi_trap_reg   : std_logic;
-    signal int_trap       : std_logic;
 
 begin
 
@@ -223,10 +206,7 @@ begin
         end if;
     end process write_mepc;
 
-    -- The write is unconditional under exc_taken_i. mcause.INT comes from the
-    -- registered arms, not the live int_taken: the two encodings collide at 3, 7
-    -- and 11, so an interrupt going pending during an ecall's own commit cycle
-    -- would otherwise flip that ecall's mcause to an interrupt code.
+    -- The write is unconditional under exc_taken_i.
     write_mcause: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -234,7 +214,7 @@ begin
                 mcause_int <= '0';
                 mcause_exc <= (others => '0');
             elsif exc_taken_i = '1' then
-                mcause_int <= int_trap;
+                mcause_int <= int_trap_i;
                 mcause_exc <= mcause_exc_i;
             elsif wr_addr_i = CSR_ADDR_MCAUSE and wr_en_i = '1' then
                 mcause_int <= wr_data_i(XLEN-1);
@@ -279,17 +259,11 @@ begin
                 mtvec_base_reg <= (others => '0');
                 csrrd_data_reg <= (others => '0');
                 pc_reg         <= (others => '0');
-                exi_trap_reg   <= '0';
-                tmi_trap_reg   <= '0';
-                swi_trap_reg   <= '0';
             elsif pipe_en_i = '1' then
                 mepc_reg       <= mepc_bypassed;
                 mtvec_base_reg <= mtvec_base_bypassed;
                 csrrd_data_reg <= rd_data_bypassed;
                 pc_reg         <= pc_i;
-                exi_trap_reg   <= exi_trap;
-                tmi_trap_reg   <= tmi_trap;
-                swi_trap_reg   <= swi_trap;
             end if;
         end if;
     end process pipeline_reg;
@@ -301,50 +275,16 @@ begin
     mepc_bypassed        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC)  else mepc;
     mtvec_base_bypassed  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
 
-    -- mip needs no bypass: it is not writable. Each pending line carries its
-    -- own mie bit and nothing else: mstatus.MIE is added where it belongs, to
-    -- int_taken and to the arms below, and never to int_pend -- the wfi wake
-    -- reads that one and must ignore the global enable.
-    exi_pend  <= mie_meie_bypassed and mip_meip;
-    tmi_pend  <= mie_mtie_bypassed and mip_mtip;
-    swi_pend  <= mie_msie_bypassed and mip_msip;
-    int_pend  <= exi_pend or tmi_pend or swi_pend;
-
-    int_taken <= int_pend and mstatus_mie_bypassed;
-
-    -- The armed trap, one cause per line, guarded three times: the global
-    -- enable the pending lines leave out, plus the two below.
-    --
-    -- The one-shot: mstatus.MIE only clears at the edge exc_taken_i commits the
-    -- trap, so the causes above are still up through that cycle and the trap
-    -- would commit twice. id_valid_i covers this on its own today -- exc_taken
-    -- reaches flush_i, which main_ctrl already subtracts -- so exc_taken_i here
-    -- is redundant, kept as the local guard rather than a dependency on how far
-    -- flush_i happens to reach. Covered by verif/tests/wfi_timer.
-    --
-    -- id_valid_i pins the trap to a real instruction. pc_reg tracks the ID slot
-    -- whether or not it decoded, so arming on a stale or flushed slot stacks a
-    -- wrong-path pc: an interrupt landing in an mret's shadow took the handler's
-    -- own address as its mepc and the mret then returned into itself. Covered by
-    -- verif/tests/int_mret_shadow.
-    exi_trap  <= exi_pend and mstatus_mie_bypassed and not exc_taken_i and id_valid_i;
-    tmi_trap  <= tmi_pend and mstatus_mie_bypassed and not exc_taken_i and id_valid_i;
-    swi_trap  <= swi_pend and mstatus_mie_bypassed and not exc_taken_i and id_valid_i;
-
-    -- EX-aligned, and derived from the three registers rather than a fourth
-    -- flop of its own: mcause's interrupt bit and the cause trap_ctrl ranks
-    -- then cannot come from different snapshots.
-    int_trap  <= exi_trap_reg or tmi_trap_reg or swi_trap_reg;
-
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
     cop_dat_o       <= wr_data_i;
-    exi_trap_o      <= exi_trap_reg;
-    tmi_trap_o      <= tmi_trap_reg;
-    swi_trap_o      <= swi_trap_reg;
-    int_taken_o     <= int_taken;
-    int_pend_o      <= int_pend;
-    int_trap_o      <= int_trap;
+    mie_meie_o      <= mie_meie_bypassed;
+    mie_mtie_o      <= mie_mtie_bypassed;
+    mie_msie_o      <= mie_msie_bypassed;
+    mip_meip_o      <= mip_meip;
+    mip_mtip_o      <= mip_mtip;
+    mip_msip_o      <= mip_msip;
+    mstatus_mie_o   <= mstatus_mie_bypassed;
     mepc_reg_o      <= mepc_reg;
     mtvec_reg_o     <= mtvec_base_reg;
     csrrd_data_o    <= csrrd_data_reg;
