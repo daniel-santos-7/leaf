@@ -23,7 +23,6 @@ three-stage pipeline and a Wishbone B4-compatible bus interface.
 rtl/     VHDL RTL source files
 tbs/     Testbench sources
 verif/   Verification: instruction-level tests and RISCOF
-tcl/     GTKWave helper scripts
 specs/   RISC-V ISA specification PDFs
 syn/     Synthesis scripts
 waves/   Waveform outputs (gitignored)
@@ -65,11 +64,8 @@ Testbench parameters live in `tbs/leaf_tb_pkg.vhdl`: clock period 10 ns
 Waveforms are written to `$(WAVEFORM)` and viewed with `gtkwave`:
 
 ```bash
-gtkwave leaf_tb.ghw --script tcl/add-signals.tcl
+gtkwave leaf_tb.ghw
 ```
-
-TCL helper scripts for GTKWave are in `tcl/`: `add-signals.tcl`,
-`gen-trace.tcl`, `gtkwave.tcl`.
 
 ### Requirements
 
