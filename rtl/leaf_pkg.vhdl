@@ -132,7 +132,9 @@ package leaf_pkg is
             reset_i        : in  std_logic;
             imrd_fault_i   : in  std_logic;
             instr_i        : in  std_logic_vector(XLEN-1 downto 0);
-            id_valid_i     : in  std_logic;
+            valid_i        : in  std_logic;
+            stale_i        : in  std_logic;
+            flush_i        : in  std_logic;
             int_taken_i    : in  std_logic;
             ready_i        : in  std_logic;
             pipe_en_o      : out std_logic;

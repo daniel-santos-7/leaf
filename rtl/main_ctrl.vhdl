@@ -16,9 +16,11 @@ entity main_ctrl is
         reset_i        : in  std_logic;
         imrd_fault_i   : in  std_logic;
         instr_i        : in  std_logic_vector(XLEN-1 downto 0);
-        -- The ID slot holds a real instruction: not empty, not wrong-path,
-        -- not flushed.
-        id_valid_i     : in  std_logic;
+        -- The three terms of id_valid below: the ID slot holds a real
+        -- instruction when the fetch is not empty, not wrong-path, not flushed.
+        valid_i        : in  std_logic;
+        stale_i        : in  std_logic;
+        flush_i        : in  std_logic;
         -- Some interrupt is armed: the three causes ORed in csrs, already
         -- masked with mstatus.MIE. Only the OR is an ID-time decision.
         int_taken_i    : in  std_logic;
@@ -64,6 +66,7 @@ architecture rtl of main_ctrl is
     signal regwr_en  : std_logic;
     signal sys_ctrl  : std_logic;
 
+    signal id_valid    : std_logic;
     signal instr_err   : std_logic;
     signal fetch_fault : std_logic;
 
@@ -121,6 +124,8 @@ begin
     opcode   <= instr_i(6  downto  0);
     payload  <= instr_i(31 downto  7);
 
+    id_valid <= valid_i and not stale_i and not flush_i;
+
     gen: process(imm_type, payload)
     begin
         case imm_type is
@@ -138,9 +143,9 @@ begin
     -- garbage instr_i, and to a pending interrupt, which outranks the
     -- instruction in the slot. sys_ctrl falls with it, so the wfi it covers is
     -- carried across the interrupt by the park register below.
-    main_ctrl_proc: process(opcode, instr_i, id_valid_i, imrd_fault_i, int_taken_i)
+    main_ctrl_proc: process(opcode, instr_i, id_valid, imrd_fault_i, int_taken_i)
     begin
-        if id_valid_i = '0' or imrd_fault_i = '1' or int_taken_i = '1' then
+        if id_valid = '0' or imrd_fault_i = '1' or int_taken_i = '1' then
             dmls_ctrl    <= DMLS_IDLE;
             instr_err    <= '0';
             imm_type     <= (others => '-');
@@ -353,9 +358,9 @@ begin
         end if;
     end process alu_op_ctrl;
 
-    -- Only id_valid_i annuls the fetch error bit: a pending interrupt must not,
+    -- Only id_valid annuls the fetch error bit: a pending interrupt must not,
     -- or every fetch fault taken in its shadow would be silently dropped.
-    fetch_fault  <= imrd_fault_i and id_valid_i;
+    fetch_fault  <= imrd_fault_i and id_valid;
 
     -- Equality comparators rather than a case over funct12: the four encodings
     -- are sparse and a case costs far more area here.
@@ -416,7 +421,7 @@ begin
                 csrwr_en_reg     <= '0';
                 csrs_addr_reg    <= (others => '0');
             elsif pipe_en = '1' then
-                retire_reg       <= id_valid_i;
+                retire_reg       <= id_valid;
                 instr_err_reg    <= instr_err;
                 fetch_fault_reg  <= fetch_fault;
                 ecall_reg        <= ecall;

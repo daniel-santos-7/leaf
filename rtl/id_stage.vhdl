@@ -84,8 +84,6 @@ end entity id_stage;
 
 architecture rtl of id_stage is
 
-    signal id_valid : std_logic;
-
     -- main_ctrl registered (pipeline) outputs
     signal main_ctrl_func3       : std_logic_vector(2  downto 0);
     signal main_ctrl_branch_op   : std_logic_vector(1  downto 0);
@@ -130,14 +128,14 @@ architecture rtl of id_stage is
 
 begin
 
-    id_valid <= valid_i and not stale_i and not flush_i;
-
     id_stage_main_ctrl: main_ctrl port map (
         clk_i          => clk_i,
         reset_i        => reset_i,
         imrd_fault_i   => fault_i,
         instr_i        => instr_i,
-        id_valid_i     => id_valid,
+        valid_i        => valid_i,
+        stale_i        => stale_i,
+        flush_i        => flush_i,
         int_taken_i    => csrs_int_taken,
         ready_i        => ready_i,
         pipe_en_o      => main_ctrl_pipe_en,
