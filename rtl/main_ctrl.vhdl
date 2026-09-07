@@ -16,21 +16,16 @@ entity main_ctrl is
         reset_i        : in  std_logic;
         imrd_fault_i   : in  std_logic;
         instr_i        : in  std_logic_vector(XLEN-1 downto 0);
-        -- The three terms of id_valid below: the ID slot holds a real
-        -- instruction when the fetch is not empty, not wrong-path, not flushed.
         valid_i        : in  std_logic;
         stale_i        : in  std_logic;
         flush_i        : in  std_logic;
-        -- Some interrupt is armed: the three causes ORed in csrs, already
-        -- masked with mstatus.MIE. Only the OR is an ID-time decision.
+        -- The three csrs interrupt causes ORed, already masked by mstatus.MIE.
         int_taken_i    : in  std_logic;
-        -- The one EX signal read here: pipe_en_o below is the ID/EX advance.
         ready_i        : in  std_logic;
 
         pipe_en_o      : out std_logic;
 
-        -- The synchronous half of the cause set, registered here and
-        -- EX-aligned from here on. Nothing is pre-ORed for trap_ctrl.
+        -- The cause set, registered here onto ID/EX. Nothing is pre-ORed.
         instr_err_o    : out std_logic;
         fetch_fault_o  : out std_logic;
         ecall_o        : out std_logic;
@@ -70,10 +65,8 @@ architecture rtl of main_ctrl is
     signal instr_err   : std_logic;
     signal fetch_fault : std_logic;
 
-    -- The processor is in wait. A pending interrupt squashes the decode, but it
-    -- is also what releases a wfi, so in the release cycle the decode is already
-    -- gone. This register carries the wait across it: EX still has to learn it
-    -- was a wfi, to stack pc+4 and to count the retire.
+    -- The interrupt that releases a wfi also squashes its decode, so the wfi is
+    -- gone by then. This carries it to EX, which stacks pc+4 and counts it.
     signal parked_reg : std_logic;
 
     signal ecall  : std_logic;
@@ -139,10 +132,8 @@ begin
         end case;
     end process gen;
 
-    -- The decode falls to an invalid slot, to a faulted fetch, which delivers a
-    -- garbage instr_i, and to a pending interrupt, which outranks the
-    -- instruction in the slot. sys_ctrl falls with it, so the wfi it covers is
-    -- carried across the interrupt by the park register below.
+    -- The decode falls to an invalid slot, a faulted fetch (garbage instr_i) or
+    -- a pending interrupt; parked_reg carries a wfi across the last of those.
     main_ctrl_proc: process(opcode, instr_i, id_valid, imrd_fault_i, int_taken_i)
     begin
         if id_valid = '0' or imrd_fault_i = '1' or int_taken_i = '1' then
@@ -286,8 +277,7 @@ begin
                     opd_pass     <= b"00";
                     ftype        <= '0';
                     op_en        <= '0';
-                    -- funct3 = 000 is ecall/ebreak/mret/wfi: here it only
-                    -- means the instruction writes nothing back.
+                    -- funct3 = 000 is ecall/ebreak/mret/wfi: writes nothing back.
                     if instr_i(14 downto 12) = b"000" then
                         regwr_sel <= b"00";
                         csrwr_en  <= '0';
@@ -362,26 +352,21 @@ begin
     -- or every fetch fault taken in its shadow would be silently dropped.
     fetch_fault  <= imrd_fault_i and id_valid;
 
-    -- Equality comparators rather than a case over funct12: the four encodings
-    -- are sparse and a case costs far more area here.
+    -- Equality comparators, not a case over funct12: four sparse encodings.
     wfi    <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"105" else '0';
     ecall  <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"000" else '0';
     ebreak <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"001" else '0';
     mret   <= '1' when sys_ctrl = '1' and instr_i(31 downto 20) = x"302" else '0';
 
-    -- A parked wfi must still wait on EX. The earlier form,
-    -- `int_taken_i when wfi = '1' else ready_i`, dropped ready_i while parked,
-    -- so an interrupt landing while a load still occupied EX would advance the
-    -- ID/EX register over it.
+    -- ready_i must survive the park: dropping it there would advance the ID/EX
+    -- register over an instruction still occupying EX.
     --
-    -- NOT COVERED: hitting that window needs the interrupt to fire inside those
-    -- few cycles, and wfi_timer's park is thousands of cycles long. This form
-    -- can only delay an advance, never allow one the old form refused.
+    -- NOT COVERED: the interrupt has to fire inside those few cycles, and
+    -- wfi_timer's park is thousands of cycles long.
     pipe_en   <= ready_i and not parked_reg;
 
-    -- Its own process: pipeline_reg below only clocks under pipe_en, which a
-    -- park holds at '0'. The set condition is the decoded wfi, not wfi_reg,
-    -- which is written under pipe_en -- '0' for every cycle wfi is '1'.
+    -- Its own process: pipeline_reg clocks under pipe_en, which a park holds at
+    -- '0'. Same reason the set condition is the decoded wfi, not wfi_reg.
     park_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
