@@ -453,7 +453,10 @@ only ranks them:
 - `exi_taken = mie_meie and mip_meip and mstatus_mie` (in `csrs`)
 - `tmi_taken = mie_mtie and mip_mtip and mstatus_mie` (in `csrs`)
 - `swi_taken = mie_msie and mip_msip and mstatus_mie` (in `csrs`)
-- `int_taken = exi_taken or tmi_taken or swi_taken` (in `csrs`)
+- `int_taken = exi_taken or tmi_taken or swi_taken` (in `csrs`, live: feeds
+  `main_ctrl`'s squash and wfi wake)
+- `<x>_trap = <x>_taken and not exc_taken and id_valid`, registered onto ID/EX
+  as `<x>_trap_reg` (in `csrs`): what `trap_ctrl` ranks, and what `int_trap` ORs
 
 #### 1.4.2 `reg_file` — Register File
 
@@ -473,8 +476,9 @@ File: `rtl/csrs.vhdl`
 
 Implements the machine-mode CSR registers and the trap state commit. Every trap
 decision lives in `trap_ctrl`: which interrupt is taken, out of the three
-write-bypassed and already MIE-masked causes exported from here (`exi_taken_o`,
-`tmi_taken_o`, `swi_taken_o`), and what the trap stacks — cause, `mtval` and
+write-bypassed and already MIE-masked causes exported from here (`exi_trap_o`,
+`tmi_trap_o`, `swi_trap_o` — the armed trap registered onto ID/EX, not the live
+causes), and what the trap stacks — cause, `mtval` and
 `mepc` alike — out of those plus the fault set `trap_ctrl` owns. The results
 come back as `mcause_exc_i`, `mtval_i` and `mepc_i`, and the three writes here
 only register them. Their OR, `int_taken_o`, is built here instead: it is the

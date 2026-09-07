@@ -21,9 +21,9 @@ entity trap_ctrl is
         retire_i       : in  std_logic;
         pipe_en_i      : in  std_logic;
 
-        exi_taken_i    : in  std_logic;
-        tmi_taken_i    : in  std_logic;
-        swi_taken_i    : in  std_logic;
+        exi_trap_i    : in  std_logic;
+        tmi_trap_i    : in  std_logic;
+        swi_trap_i    : in  std_logic;
 
         imrd_malgn_i   : in  std_logic;
         dmld_malgn_i   : in  std_logic;
@@ -71,18 +71,18 @@ begin
 
     -- The spec's trap priority, in one chain. An ecall is the only cause left
     -- once the eleven above it are ruled out, so it is the else.
-    encode_trap: process(swi_taken_i, tmi_taken_i, exi_taken_i, imrd_malgn_i,
+    encode_trap: process(swi_trap_i, tmi_trap_i, exi_trap_i, imrd_malgn_i,
                          fetch_fault_i, instr_err_i, ebreak_i, dmld_malgn_i,
                          dmld_fault_i, dmst_malgn_i, dmst_fault_i,
                          exec_res_i, pc_i)
     begin
-        if swi_taken_i = '1' then       -- machine software interrupt
+        if swi_trap_i = '1' then       -- machine software interrupt
             mcause_exc <= b"00011";
             mtval      <= (others => '0');
-        elsif tmi_taken_i = '1' then    -- machine timer interrupt
+        elsif tmi_trap_i = '1' then    -- machine timer interrupt
             mcause_exc <= b"00111";
             mtval      <= (others => '0');
-        elsif exi_taken_i = '1' then    -- machine external interrupt
+        elsif exi_trap_i = '1' then    -- machine external interrupt
             mcause_exc <= b"01011";
             mtval      <= (others => '0');
         elsif imrd_malgn_i = '1' then   -- instruction address misaligned

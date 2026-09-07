@@ -81,9 +81,9 @@ architecture rtl of core is
     signal id_stage_mret        : std_logic;
     signal id_stage_wfi         : std_logic;
     signal id_stage_int_trap    : std_logic;
-    signal id_stage_exi_taken   : std_logic;
-    signal id_stage_tmi_taken   : std_logic;
-    signal id_stage_swi_taken   : std_logic;
+    signal id_stage_exi_trap   : std_logic;
+    signal id_stage_tmi_trap   : std_logic;
+    signal id_stage_swi_trap   : std_logic;
     signal id_stage_regwr_en    : std_logic;
     signal id_stage_csrwr_en    : std_logic;
     signal id_stage_rd_data0    : std_logic_vector(XLEN-1 downto 0);
@@ -192,9 +192,9 @@ begin
         mret_o        => id_stage_mret,
         wfi_o         => id_stage_wfi,
         int_trap_o    => id_stage_int_trap,
-        exi_taken_o   => id_stage_exi_taken,
-        tmi_taken_o   => id_stage_tmi_taken,
-        swi_taken_o   => id_stage_swi_taken,
+        exi_trap_o   => id_stage_exi_trap,
+        tmi_trap_o   => id_stage_tmi_trap,
+        swi_trap_o   => id_stage_swi_trap,
         regwr_en_o    => id_stage_regwr_en,
         csrwr_en_o    => id_stage_csrwr_en,
         rd_data0_o    => id_stage_rd_data0,
@@ -221,9 +221,9 @@ begin
         retire_i       => id_stage_retire,
         -- id_stage.ready_o is main_ctrl's pipe_en: the ID/EX advance.
         pipe_en_i      => id_stage_ready,
-        exi_taken_i    => id_stage_exi_taken,
-        tmi_taken_i    => id_stage_tmi_taken,
-        swi_taken_i    => id_stage_swi_taken,
+        exi_trap_i    => id_stage_exi_trap,
+        tmi_trap_i    => id_stage_tmi_trap,
+        swi_trap_i    => id_stage_swi_trap,
         regwr_en_i     => id_stage_regwr_en,
         csrwr_en_i     => id_stage_csrwr_en,
         func3_i        => id_stage_func3,

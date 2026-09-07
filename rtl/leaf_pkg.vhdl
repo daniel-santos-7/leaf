@@ -138,6 +138,7 @@ package leaf_pkg is
             int_taken_i    : in  std_logic;
             ready_i        : in  std_logic;
             pipe_en_o      : out std_logic;
+            id_valid_o     : out std_logic;
             instr_err_o    : out std_logic;
             fetch_fault_o  : out std_logic;
             ecall_o        : out std_logic;
@@ -193,9 +194,9 @@ package leaf_pkg is
             int_trap_i     : in  std_logic;
             retire_i       : in  std_logic;
             pipe_en_i      : in  std_logic;
-            exi_taken_i    : in  std_logic;
-            tmi_taken_i    : in  std_logic;
-            swi_taken_i    : in  std_logic;
+            exi_trap_i    : in  std_logic;
+            tmi_trap_i    : in  std_logic;
+            swi_trap_i    : in  std_logic;
             imrd_malgn_i   : in  std_logic;
             dmld_malgn_i   : in  std_logic;
             dmld_fault_i   : in  std_logic;
@@ -238,6 +239,7 @@ package leaf_pkg is
             mret_i       : in  std_logic;
             exc_taken_i  : in  std_logic;
             wr_en_i      : in  std_logic;
+            id_valid_i   : in  std_logic;
             wr_addr_i    : in  std_logic_vector(11 downto 0);
             rw_addr_i    : in  std_logic_vector(11 downto 0);
             wr_data_i    : in  std_logic_vector(XLEN-1 downto 0);
@@ -250,9 +252,9 @@ package leaf_pkg is
             cop_adr_o    : out std_logic_vector(5 downto 0);
             cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
             cop_we_o     : out std_logic;
-            exi_taken_o   : out std_logic;
-            tmi_taken_o   : out std_logic;
-            swi_taken_o   : out std_logic;
+            exi_trap_o   : out std_logic;
+            tmi_trap_o   : out std_logic;
+            swi_trap_o   : out std_logic;
             int_taken_o   : out std_logic;
             int_trap_o    : out std_logic;
             trap_target_o : out std_logic_vector(XLEN-1 downto 0);
@@ -309,9 +311,9 @@ package leaf_pkg is
             mret_o        : out std_logic;
             wfi_o         : out std_logic;
             int_trap_o    : out std_logic;
-            exi_taken_o   : out std_logic;
-            tmi_taken_o   : out std_logic;
-            swi_taken_o   : out std_logic;
+            exi_trap_o   : out std_logic;
+            tmi_trap_o   : out std_logic;
+            swi_trap_o   : out std_logic;
             regwr_en_o    : out std_logic;
             csrwr_en_o    : out std_logic;
             rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
@@ -390,9 +392,9 @@ package leaf_pkg is
             int_trap_i     : in  std_logic;
             retire_i       : in  std_logic;
             pipe_en_i      : in  std_logic;
-            exi_taken_i    : in  std_logic;
-            tmi_taken_i    : in  std_logic;
-            swi_taken_i    : in  std_logic;
+            exi_trap_i    : in  std_logic;
+            tmi_trap_i    : in  std_logic;
+            swi_trap_i    : in  std_logic;
             regwr_en_i     : in  std_logic;
             csrwr_en_i     : in  std_logic;
 

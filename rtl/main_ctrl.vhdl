@@ -24,6 +24,9 @@ entity main_ctrl is
         ready_i        : in  std_logic;
 
         pipe_en_o      : out std_logic;
+        -- The ID slot really holds an instruction: csrs qualifies the interrupt
+        -- arm with it, so a squashed slot's pc never becomes the mepc.
+        id_valid_o     : out std_logic;
 
         -- The cause set, registered here onto ID/EX. Nothing is pre-ORed.
         instr_err_o    : out std_logic;
@@ -430,6 +433,7 @@ begin
     end process pipeline_reg;
 
     pipe_en_o     <= pipe_en;
+    id_valid_o    <= id_valid;
 
     instr_err_o   <= instr_err_reg;
     fetch_fault_o <= fetch_fault_reg;

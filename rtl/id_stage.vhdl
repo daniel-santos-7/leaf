@@ -60,9 +60,9 @@ entity id_stage is
         mret_o        : out std_logic;
         wfi_o         : out std_logic;
         int_trap_o    : out std_logic;
-        exi_taken_o   : out std_logic;
-        tmi_taken_o   : out std_logic;
-        swi_taken_o   : out std_logic;
+        exi_trap_o   : out std_logic;
+        tmi_trap_o   : out std_logic;
+        swi_trap_o   : out std_logic;
         -- Still ungated: the EX faults gate them into regwr_en_i/csrwr_en_i.
         regwr_en_o    : out std_logic;
         csrwr_en_o    : out std_logic;
@@ -102,11 +102,13 @@ architecture rtl of id_stage is
     signal reg_file_rd_data0 : std_logic_vector(XLEN-1 downto 0);
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
-    -- csrs outputs. The interrupt causes are already masked by mstatus.MIE;
-    -- int_taken is their live OR, int_trap the same OR registered onto ID/EX.
-    signal csrs_exi_taken   : std_logic;
-    signal csrs_tmi_taken   : std_logic;
-    signal csrs_swi_taken   : std_logic;
+    -- csrs outputs. The three per-cause signals are the armed trap registered
+    -- onto ID/EX, not the live causes: mstatus.MIE masks them, id_valid gates
+    -- them, and int_trap is their OR. Only main_ctrl still sees a live OR, as
+    -- csrs_int_taken, for the decode squash and the wfi wake.
+    signal csrs_exi_trap   : std_logic;
+    signal csrs_tmi_trap   : std_logic;
+    signal csrs_swi_trap   : std_logic;
     signal csrs_int_taken   : std_logic;
     signal csrs_int_trap    : std_logic;
     signal csrs_trap_target : std_logic_vector(XLEN-1 downto 0);
@@ -125,6 +127,7 @@ architecture rtl of id_stage is
     signal main_ctrl_mret        : std_logic;
     signal main_ctrl_wfi         : std_logic;
     signal main_ctrl_retire      : std_logic;
+    signal main_ctrl_id_valid    : std_logic;
 
 begin
 
@@ -139,6 +142,7 @@ begin
         int_taken_i    => csrs_int_taken,
         ready_i        => ready_i,
         pipe_en_o      => main_ctrl_pipe_en,
+        id_valid_o     => main_ctrl_id_valid,
         instr_err_o    => main_ctrl_instr_err,
         fetch_fault_o  => main_ctrl_fetch_fault,
         ecall_o        => main_ctrl_ecall,
@@ -193,6 +197,7 @@ begin
         mret_i       => main_ctrl_mret,
         exc_taken_i  => exc_taken_i,
         wr_en_i      => csrwr_en_i,
+        id_valid_i   => main_ctrl_id_valid,
         wr_addr_i    => main_ctrl_csrs_addr,
         rw_addr_i    => instr_i(31 downto 20),
         wr_data_i    => csrwr_data_i,
@@ -205,9 +210,9 @@ begin
         cop_adr_o    => csrs_cop_adr,
         cop_dat_o    => csrs_cop_dat,
         cop_we_o     => csrs_cop_we,
-        exi_taken_o   => csrs_exi_taken,
-        tmi_taken_o   => csrs_tmi_taken,
-        swi_taken_o   => csrs_swi_taken,
+        exi_trap_o   => csrs_exi_trap,
+        tmi_trap_o   => csrs_tmi_trap,
+        swi_trap_o   => csrs_swi_trap,
         int_taken_o   => csrs_int_taken,
         int_trap_o    => csrs_int_trap,
         trap_target_o => csrs_trap_target,
@@ -229,9 +234,9 @@ begin
     mret_o        <= main_ctrl_mret;
     wfi_o         <= main_ctrl_wfi;
     int_trap_o    <= csrs_int_trap;
-    exi_taken_o   <= csrs_exi_taken;
-    tmi_taken_o   <= csrs_tmi_taken;
-    swi_taken_o   <= csrs_swi_taken;
+    exi_trap_o   <= csrs_exi_trap;
+    tmi_trap_o   <= csrs_tmi_trap;
+    swi_trap_o   <= csrs_swi_trap;
     regwr_en_o    <= main_ctrl_regwr_en;
     csrwr_en_o    <= main_ctrl_csrwr_en;
     rd_data0_o    <= reg_file_rd_data0;
