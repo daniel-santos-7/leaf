@@ -24,9 +24,9 @@ entity trap_ctrl is
         retire_i       : in  std_logic;
         pipe_en_i      : in  std_logic;
 
-        exi_trap_i    : in  std_logic;
-        tmi_trap_i    : in  std_logic;
-        swi_trap_i    : in  std_logic;
+        exi_trap_i     : in  std_logic;
+        tmi_trap_i     : in  std_logic;
+        swi_trap_i     : in  std_logic;
 
         imrd_malgn_i   : in  std_logic;
         dmld_malgn_i   : in  std_logic;

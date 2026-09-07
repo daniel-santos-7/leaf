@@ -196,9 +196,9 @@ package leaf_pkg is
             int_trap_i     : in  std_logic;
             retire_i       : in  std_logic;
             pipe_en_i      : in  std_logic;
-            exi_trap_i    : in  std_logic;
-            tmi_trap_i    : in  std_logic;
-            swi_trap_i    : in  std_logic;
+            exi_trap_i     : in  std_logic;
+            tmi_trap_i     : in  std_logic;
+            swi_trap_i     : in  std_logic;
             imrd_malgn_i   : in  std_logic;
             dmld_malgn_i   : in  std_logic;
             dmld_fault_i   : in  std_logic;
@@ -258,10 +258,10 @@ package leaf_pkg is
             exi_trap_o   : out std_logic;
             tmi_trap_o   : out std_logic;
             swi_trap_o   : out std_logic;
-            int_taken_o   : out std_logic;
-            int_trap_o    : out std_logic;
-            mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
-            mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
+            int_taken_o  : out std_logic;
+            int_trap_o   : out std_logic;
+            mepc_reg_o   : out std_logic_vector(XLEN-1 downto 2);
+            mtvec_reg_o  : out std_logic_vector(XLEN-1 downto 2);
             csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
             pc_o         : out std_logic_vector(XLEN-1 downto 0)
         );
@@ -316,9 +316,9 @@ package leaf_pkg is
             mret_o        : out std_logic;
             wfi_o         : out std_logic;
             int_trap_o    : out std_logic;
-            exi_trap_o   : out std_logic;
-            tmi_trap_o   : out std_logic;
-            swi_trap_o   : out std_logic;
+            exi_trap_o    : out std_logic;
+            tmi_trap_o    : out std_logic;
+            swi_trap_o    : out std_logic;
             regwr_en_o    : out std_logic;
             csrwr_en_o    : out std_logic;
             rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
@@ -398,9 +398,9 @@ package leaf_pkg is
             int_trap_i     : in  std_logic;
             retire_i       : in  std_logic;
             pipe_en_i      : in  std_logic;
-            exi_trap_i    : in  std_logic;
-            tmi_trap_i    : in  std_logic;
-            swi_trap_i    : in  std_logic;
+            exi_trap_i     : in  std_logic;
+            tmi_trap_i     : in  std_logic;
+            swi_trap_i     : in  std_logic;
             regwr_en_i     : in  std_logic;
             csrwr_en_i     : in  std_logic;
 

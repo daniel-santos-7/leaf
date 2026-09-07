@@ -37,9 +37,9 @@ entity ex_block is
         int_trap_i     : in  std_logic;
         retire_i       : in  std_logic;
         pipe_en_i      : in  std_logic;
-        exi_trap_i    : in  std_logic;
-        tmi_trap_i    : in  std_logic;
-        swi_trap_i    : in  std_logic;
+        exi_trap_i     : in  std_logic;
+        tmi_trap_i     : in  std_logic;
+        swi_trap_i     : in  std_logic;
         regwr_en_i     : in  std_logic;
         csrwr_en_i     : in  std_logic;
 
@@ -176,9 +176,9 @@ begin
         int_trap_i     => int_trap_i,
         retire_i       => retire_i,
         pipe_en_i      => pipe_en_i,
-        exi_trap_i    => exi_trap_i,
-        tmi_trap_i    => tmi_trap_i,
-        swi_trap_i    => swi_trap_i,
+        exi_trap_i     => exi_trap_i,
+        tmi_trap_i     => tmi_trap_i,
+        swi_trap_i     => swi_trap_i,
         imrd_malgn_i   => br_detector_imrd_malgn,
         dmld_malgn_i   => dmls_block_dmld_malgn,
         dmld_fault_i   => dmls_block_dmld_fault,

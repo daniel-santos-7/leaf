@@ -61,9 +61,9 @@ entity id_stage is
         mret_o        : out std_logic;
         wfi_o         : out std_logic;
         int_trap_o    : out std_logic;
-        exi_trap_o   : out std_logic;
-        tmi_trap_o   : out std_logic;
-        swi_trap_o   : out std_logic;
+        exi_trap_o    : out std_logic;
+        tmi_trap_o    : out std_logic;
+        swi_trap_o    : out std_logic;
         -- Still ungated: the EX faults gate them into regwr_en_i/csrwr_en_i.
         regwr_en_o    : out std_logic;
         csrwr_en_o    : out std_logic;
@@ -215,12 +215,12 @@ begin
         exi_trap_o   => csrs_exi_trap,
         tmi_trap_o   => csrs_tmi_trap,
         swi_trap_o   => csrs_swi_trap,
-        int_taken_o   => csrs_int_taken,
-        int_trap_o    => csrs_int_trap,
-        mepc_reg_o    => csrs_mepc_reg,
-        mtvec_reg_o   => csrs_mtvec_reg,
-        csrrd_data_o  => csrs_csrrd_data,
-        pc_o          => csrs_pc
+        int_taken_o  => csrs_int_taken,
+        int_trap_o   => csrs_int_trap,
+        mepc_reg_o   => csrs_mepc_reg,
+        mtvec_reg_o  => csrs_mtvec_reg,
+        csrrd_data_o => csrs_csrrd_data,
+        pc_o         => csrs_pc
     );
 
     ready_o       <= main_ctrl_pipe_en;
