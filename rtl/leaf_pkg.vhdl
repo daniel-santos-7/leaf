@@ -190,6 +190,8 @@ package leaf_pkg is
             ecall_i        : in  std_logic;
             ebreak_i       : in  std_logic;
             mret_i         : in  std_logic;
+            mepc_reg_i     : in  std_logic_vector(XLEN-1 downto 2);
+            mtvec_reg_i    : in  std_logic_vector(XLEN-1 downto 2);
             wfi_i          : in  std_logic;
             int_trap_i     : in  std_logic;
             retire_i       : in  std_logic;
@@ -213,6 +215,7 @@ package leaf_pkg is
             immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
             exc_taken_o    : out std_logic;
             taken_o        : out std_logic;
+            target_o       : out std_logic_vector(XLEN-1 downto 0);
             mcause_exc_o   : out std_logic_vector(4 downto 0);
             mtval_o        : out std_logic_vector(XLEN-1 downto 0);
             mepc_o         : out std_logic_vector(XLEN-1 downto 2);
@@ -257,7 +260,8 @@ package leaf_pkg is
             swi_trap_o   : out std_logic;
             int_taken_o   : out std_logic;
             int_trap_o    : out std_logic;
-            trap_target_o : out std_logic_vector(XLEN-1 downto 0);
+            mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
+            mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
             csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
             pc_o         : out std_logic_vector(XLEN-1 downto 0)
         );
@@ -303,7 +307,8 @@ package leaf_pkg is
             branch_op_o   : out std_logic_vector(1  downto 0);
             alu_op_o      : out std_logic_vector(5  downto 0);
             dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-            trap_target_o : out std_logic_vector(XLEN-1 downto 0);
+            mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
+            mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
             instr_err_o   : out std_logic;
             fetch_fault_o : out std_logic;
             ecall_o       : out std_logic;
@@ -370,7 +375,8 @@ package leaf_pkg is
         port (
             clk_i          : in  std_logic;
             reset_i        : in  std_logic;
-            trap_target_i  : in  std_logic_vector(XLEN-1 downto 0);
+            mepc_reg_i     : in  std_logic_vector(XLEN-1 downto 2);
+            mtvec_reg_i    : in  std_logic_vector(XLEN-1 downto 2);
             func3_i        : in  std_logic_vector(2  downto 0);
             reg0_i         : in  std_logic_vector(XLEN-1 downto 0);
             reg1_i         : in  std_logic_vector(XLEN-1 downto 0);

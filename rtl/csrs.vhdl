@@ -23,7 +23,7 @@ entity csrs is
         -- exception numberings collide (3, 7, 11), so it is stored as it arrives.
         mcause_exc_i : in  std_logic_vector(4 downto 0);
         mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
-        -- The PC to stack, not trap_target_o below -- that is mepc read back out.
+        -- The PC to stack, not mepc_reg_o below -- that is mepc read back out.
         mepc_i       : in  std_logic_vector(XLEN-1 downto 2);
         mret_i       : in  std_logic;
         exc_taken_i  : in  std_logic;
@@ -55,9 +55,11 @@ entity csrs is
         -- The same OR, one-shot and registered onto ID/EX, so it reaches ex_block
         -- beside the instruction squashed for it -- whose pc is the mepc.
         int_trap_o    : out std_logic;
-        -- The resolved redirect: mepc for an mret, mtvec otherwise. Both
-        -- registers are owned here, so the mux stays with them.
-        trap_target_o : out std_logic_vector(XLEN-1 downto 0);
+        -- The two redirect candidates, registered onto ID/EX. trap_ctrl picks
+        -- between them with the same mret it drives taken_o from, so the whole
+        -- redirect -- taken and target alike -- is decided there.
+        mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
+        mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
         csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
         pc_o         : out std_logic_vector(XLEN-1 downto 0)
     );
@@ -103,8 +105,6 @@ architecture rtl of csrs is
     signal tmi_trap             : std_logic;
     signal swi_trap             : std_logic;
     signal int_trap             : std_logic;
-
-    signal trap_target    : std_logic_vector(XLEN-1 downto 0);
 
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
@@ -327,20 +327,16 @@ begin
     swi_trap  <= swi_taken and not exc_taken_i and id_valid_i;
     int_trap  <= exi_trap or tmi_trap or swi_trap;
 
-    -- mret_i is main_ctrl's registered copy, EX-aligned like the two registers
-    -- it picks between.
-    trap_target <= mepc_reg & b"00" when mret_i = '1' else
-                   mtvec_base_reg & b"00";
-
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
     cop_dat_o       <= wr_data_i;
-    exi_trap_o     <= exi_trap_reg;
-    tmi_trap_o     <= tmi_trap_reg;
-    swi_trap_o     <= swi_trap_reg;
+    exi_trap_o      <= exi_trap_reg;
+    tmi_trap_o      <= tmi_trap_reg;
+    swi_trap_o      <= swi_trap_reg;
     int_taken_o     <= int_taken;
     int_trap_o      <= int_trap_reg;
-    trap_target_o   <= trap_target;
+    mepc_reg_o      <= mepc_reg;
+    mtvec_reg_o     <= mtvec_base_reg;
     csrrd_data_o    <= csrrd_data_reg;
     pc_o            <= pc_reg;
 

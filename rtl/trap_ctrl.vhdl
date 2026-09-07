@@ -16,6 +16,9 @@ entity trap_ctrl is
         ecall_i        : in  std_logic;
         ebreak_i       : in  std_logic;
         mret_i         : in  std_logic;
+        -- The redirect candidates, read back out of csrs and EX-aligned.
+        mepc_reg_i     : in  std_logic_vector(XLEN-1 downto 2);
+        mtvec_reg_i    : in  std_logic_vector(XLEN-1 downto 2);
         wfi_i          : in  std_logic;
         int_trap_i     : in  std_logic;
         retire_i       : in  std_logic;
@@ -45,6 +48,7 @@ entity trap_ctrl is
 
         exc_taken_o    : out std_logic;
         taken_o        : out std_logic;
+        target_o       : out std_logic_vector(XLEN-1 downto 0);
         mcause_exc_o   : out std_logic_vector(4 downto 0);
         mtval_o        : out std_logic_vector(XLEN-1 downto 0);
         mepc_o         : out std_logic_vector(XLEN-1 downto 2);
@@ -137,8 +141,11 @@ begin
                  int_trap_i or exc_fault;
 
     -- An mret redirects the fetch but commits nothing in csrs beyond the
-    -- mstatus unstacking, so it joins the redirect and not exc_taken.
+    -- mstatus unstacking, so it joins the redirect and not exc_taken. The same
+    -- mret picks the target: back to the stacked pc, or into the handler.
     taken_o     <= exc_taken or mret_i;
+    target_o    <= mepc_reg_i  & b"00" when mret_i = '1' else
+                   mtvec_reg_i & b"00";
 
     exc_taken_o <= exc_taken;
 

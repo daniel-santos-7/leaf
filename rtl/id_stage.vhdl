@@ -50,7 +50,8 @@ entity id_stage is
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
         dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-        trap_target_o : out std_logic_vector(XLEN-1 downto 0);
+        mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
+        mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
 
         -- The cause set, ranked in ex_block's trap_ctrl.
         instr_err_o   : out std_logic;
@@ -111,7 +112,8 @@ architecture rtl of id_stage is
     signal csrs_swi_trap   : std_logic;
     signal csrs_int_taken   : std_logic;
     signal csrs_int_trap    : std_logic;
-    signal csrs_trap_target : std_logic_vector(XLEN-1 downto 0);
+    signal csrs_mepc_reg    : std_logic_vector(XLEN-1 downto 2);
+    signal csrs_mtvec_reg   : std_logic_vector(XLEN-1 downto 2);
     signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
     signal csrs_pc          : std_logic_vector(XLEN-1 downto 0);
     signal csrs_cop_adr     : std_logic_vector(5      downto 0);
@@ -215,7 +217,8 @@ begin
         swi_trap_o   => csrs_swi_trap,
         int_taken_o   => csrs_int_taken,
         int_trap_o    => csrs_int_trap,
-        trap_target_o => csrs_trap_target,
+        mepc_reg_o    => csrs_mepc_reg,
+        mtvec_reg_o   => csrs_mtvec_reg,
         csrrd_data_o  => csrs_csrrd_data,
         pc_o          => csrs_pc
     );
@@ -225,7 +228,8 @@ begin
     branch_op_o   <= main_ctrl_branch_op;
     alu_op_o      <= main_ctrl_alu_op;
     dmls_ctrl_o   <= main_ctrl_dmls_ctrl;
-    trap_target_o <= csrs_trap_target;
+    mepc_reg_o    <= csrs_mepc_reg;
+    mtvec_reg_o   <= csrs_mtvec_reg;
 
     instr_err_o   <= main_ctrl_instr_err;
     fetch_fault_o <= main_ctrl_fetch_fault;

@@ -72,7 +72,10 @@ architecture rtl of core is
     signal id_stage_branch_op   : std_logic_vector(1  downto 0);
     signal id_stage_alu_op      : std_logic_vector(5  downto 0);
     signal id_stage_dmls_ctrl   : std_logic_vector(1  downto 0);
-    signal id_stage_trap_target : std_logic_vector(XLEN-1 downto 0);
+    -- The redirect candidates, not the pc to stack: ex_block_mepc below runs
+    -- the other way, from trap_ctrl back into csrs.
+    signal id_stage_mepc_reg    : std_logic_vector(XLEN-1 downto 2);
+    signal id_stage_mtvec_reg   : std_logic_vector(XLEN-1 downto 2);
     -- The trap cause set, ranked in ex_block's trap_ctrl.
     signal id_stage_instr_err   : std_logic;
     signal id_stage_fetch_fault : std_logic;
@@ -184,7 +187,8 @@ begin
         branch_op_o   => id_stage_branch_op,
         alu_op_o      => id_stage_alu_op,
         dmls_ctrl_o   => id_stage_dmls_ctrl,
-        trap_target_o => id_stage_trap_target,
+        mepc_reg_o    => id_stage_mepc_reg,
+        mtvec_reg_o   => id_stage_mtvec_reg,
         instr_err_o   => id_stage_instr_err,
         fetch_fault_o => id_stage_fetch_fault,
         ecall_o       => id_stage_ecall,
@@ -210,7 +214,8 @@ begin
     core_ex_block: ex_block port map (
         clk_i          => clk_i,
         reset_i        => reset_i,
-        trap_target_i  => id_stage_trap_target,
+        mepc_reg_i     => id_stage_mepc_reg,
+        mtvec_reg_i    => id_stage_mtvec_reg,
         instr_err_i    => id_stage_instr_err,
         fetch_fault_i  => id_stage_fetch_fault,
         ecall_i        => id_stage_ecall,

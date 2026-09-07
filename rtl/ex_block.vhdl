@@ -13,7 +13,8 @@ entity ex_block is
     port (
         clk_i          : in  std_logic;
         reset_i        : in  std_logic;
-        trap_target_i  : in  std_logic_vector(XLEN-1 downto 0);
+        mepc_reg_i     : in  std_logic_vector(XLEN-1 downto 2);
+        mtvec_reg_i    : in  std_logic_vector(XLEN-1 downto 2);
         func3_i        : in  std_logic_vector(2  downto 0);
         reg0_i         : in  std_logic_vector(XLEN-1 downto 0);
         reg1_i         : in  std_logic_vector(XLEN-1 downto 0);
@@ -83,6 +84,7 @@ architecture ex_block_arch of ex_block is
     signal br_detector_imrd_malgn : std_logic;
 
     signal trap_ctrl_exc_taken  : std_logic;
+    signal trap_ctrl_target     : std_logic_vector(XLEN-1 downto 0);
     signal trap_ctrl_taken      : std_logic;
     signal trap_ctrl_mcause_exc : std_logic_vector(4 downto 0);
     signal trap_ctrl_mtval      : std_logic_vector(XLEN-1 downto 0);
@@ -131,7 +133,7 @@ begin
         jmp_i          => branch_op_i(1),
         arith_res_i    => alu_arith_res,
         trap_taken_i   => trap_ctrl_taken,
-        trap_target_i  => trap_target_i,
+        trap_target_i  => trap_ctrl_target,
         taken_o        => br_detector_taken,
         target_o       => br_detector_target,
         imrd_malgn_o   => br_detector_imrd_malgn
@@ -163,6 +165,8 @@ begin
     );
 
     exec_trap_ctrl: trap_ctrl port map (
+        mepc_reg_i     => mepc_reg_i,
+        mtvec_reg_i    => mtvec_reg_i,
         instr_err_i    => instr_err_i,
         fetch_fault_i  => fetch_fault_i,
         ecall_i        => ecall_i,
@@ -191,6 +195,7 @@ begin
         immwr_data_i   => immwr_data_i,
         exc_taken_o    => trap_ctrl_exc_taken,
         taken_o        => trap_ctrl_taken,
+        target_o       => trap_ctrl_target,
         mcause_exc_o   => trap_ctrl_mcause_exc,
         mtval_o        => trap_ctrl_mtval,
         mepc_o         => trap_ctrl_mepc,

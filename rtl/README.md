@@ -483,7 +483,10 @@ causes), and what the trap stacks — cause, `mtval` and
 come back as `mcause_exc_i`, `mtval_i` and `mepc_i`, and the three writes here
 only register them. Their OR, `int_taken_o`, is built here instead: it is the
 interrupt bit of `mcause` and `main_ctrl`'s squash/wake condition, and neither
-needs the ranking.
+needs the ranking. The redirect target is not resolved here either: `mepc_reg_o`
+and `mtvec_reg_o` leave as the two candidates and `trap_ctrl` picks between them
+with the `mret` it drives `taken_o` from. `mret` is not part of `encode_trap`'s
+priority chain -- it stacks no cause, it only redirects.
 
 ##### Machine-Mode CSRs
 
