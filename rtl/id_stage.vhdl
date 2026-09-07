@@ -105,12 +105,13 @@ architecture rtl of id_stage is
 
     -- csrs outputs. The three per-cause signals are the armed trap registered
     -- onto ID/EX, not the live causes: mstatus.MIE masks them, id_valid gates
-    -- them, and int_trap is their OR. Only main_ctrl still sees a live OR, as
-    -- csrs_int_taken, for the decode squash and the wfi wake.
+    -- them, and int_trap is their OR. main_ctrl still sees two live ORs:
+    -- csrs_int_taken for the decode squash, csrs_int_pend for the wfi wake.
     signal csrs_exi_trap   : std_logic;
     signal csrs_tmi_trap   : std_logic;
     signal csrs_swi_trap   : std_logic;
     signal csrs_int_taken   : std_logic;
+    signal csrs_int_pend    : std_logic;
     signal csrs_int_trap    : std_logic;
     signal csrs_mepc_reg    : std_logic_vector(XLEN-1 downto 2);
     signal csrs_mtvec_reg   : std_logic_vector(XLEN-1 downto 2);
@@ -142,6 +143,7 @@ begin
         stale_i        => stale_i,
         flush_i        => flush_i,
         int_taken_i    => csrs_int_taken,
+        int_pend_i     => csrs_int_pend,
         ready_i        => ready_i,
         pipe_en_o      => main_ctrl_pipe_en,
         id_valid_o     => main_ctrl_id_valid,
@@ -216,6 +218,7 @@ begin
         tmi_trap_o   => csrs_tmi_trap,
         swi_trap_o   => csrs_swi_trap,
         int_taken_o  => csrs_int_taken,
+        int_pend_o   => csrs_int_pend,
         int_trap_o   => csrs_int_trap,
         mepc_reg_o   => csrs_mepc_reg,
         mtvec_reg_o  => csrs_mtvec_reg,

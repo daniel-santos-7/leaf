@@ -21,6 +21,8 @@ entity main_ctrl is
         flush_i        : in  std_logic;
         -- The three csrs interrupt causes ORed, already masked by mstatus.MIE.
         int_taken_i    : in  std_logic;
+        -- The same OR without that mask, for the park wake only.
+        int_pend_i     : in  std_logic;
         ready_i        : in  std_logic;
 
         pipe_en_o      : out std_logic;
@@ -370,13 +372,18 @@ begin
 
     -- Its own process: pipeline_reg clocks under pipe_en, which a park holds at
     -- '0'. Same reason the set condition is the decoded wfi, not wfi_reg.
+    --
+    -- The wake is int_pend, not int_taken: the spec makes WFI unaffected by
+    -- mstatus.MIE, so a locally enabled interrupt resumes the hart with the
+    -- global enable clear and then takes no trap. With int_taken the hart
+    -- parked forever. Covered by verif/tests/wfi_mie0.
     park_reg: process(clk_i)
     begin
         if rising_edge(clk_i) then
             if reset_i = '1' then
                 parked_reg <= '0';
             elsif parked_reg = '1' then
-                if int_taken_i = '1' then
+                if int_pend_i = '1' then
                     parked_reg <= '0';
                 end if;
             elsif wfi_reg = '1' then

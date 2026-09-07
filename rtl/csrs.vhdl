@@ -49,9 +49,13 @@ entity csrs is
         exi_trap_o   : out std_logic;
         tmi_trap_o   : out std_logic;
         swi_trap_o   : out std_logic;
-        -- Their live OR: main_ctrl's decode squash and wfi wake, and mcause's
-        -- interrupt bit.
+        -- Their live OR: main_ctrl's decode squash and mcause's interrupt bit.
         int_taken_o  : out std_logic;
+        -- The same OR without mstatus.MIE, for the wfi wake alone. The spec
+        -- makes WFI unaffected by the global enable: a locally enabled
+        -- interrupt must resume the hart even with MIE clear, and then simply
+        -- takes no trap. Covered by verif/tests/wfi_mie0.
+        int_pend_o   : out std_logic;
         -- The OR of the three registered arms above, so it reaches ex_block
         -- beside the instruction squashed for it -- whose pc is the mepc -- and
         -- cannot drift from the cause trap_ctrl ranks the way a fourth flop of
@@ -97,9 +101,10 @@ architecture rtl of csrs is
     signal mie_mtie_bypassed    : std_logic;
     signal mie_msie_bypassed    : std_logic;
     signal mstatus_mie_bypassed : std_logic;
-    signal exi_taken            : std_logic;
-    signal tmi_taken            : std_logic;
-    signal swi_taken            : std_logic;
+    signal exi_pend             : std_logic;
+    signal tmi_pend             : std_logic;
+    signal swi_pend             : std_logic;
+    signal int_pend             : std_logic;
     signal int_taken            : std_logic;
     signal exi_trap             : std_logic;
     signal tmi_trap             : std_logic;
@@ -296,14 +301,19 @@ begin
     mepc_bypassed        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC)  else mepc;
     mtvec_base_bypassed  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
 
-    -- mip needs no bypass: it is not writable. mstatus.MIE is ANDed per cause,
-    -- not once over the OR, so each output is a complete "interrupt taken".
-    exi_taken <= mie_meie_bypassed and mip_meip and mstatus_mie_bypassed;
-    tmi_taken <= mie_mtie_bypassed and mip_mtip and mstatus_mie_bypassed;
-    swi_taken <= mie_msie_bypassed and mip_msip and mstatus_mie_bypassed;
-    int_taken <= exi_taken or tmi_taken or swi_taken;
+    -- mip needs no bypass: it is not writable. Each pending line carries its
+    -- own mie bit and nothing else: mstatus.MIE is added where it belongs, to
+    -- int_taken and to the arms below, and never to int_pend -- the wfi wake
+    -- reads that one and must ignore the global enable.
+    exi_pend  <= mie_meie_bypassed and mip_meip;
+    tmi_pend  <= mie_mtie_bypassed and mip_mtip;
+    swi_pend  <= mie_msie_bypassed and mip_msip;
+    int_pend  <= exi_pend or tmi_pend or swi_pend;
 
-    -- The armed trap, one cause per line, guarded twice.
+    int_taken <= int_pend and mstatus_mie_bypassed;
+
+    -- The armed trap, one cause per line, guarded three times: the global
+    -- enable the pending lines leave out, plus the two below.
     --
     -- The one-shot: mstatus.MIE only clears at the edge exc_taken_i commits the
     -- trap, so the causes above are still up through that cycle and the trap
@@ -317,9 +327,9 @@ begin
     -- wrong-path pc: an interrupt landing in an mret's shadow took the handler's
     -- own address as its mepc and the mret then returned into itself. Covered by
     -- verif/tests/int_mret_shadow.
-    exi_trap  <= exi_taken and not exc_taken_i and id_valid_i;
-    tmi_trap  <= tmi_taken and not exc_taken_i and id_valid_i;
-    swi_trap  <= swi_taken and not exc_taken_i and id_valid_i;
+    exi_trap  <= exi_pend and mstatus_mie_bypassed and not exc_taken_i and id_valid_i;
+    tmi_trap  <= tmi_pend and mstatus_mie_bypassed and not exc_taken_i and id_valid_i;
+    swi_trap  <= swi_pend and mstatus_mie_bypassed and not exc_taken_i and id_valid_i;
 
     -- EX-aligned, and derived from the three registers rather than a fourth
     -- flop of its own: mcause's interrupt bit and the cause trap_ctrl ranks
@@ -333,6 +343,7 @@ begin
     tmi_trap_o      <= tmi_trap_reg;
     swi_trap_o      <= swi_trap_reg;
     int_taken_o     <= int_taken;
+    int_pend_o      <= int_pend;
     int_trap_o      <= int_trap;
     mepc_reg_o      <= mepc_reg;
     mtvec_reg_o     <= mtvec_base_reg;

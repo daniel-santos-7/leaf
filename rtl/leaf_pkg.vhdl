@@ -136,6 +136,7 @@ package leaf_pkg is
             stale_i        : in  std_logic;
             flush_i        : in  std_logic;
             int_taken_i    : in  std_logic;
+            int_pend_i     : in  std_logic;
             ready_i        : in  std_logic;
             pipe_en_o      : out std_logic;
             id_valid_o     : out std_logic;
@@ -259,6 +260,7 @@ package leaf_pkg is
             tmi_trap_o   : out std_logic;
             swi_trap_o   : out std_logic;
             int_taken_o  : out std_logic;
+            int_pend_o   : out std_logic;
             int_trap_o   : out std_logic;
             mepc_reg_o   : out std_logic_vector(XLEN-1 downto 2);
             mtvec_reg_o  : out std_logic_vector(XLEN-1 downto 2);
