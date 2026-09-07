@@ -1,3 +1,10 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: instruction decode stage
+-- 2026
+----------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use work.leaf_pkg.all;

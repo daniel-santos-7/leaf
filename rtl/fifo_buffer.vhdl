@@ -1,3 +1,10 @@
+----------------------------------------------------------------------
+-- Leaf project
+-- developed by: Daniel Santos
+-- module: fifo buffer
+-- 2026
+----------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
