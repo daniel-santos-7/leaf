@@ -70,8 +70,7 @@ begin
                  dmst_malgn_i or dmst_fault_i;
 
     -- The spec's trap priority, in one chain. An ecall is the only cause left
-    -- once the eleven above it are ruled out, so it is the else -- ecall_i says
-    -- that a trap is taken at all, not which one.
+    -- once the eleven above it are ruled out, so it is the else.
     encode_trap: process(swi_taken_i, tmi_taken_i, exi_taken_i, imrd_malgn_i,
                          fetch_fault_i, instr_err_i, ebreak_i, dmld_malgn_i,
                          dmld_fault_i, dmst_malgn_i, dmst_fault_i,
@@ -152,11 +151,9 @@ begin
 
     csrwr_data_o <= csrwr_data;
 
-    -- retire_i is the raw "the ID slot held an instruction" bit; every reason
-    -- not to count it is here, where the whole cause set already is. Qualified
-    -- by pipe_en and not ready_i: while a wfi is parked ready_i still reads '1'
-    -- and retire_i still holds the bit of the instruction ahead of it, which
-    -- would be counted once per parked cycle. See verif/tests/wfi_timer.
+    -- retire_i is the raw "the ID slot held an instruction" bit. pipe_en is
+    -- what keeps a parked wfi from counting the instruction ahead of it once
+    -- per parked cycle. See verif/tests/wfi_timer.
     retire_o    <= retire_i and pipe_en_i and not exc_taken;
 
 end architecture rtl;

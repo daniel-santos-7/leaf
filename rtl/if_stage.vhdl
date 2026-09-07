@@ -127,11 +127,9 @@ begin
     inst_cyc_o <= if_inst_buf_ready;
     inst_stb_o <= if_adr_buf_ready;
     inst_adr_o <= adr_reg;
-    -- Only entries still tagged with the previous epoch, i.e. the wrong-path
-    -- ones left in the buffer after a redirect was consumed. The window before
+    -- Only entries still tagged with the previous epoch. The window before
     -- that -- from the redirect resolving until the fetch accepts it -- is
-    -- covered by flush_i in main_ctrl, which is driven by the same held
-    -- taken signal and therefore spans the whole deferral.
+    -- covered by flush_i in main_ctrl, driven by the same held taken signal.
     stale_o    <= if_adr_buf_valid and (if_adr_buf_data(XLEN-2) xor epoch_reg);
     pc_o       <= if_adr_buf_data(XLEN-3 downto 0);
     valid_o    <= if_adr_buf_valid and if_inst_buf_valid;

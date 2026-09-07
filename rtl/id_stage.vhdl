@@ -30,9 +30,6 @@ entity id_stage is
         valid_i       : in  std_logic;
         stale_i       : in  std_logic;
 
-        -- What the trap commits, resolved in ex_block's trap_ctrl over the
-        -- faults raised there and the cause set exported below. Only the
-        -- register writes stay here, next to csrs and the register file.
         exc_taken_i   : in  std_logic;
         mcause_exc_i  : in  std_logic_vector(4 downto 0);
         mtval_i       : in  std_logic_vector(XLEN-1 downto 0);
@@ -43,8 +40,6 @@ entity id_stage is
         exec_res_i    : in  std_logic_vector(XLEN-1 downto 0);
         pc_next_i     : in  std_logic_vector(XLEN-1 downto 0);
         dmld_data_i   : in  std_logic_vector(XLEN-1 downto 0);
-        -- The csr write data, muxed by funct3 out in ex_block off csrrd_data_o
-        -- below. Only the register write itself stays here, next to csrs.
         csrwr_data_i  : in  std_logic_vector(XLEN-1 downto 0);
 
         flush_i       : in  std_logic;
@@ -55,13 +50,9 @@ entity id_stage is
         branch_op_o   : out std_logic_vector(1  downto 0);
         alu_op_o      : out std_logic_vector(5  downto 0);
         dmls_ctrl_o   : out std_logic_vector(1  downto 0);
-        -- The trap redirect target, resolved against mepc/mtvec in csrs. Its
-        -- taken side is decided in ex_block, out of the cause set below.
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
 
-        -- The cause set: the synchronous half decoded and registered in
-        -- main_ctrl, the interrupt half armed and registered in csrs. trap_ctrl
-        -- ranks them in ex_block, against the faults that are raised there.
+        -- The cause set, ranked in ex_block's trap_ctrl.
         instr_err_o   : out std_logic;
         fetch_fault_o : out std_logic;
         ecall_o       : out std_logic;
@@ -72,9 +63,7 @@ entity id_stage is
         exi_taken_o   : out std_logic;
         tmi_taken_o   : out std_logic;
         swi_taken_o   : out std_logic;
-        -- main_ctrl's write enables, registered there and still ungated: the
-        -- EX faults that gate them are raised in ex_block, so they come back
-        -- as regwr_en_i/csrwr_en_i above.
+        -- Still ungated: the EX faults gate them into regwr_en_i/csrwr_en_i.
         regwr_en_o    : out std_logic;
         csrwr_en_o    : out std_logic;
         rd_data0_o    : out std_logic_vector(XLEN-1 downto 0);
@@ -84,7 +73,6 @@ entity id_stage is
         opd_src_sel_o : out std_logic_vector(1  downto 0);
         opd_pass_o    : out std_logic_vector(1  downto 0);
         pc_full_o     : out std_logic_vector(XLEN-1 downto 0);
-        -- The retire bit before the EX faults annul it; ex_block closes it.
         retire_o      : out std_logic;
 
         cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
@@ -96,9 +84,6 @@ end entity id_stage;
 
 architecture rtl of id_stage is
 
-    -- The ID slot holds a real instruction: not empty, not wrong-path, not
-    -- flushed. main_ctrl squashes its decode with it, qualifies the trap decode
-    -- with it and counts retirements by it.
     signal id_valid : std_logic;
 
     -- main_ctrl registered (pipeline) outputs
@@ -115,17 +100,12 @@ architecture rtl of id_stage is
     signal main_ctrl_csrwr_en    : std_logic;
     signal main_ctrl_csrs_addr   : std_logic_vector(11 downto 0);
 
-    -- Registered outputs from reg_file/csrs (ID -> EX). csrs also owns the PC
-    -- pipeline register, and widens the word address to a byte address.
+    -- reg_file registered (pipeline) outputs
     signal reg_file_rd_data0 : std_logic_vector(XLEN-1 downto 0);
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
-    -- The three interrupt causes, already masked by mstatus.MIE in csrs, which
-    -- owns mie/mip/mstatus, plus two forms of their OR. int_taken is live and
-    -- stays here, for main_ctrl: it squashes the decode and wakes a parked wfi.
-    -- int_trap is the same OR registered onto the ID/EX boundary, and leaves
-    -- with the rest of the cause set. trap_ctrl, over in ex_block, ranks the
-    -- three apart to name the cause.
+    -- csrs outputs. The interrupt causes are already masked by mstatus.MIE;
+    -- int_taken is their live OR, int_trap the same OR registered onto ID/EX.
     signal csrs_exi_taken   : std_logic;
     signal csrs_tmi_taken   : std_logic;
     signal csrs_swi_taken   : std_logic;
@@ -138,10 +118,7 @@ architecture rtl of id_stage is
     signal csrs_cop_dat     : std_logic_vector(XLEN-1 downto 0);
     signal csrs_cop_we      : std_logic;
 
-    -- The ID half of the trap unit, decoded and registered in main_ctrl beside
-    -- the rest of the decode: trap_ctrl ranks the set in ex_block against the
-    -- faults raised there. main_ctrl also owns the pipeline advance, since a
-    -- parked wfi is an ID-time decision.
+    -- main_ctrl's trap half, plus the pipeline advance a parked wfi holds
     signal main_ctrl_pipe_en     : std_logic;
     signal main_ctrl_instr_err   : std_logic;
     signal main_ctrl_fetch_fault : std_logic;
@@ -236,8 +213,8 @@ begin
         int_taken_o   => csrs_int_taken,
         int_trap_o    => csrs_int_trap,
         trap_target_o => csrs_trap_target,
-        csrrd_data_o => csrs_csrrd_data,
-        pc_o         => csrs_pc
+        csrrd_data_o  => csrs_csrrd_data,
+        pc_o          => csrs_pc
     );
 
     ready_o       <= main_ctrl_pipe_en;

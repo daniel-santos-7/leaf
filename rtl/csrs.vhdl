@@ -19,19 +19,13 @@ entity csrs is
         ex_irq_i     : in  std_logic;
         sw_irq_i     : in  std_logic;
         tm_irq_i     : in  std_logic;
-        -- The whole mcause code field, prioritised in trap_ctrl: the interrupt
-        -- code while int_taken is up, the exception code otherwise. The two
-        -- numberings collide -- 3, 7 and 11 name something in each -- so
-        -- nothing here reads it back apart; it is stored as it arrives. The
-        -- three *_taken_o below feed the interrupt half.
+        -- The whole mcause code field, prioritised in trap_ctrl. The interrupt
+        -- and exception numberings collide -- 3, 7 and 11 name something in
+        -- each -- so it is stored here as it arrives.
         mcause_exc_i : in  std_logic_vector(4 downto 0);
-        -- Picked in trap_ctrl by select_mtval, off the same cause chain that
-        -- names mcause_exc_i: the spec pairs an mtval with each cause.
         mtval_i      : in  std_logic_vector(XLEN-1 downto 0);
-        -- The PC to stack, off that same chain: the trapping instruction's own,
-        -- or the word past it when the trap releases a parked wfi. It is not
-        -- the trap_target_o below -- that one is this register read back out,
-        -- for the mret redirect.
+        -- The PC to stack, not the trap_target_o below -- that one is this
+        -- register read back out, for the mret redirect.
         mepc_i       : in  std_logic_vector(XLEN-1 downto 2);
         mret_i       : in  std_logic;
         exc_taken_i  : in  std_logic;
@@ -49,24 +43,20 @@ entity csrs is
         cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o     : out std_logic;
         -- One armed interrupt per cause: its mie bit, its mip bit and
-        -- mstatus.MIE. All three are registers owned here, so the whole mask is
-        -- applied here and carries the write bypass. What is left for trap_ctrl
-        -- is ranking the three and naming the cause.
+        -- mstatus.MIE, all three registers owned here, so the whole mask is
+        -- applied here and carries the write bypass.
         exi_taken_o   : out std_logic;
         tmi_taken_o   : out std_logic;
         swi_taken_o   : out std_logic;
-        -- Their OR: "some interrupt is armed". main_ctrl squashes the decode
-        -- and wakes a parked wfi with it, and it is the interrupt bit of
-        -- mcause here.
+        -- Their live OR: main_ctrl squashes the decode and wakes a parked wfi
+        -- with it, and it is the interrupt bit of mcause here.
         int_taken_o   : out std_logic;
-        -- The same OR made a one-shot and registered onto the ID/EX boundary:
-        -- the interrupt half of the cause set trap_ctrl ranks. It rides the
-        -- pipeline register below so it reaches ex_block beside the instruction
-        -- main_ctrl squashed for it -- that instruction's pc is the mepc.
+        -- The same OR made a one-shot and registered onto the ID/EX boundary,
+        -- so it reaches ex_block beside the instruction main_ctrl squashed for
+        -- it -- that instruction's pc is the mepc.
         int_trap_o    : out std_logic;
         -- The fully resolved trap redirect: mepc for an mret, mtvec for every
-        -- other trap. Both registers are owned here, so the 2:1 mux stays next
-        -- to them and 32 bits cross into ex_block instead of 60.
+        -- other trap. Both registers are owned here, so the mux stays with them.
         trap_target_o : out std_logic_vector(XLEN-1 downto 0);
         csrrd_data_o : out std_logic_vector(XLEN-1 downto 0);
         pc_o         : out std_logic_vector(XLEN-1 downto 0)
@@ -101,8 +91,7 @@ architecture rtl of csrs is
 
     -- mie/mstatus go through the same write-forwarding bypass as mepc/mtvec, so
     -- a csrrs that sets MIE arms the interrupt in the cycle it commits rather
-    -- than one cycle later. The three masked results leave for trap_ctrl, which
-    -- ranks them.
+    -- than one cycle later.
     signal mie_meie_bypassed    : std_logic;
     signal mie_mtie_bypassed    : std_logic;
     signal mie_msie_bypassed    : std_logic;
@@ -227,10 +216,10 @@ begin
         end if;
     end process write_mepc;
 
-    -- The write is unconditional under exc_taken_i, where the old form held
-    -- the previous mcause whenever no cause matched. The only way to reach it
-    -- is int_taken dropping between the cycle trap_ctrl arms the trap and the
-    -- cycle it commits, and a held stale cause is no better an answer there.
+    -- The write is unconditional under exc_taken_i: the only way to reach a
+    -- no-cause-matched case is int_taken dropping between the cycle the trap
+    -- is armed here and the cycle it commits, and holding the previous mcause
+    -- is no better an answer there.
     write_mcause: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -302,21 +291,17 @@ begin
     mtvec_base_bypassed  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
 
     -- mip needs no bypass: it is not writable, it just samples the irq inputs.
-    -- mstatus.MIE gates all three alike, but it is ANDed per cause rather than
-    -- once over the OR, so each output is already a complete "this interrupt is
-    -- taken" and trap_ctrl needs no mask of its own.
+    -- mstatus.MIE is ANDed per cause rather than once over the OR, so each
+    -- output is already a complete "this interrupt is taken".
     exi_taken <= mie_meie_bypassed and mip_meip and mstatus_mie_bypassed;
     tmi_taken <= mie_mtie_bypassed and mip_mtip and mstatus_mie_bypassed;
     swi_taken <= mie_msie_bypassed and mip_msip and mstatus_mie_bypassed;
     int_taken <= exi_taken or tmi_taken or swi_taken;
 
     -- The one-shot. mstatus.MIE only clears at the edge exc_taken_i commits the
-    -- trap, so int_taken is still up through that whole cycle; without the
-    -- guard the trap commits twice, the second time with pc_reg advanced and
-    -- the three causes above already dropped, leaving a wrong mepc and an
-    -- mcause the ranking in trap_ctrl can no longer name. Covered by
-    -- verif/tests/wfi_timer. exc_taken_i carries the EX faults too, which raise
-    -- the same hazard.
+    -- trap, so int_taken is still up through that whole cycle; without the guard
+    -- the trap commits twice, the second time with pc_reg advanced and the three
+    -- causes above already dropped. Covered by verif/tests/wfi_timer.
     int_trap  <= int_taken and not exc_taken_i;
 
     -- mret_i is the registered copy out of main_ctrl, EX-aligned like the two

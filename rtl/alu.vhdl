@@ -22,10 +22,9 @@ entity alu is
         op_i           : in  std_logic_vector(5        downto 0);
         res_o          : out std_logic_vector(XLEN-1 downto 0);
         arith_res_o    : out std_logic_vector(XLEN-1 downto 0);
-        -- pc+4: the JAL/JALR link address and the mepc a wfi trap stacks. It
-        -- cannot come out of arith_unit -- for those very instructions the one
-        -- adder is busy computing the jump target -- so it gets a second,
-        -- narrow incrementer here, where pc_i already is.
+        -- pc+4: the JAL/JALR link address and the mepc a wfi trap stacks. For
+        -- those very instructions the one adder is busy computing the jump
+        -- target, so this gets its own narrow incrementer.
         pc_next_o      : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity alu;

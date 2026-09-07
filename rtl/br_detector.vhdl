@@ -39,9 +39,9 @@ architecture br_detector_arch of br_detector is
     signal taken_int  : std_logic;
     signal target_int : std_logic_vector(XLEN-1 downto 0);
 
-    -- Redirect held until the fetch stage can accept it. The bus may defer
-    -- acceptance for any number of cycles (Wishbone stall, address buffer
-    -- full), so taken_o/target_o stay asserted until redirect_ack_i arrives.
+    -- Redirect held until the fetch stage can accept it: the bus may defer
+    -- acceptance for any number of cycles, so taken_o/target_o stay asserted
+    -- until redirect_ack_i arrives.
     signal taken_reg  : std_logic;
     signal target_reg : std_logic_vector(XLEN-1 downto 0);
 
@@ -71,9 +71,9 @@ begin
     taken_int   <= (branch_i and en_i) or jmp_i or trap_taken_i;
     target_int  <= trap_target_i when trap_taken_i = '1' else arith_res_i(XLEN-1 downto 1) & b"0";
 
-    -- Clearing on the acknowledge takes priority over capturing: when a new
-    -- redirect resolves in the same cycle the fetch stage accepts the pending
-    -- one, taken_int still drives taken_o combinationally, so nothing is lost.
+    -- Clearing on the acknowledge takes priority over capturing: a redirect
+    -- resolving in that same cycle still drives taken_o combinationally
+    -- through taken_int, so nothing is lost.
     redirect_hold: process(clk_i)
     begin
         if rising_edge(clk_i) then

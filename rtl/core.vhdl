@@ -73,8 +73,7 @@ architecture rtl of core is
     signal id_stage_alu_op      : std_logic_vector(5  downto 0);
     signal id_stage_dmls_ctrl   : std_logic_vector(1  downto 0);
     signal id_stage_trap_target : std_logic_vector(XLEN-1 downto 0);
-    -- The trap cause set and the interrupts: decided in id_stage, ranked in
-    -- ex_block's trap_ctrl against the faults raised there.
+    -- The trap cause set, ranked in ex_block's trap_ctrl.
     signal id_stage_instr_err   : std_logic;
     signal id_stage_fetch_fault : std_logic;
     signal id_stage_ecall       : std_logic;
@@ -220,8 +219,7 @@ begin
         wfi_i          => id_stage_wfi,
         int_trap_i     => id_stage_int_trap,
         retire_i       => id_stage_retire,
-        -- id_stage.ready_o is main_ctrl's pipe_en: the ID/EX advance, which
-        -- qualifies the retire count on the way out of trap_ctrl.
+        -- id_stage.ready_o is main_ctrl's pipe_en: the ID/EX advance.
         pipe_en_i      => id_stage_ready,
         exi_taken_i    => id_stage_exi_taken,
         tmi_taken_i    => id_stage_tmi_taken,

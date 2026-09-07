@@ -11,21 +11,19 @@ use IEEE.numeric_std.all;
 
 entity fifo_buffer is
     generic (
-        DATA_WIDTH : natural := 32 -- Width of each data slot
+        DATA_WIDTH : natural := 32
     );
     port (
-        clk_i : in  std_logic; -- System clock
-        reset_i : in  std_logic; -- Synchronous reset (active high)
+        clk_i   : in  std_logic;
+        reset_i : in  std_logic;
 
-        -- Input Interface
-        valid_i : in  std_logic; -- Input data is valid (push)
-        ready_i : in  std_logic; -- Downstream is ready (pop enable)
-        data_i  : in  std_logic_vector(DATA_WIDTH-1 downto 0); -- Data to be stored
+        valid_i : in  std_logic;
+        ready_i : in  std_logic;
+        data_i  : in  std_logic_vector(DATA_WIDTH-1 downto 0);
 
-        -- Output Interface
-        valid_o : out std_logic; -- FIFO is not empty (data available)
-        ready_o : out std_logic; -- FIFO is not full (ready to accept data)
-        data_o  : out std_logic_vector(DATA_WIDTH-1 downto 0)  -- Data at current read pointer
+        valid_o : out std_logic;
+        ready_o : out std_logic;
+        data_o  : out std_logic_vector(DATA_WIDTH-1 downto 0)
     );
 end entity fifo_buffer;
 
@@ -36,23 +34,21 @@ architecture rtl of fifo_buffer is
 
     type fifo_data_array is array (0 to FIFO_DEPTH-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
 
-    signal fifo_data_reg : fifo_data_array; -- Memory array
+    signal fifo_data_reg : fifo_data_array;
 
-    signal wr_ptr_reg : unsigned(ADDR_WIDTH-1 downto 0); -- Write address pointer
-    signal rd_ptr_reg : unsigned(ADDR_WIDTH-1 downto 0); -- Read address pointer
+    signal wr_ptr_reg : unsigned(ADDR_WIDTH-1 downto 0);
+    signal rd_ptr_reg : unsigned(ADDR_WIDTH-1 downto 0);
 
-    signal wr_ptr_next : unsigned(ADDR_WIDTH-1 downto 0); -- Next write address
-    signal rd_ptr_next : unsigned(ADDR_WIDTH-1 downto 0); -- Next read address
+    signal wr_ptr_next : unsigned(ADDR_WIDTH-1 downto 0);
+    signal rd_ptr_next : unsigned(ADDR_WIDTH-1 downto 0);
 
-    signal empty_reg : std_logic; -- Registered empty flag
-    signal full_reg  : std_logic; -- Registered full flag
+    signal empty_reg : std_logic;
+    signal full_reg  : std_logic;
 
     signal pushing : std_logic;
     signal popping : std_logic;
 
 begin
-
-    ----------------------- Internal Control Signals ---------------------
 
     pushing <= valid_i and not full_reg;
     popping <= ready_i and not empty_reg;
@@ -60,9 +56,7 @@ begin
     wr_ptr_next <= (others => '0') when wr_ptr_reg = FIFO_DEPTH - 1 else wr_ptr_reg + 1;
     rd_ptr_next <= (others => '0') when rd_ptr_reg = FIFO_DEPTH - 1 else rd_ptr_reg + 1;
 
-    ----------------------- Datapath Logic -----------------------------
-
-    -- Process 1: Memory Write (Dedicated to RAM inference)
+    -- Its own process, so the array infers a RAM.
     memory_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -72,12 +66,8 @@ begin
         end if;
     end process memory_proc;
 
-    -- Combinational data output
     data_o <= fifo_data_reg(to_integer(rd_ptr_reg));
 
-    ----------------------- Control Logic ----------------------------
-
-    -- Process 2: Write Pointer Management
     write_pointer_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -89,7 +79,6 @@ begin
         end if;
     end process write_pointer_proc;
 
-    -- Process 3: Read Pointer Management
     read_pointer_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -101,7 +90,7 @@ begin
         end if;
     end process read_pointer_proc;
 
-    -- Process 4: Status Logic (Optimized, no counter)
+    -- The flags are kept by the pointers alone, without a fill counter.
     status_proc: process(clk_i)
     begin
         if rising_edge(clk_i) then
@@ -120,12 +109,10 @@ begin
                         empty_reg <= '1';
                     end if;
                 end if;
-                -- Simultaneous push/pop: distance remains constant, no change to flags
+                -- A simultaneous push and pop leaves the distance unchanged.
             end if;
         end if;
     end process status_proc;
-
-    ------------------------------ Outputs ------------------------------
 
     valid_o <= not empty_reg;
     ready_o <= not full_reg;
