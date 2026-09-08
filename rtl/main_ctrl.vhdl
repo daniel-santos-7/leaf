@@ -34,8 +34,8 @@ entity main_ctrl is
 
         pipe_en_o      : out std_logic;
 
-        -- The cause set, registered here onto ID/EX. Nothing is pre-ORed
-        -- except int_trap, which mcause's interrupt bit reads back.
+        -- The cause set, registered here onto ID/EX. Nothing is pre-ORed:
+        -- trap_ctrl ranks these three and ORs them for mcause's interrupt bit.
         instr_err_o    : out std_logic;
         fetch_fault_o  : out std_logic;
         ecall_o        : out std_logic;
@@ -45,7 +45,6 @@ entity main_ctrl is
         exi_trap_o     : out std_logic;
         tmi_trap_o     : out std_logic;
         swi_trap_o     : out std_logic;
-        int_trap_o     : out std_logic;
         retire_o       : out std_logic;
 
         -- Registered (pipeline) outputs.
@@ -87,7 +86,6 @@ architecture rtl of main_ctrl is
     signal exi_trap    : std_logic;
     signal tmi_trap    : std_logic;
     signal swi_trap    : std_logic;
-    signal int_trap    : std_logic;
 
     -- The interrupt that releases a wfi also squashes its decode, so the wfi is
     -- gone by then. This carries it to EX, which stacks pc+4 and counts it.
@@ -175,11 +173,6 @@ begin
     exi_trap  <= exi_pend and mstatus_mie_i and not exc_taken_i and id_valid;
     tmi_trap  <= tmi_pend and mstatus_mie_i and not exc_taken_i and id_valid;
     swi_trap  <= swi_pend and mstatus_mie_i and not exc_taken_i and id_valid;
-
-    -- EX-aligned, and derived from the three registers rather than a fourth
-    -- flop of its own: mcause's interrupt bit and the cause trap_ctrl ranks
-    -- then cannot come from different snapshots.
-    int_trap  <= exi_trap_reg or tmi_trap_reg or swi_trap_reg;
 
     gen: process(imm_type, payload)
     begin
@@ -511,7 +504,6 @@ begin
     exi_trap_o    <= exi_trap_reg;
     tmi_trap_o    <= tmi_trap_reg;
     swi_trap_o    <= swi_trap_reg;
-    int_trap_o    <= int_trap;
     retire_o      <= retire_reg;
 
     func3_o       <= func3_reg;

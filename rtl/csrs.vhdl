@@ -27,7 +27,7 @@ entity csrs is
         -- numberings collide (3, 7, 11), so the bit and the code above must be
         -- the same snapshot: both arrive from the ID/EX boundary, neither is
         -- rebuilt here.
-        int_trap_i    : in  std_logic;
+        mcause_int_i  : in  std_logic;
         -- The PC to stack, not mepc_reg_o below -- that is mepc read back out.
         mepc_i        : in  std_logic_vector(XLEN-1 downto 2);
         mret_i        : in  std_logic;
@@ -214,7 +214,7 @@ begin
                 mcause_int <= '0';
                 mcause_exc <= (others => '0');
             elsif exc_taken_i = '1' then
-                mcause_int <= int_trap_i;
+                mcause_int <= mcause_int_i;
                 mcause_exc <= mcause_exc_i;
             elsif wr_addr_i = CSR_ADDR_MCAUSE and wr_en_i = '1' then
                 mcause_int <= wr_data_i(XLEN-1);

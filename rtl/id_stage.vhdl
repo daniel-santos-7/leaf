@@ -32,6 +32,7 @@ entity id_stage is
 
         exc_taken_i   : in  std_logic;
         mcause_exc_i  : in  std_logic_vector(4 downto 0);
+        mcause_int_i  : in  std_logic;
         mtval_i       : in  std_logic_vector(XLEN-1 downto 0);
         mepc_i        : in  std_logic_vector(XLEN-1 downto 2);
         regwr_en_i    : in  std_logic;
@@ -60,7 +61,6 @@ entity id_stage is
         ebreak_o      : out std_logic;
         mret_o        : out std_logic;
         wfi_o         : out std_logic;
-        int_trap_o    : out std_logic;
         exi_trap_o    : out std_logic;
         tmi_trap_o    : out std_logic;
         swi_trap_o    : out std_logic;
@@ -132,7 +132,6 @@ architecture rtl of id_stage is
     signal main_ctrl_exi_trap    : std_logic;
     signal main_ctrl_tmi_trap    : std_logic;
     signal main_ctrl_swi_trap    : std_logic;
-    signal main_ctrl_int_trap    : std_logic;
     signal main_ctrl_retire      : std_logic;
 
 begin
@@ -164,7 +163,6 @@ begin
         exi_trap_o     => main_ctrl_exi_trap,
         tmi_trap_o     => main_ctrl_tmi_trap,
         swi_trap_o     => main_ctrl_swi_trap,
-        int_trap_o     => main_ctrl_int_trap,
         retire_o       => main_ctrl_retire,
         func3_o        => main_ctrl_func3,
         branch_op_o    => main_ctrl_branch_op,
@@ -209,7 +207,7 @@ begin
         tm_irq_i      => tm_irq_i,
         mcause_exc_i  => mcause_exc_i,
         mtval_i       => mtval_i,
-        int_trap_i    => main_ctrl_int_trap,
+        mcause_int_i  => mcause_int_i,
         mepc_i        => mepc_i,
         mret_i        => main_ctrl_mret,
         exc_taken_i   => exc_taken_i,
@@ -253,7 +251,6 @@ begin
     ebreak_o      <= main_ctrl_ebreak;
     mret_o        <= main_ctrl_mret;
     wfi_o         <= main_ctrl_wfi;
-    int_trap_o    <= main_ctrl_int_trap;
     exi_trap_o    <= main_ctrl_exi_trap;
     tmi_trap_o    <= main_ctrl_tmi_trap;
     swi_trap_o    <= main_ctrl_swi_trap;

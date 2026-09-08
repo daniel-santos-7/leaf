@@ -83,7 +83,6 @@ architecture rtl of core is
     signal id_stage_ebreak      : std_logic;
     signal id_stage_mret        : std_logic;
     signal id_stage_wfi         : std_logic;
-    signal id_stage_int_trap    : std_logic;
     signal id_stage_exi_trap   : std_logic;
     signal id_stage_tmi_trap   : std_logic;
     signal id_stage_swi_trap   : std_logic;
@@ -112,6 +111,7 @@ architecture rtl of core is
     -- What the trap commits, back to csrs and the register file in id_stage.
     signal ex_block_exc_taken  : std_logic;
     signal ex_block_mcause_exc : std_logic_vector(4 downto 0);
+    signal ex_block_mcause_int : std_logic;
     signal ex_block_mtval      : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_mepc       : std_logic_vector(XLEN-1 downto 2);
     signal ex_block_regwr_en   : std_logic;
@@ -160,6 +160,7 @@ begin
         tm_irq_i      => tm_irq_i,
         exc_taken_i   => ex_block_exc_taken,
         mcause_exc_i  => ex_block_mcause_exc,
+        mcause_int_i  => ex_block_mcause_int,
         mtval_i       => ex_block_mtval,
         mepc_i        => ex_block_mepc,
         regwr_en_i    => ex_block_regwr_en,
@@ -195,7 +196,6 @@ begin
         ebreak_o      => id_stage_ebreak,
         mret_o        => id_stage_mret,
         wfi_o         => id_stage_wfi,
-        int_trap_o    => id_stage_int_trap,
         exi_trap_o    => id_stage_exi_trap,
         tmi_trap_o    => id_stage_tmi_trap,
         swi_trap_o    => id_stage_swi_trap,
@@ -222,7 +222,6 @@ begin
         ebreak_i       => id_stage_ebreak,
         mret_i         => id_stage_mret,
         wfi_i          => id_stage_wfi,
-        int_trap_i     => id_stage_int_trap,
         retire_i       => id_stage_retire,
         -- id_stage.ready_o is main_ctrl's pipe_en: the ID/EX advance.
         pipe_en_i      => id_stage_ready,
@@ -249,6 +248,7 @@ begin
         redirect_ack_i => if_stage_redirect_ack,
         exc_taken_o    => ex_block_exc_taken,
         mcause_exc_o   => ex_block_mcause_exc,
+        mcause_int_o   => ex_block_mcause_int,
         mtval_o        => ex_block_mtval,
         mepc_o         => ex_block_mepc,
         regwr_en_o     => ex_block_regwr_en,

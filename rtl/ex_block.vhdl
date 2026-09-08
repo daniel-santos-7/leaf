@@ -34,7 +34,6 @@ entity ex_block is
         ebreak_i       : in  std_logic;
         mret_i         : in  std_logic;
         wfi_i          : in  std_logic;
-        int_trap_i     : in  std_logic;
         retire_i       : in  std_logic;
         pipe_en_i      : in  std_logic;
         exi_trap_i     : in  std_logic;
@@ -53,6 +52,7 @@ entity ex_block is
         dmld_data_o    : out std_logic_vector(XLEN-1 downto 0);
 
         exc_taken_o    : out std_logic;
+        mcause_int_o   : out std_logic;
         mcause_exc_o   : out std_logic_vector(4 downto 0);
         mtval_o        : out std_logic_vector(XLEN-1 downto 0);
         mepc_o         : out std_logic_vector(XLEN-1 downto 2);
@@ -83,6 +83,7 @@ architecture ex_block_arch of ex_block is
     signal br_detector_target     : std_logic_vector(XLEN-1 downto 0);
     signal br_detector_imrd_malgn : std_logic;
 
+    signal trap_ctrl_mcause_int  : std_logic;
     signal trap_ctrl_exc_taken  : std_logic;
     signal trap_ctrl_target     : std_logic_vector(XLEN-1 downto 0);
     signal trap_ctrl_taken      : std_logic;
@@ -173,7 +174,6 @@ begin
         ebreak_i       => ebreak_i,
         mret_i         => mret_i,
         wfi_i          => wfi_i,
-        int_trap_i     => int_trap_i,
         retire_i       => retire_i,
         pipe_en_i      => pipe_en_i,
         exi_trap_i     => exi_trap_i,
@@ -194,6 +194,7 @@ begin
         regwr_data_i   => reg0_i,
         immwr_data_i   => immwr_data_i,
         exc_taken_o    => trap_ctrl_exc_taken,
+        mcause_int_o   => trap_ctrl_mcause_int,
         taken_o        => trap_ctrl_taken,
         target_o       => trap_ctrl_target,
         mcause_exc_o   => trap_ctrl_mcause_exc,
@@ -215,6 +216,7 @@ begin
     dmld_data_o  <= dmls_block_dmld_data;
 
     exc_taken_o  <= trap_ctrl_exc_taken;
+    mcause_int_o <= trap_ctrl_mcause_int;
     mcause_exc_o <= trap_ctrl_mcause_exc;
     mtval_o      <= trap_ctrl_mtval;
     mepc_o       <= trap_ctrl_mepc;

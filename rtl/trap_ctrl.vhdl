@@ -20,10 +20,12 @@ entity trap_ctrl is
         mepc_reg_i     : in  std_logic_vector(XLEN-1 downto 2);
         mtvec_reg_i    : in  std_logic_vector(XLEN-1 downto 2);
         wfi_i          : in  std_logic;
-        int_trap_i     : in  std_logic;
         retire_i       : in  std_logic;
         pipe_en_i      : in  std_logic;
 
+        -- The armed interrupt, one cause per line, registered onto ID/EX in
+        -- main_ctrl. Ranked below and ORed here rather than there: the code
+        -- and mcause's interrupt bit then come from the same three signals.
         exi_trap_i     : in  std_logic;
         tmi_trap_i     : in  std_logic;
         swi_trap_i     : in  std_logic;
@@ -47,6 +49,7 @@ entity trap_ctrl is
         immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
 
         exc_taken_o    : out std_logic;
+        mcause_int_o   : out std_logic;
         taken_o        : out std_logic;
         target_o       : out std_logic_vector(XLEN-1 downto 0);
         mcause_exc_o   : out std_logic_vector(4 downto 0);
@@ -63,6 +66,7 @@ architecture rtl of trap_ctrl is
 
     signal exc_fault  : std_logic;
     signal exc_taken  : std_logic;
+    signal int_trap   : std_logic;
     signal mcause_exc : std_logic_vector(4 downto 0);
     signal mtval      : std_logic_vector(XLEN-1 downto 0);
     signal mepc       : std_logic_vector(XLEN-1 downto 2);
@@ -72,6 +76,8 @@ begin
 
     exc_fault <= imrd_malgn_i or dmld_malgn_i or dmld_fault_i or
                  dmst_malgn_i or dmst_fault_i;
+
+    int_trap  <= exi_trap_i or tmi_trap_i or swi_trap_i;
 
     -- The spec's trap priority, in one chain. An ecall is the only cause left
     -- once the eleven above it are ruled out, so it is the else.
@@ -138,7 +144,7 @@ begin
             pc_i(XLEN-1 downto 2);
 
     exc_taken <= instr_err_i or fetch_fault_i or ecall_i or ebreak_i or
-                 int_trap_i or exc_fault;
+                 int_trap or exc_fault;
 
     -- An mret redirects the fetch but commits nothing in csrs beyond the
     -- mstatus unstacking, so it joins the redirect and not exc_taken. The same
@@ -147,7 +153,8 @@ begin
     target_o    <= mepc_reg_i  & b"00" when mret_i = '1' else
                    mtvec_reg_i & b"00";
 
-    exc_taken_o <= exc_taken;
+    exc_taken_o  <= exc_taken;
+    mcause_int_o <= int_trap;
 
     mcause_exc_o  <= mcause_exc;
     mtval_o       <= mtval;
