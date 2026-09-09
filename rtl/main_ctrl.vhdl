@@ -340,7 +340,18 @@ begin
                         sys_ctrl  <= '1';
                     else
                         regwr_sel <= b"11";
-                        csrwr_en  <= '1';
+                        -- csrrs/csrrc, and their immediate forms, must not
+                        -- write when rs1/uimm is zero. The write would be a
+                        -- no-op on the value, but it hits the read bypass in
+                        -- csrs and freezes the next read of a live counter.
+                        -- funct3(1 downto 0) = "01" is the csrrw pair, which
+                        -- always writes.
+                        if instr_i(13 downto 12) = b"01" or
+                           instr_i(19 downto 15) /= b"00000" then
+                            csrwr_en <= '1';
+                        else
+                            csrwr_en <= '0';
+                        end if;
                         regwr_en  <= '1';
                         sys_ctrl  <= '0';
                     end if;
