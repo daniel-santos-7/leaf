@@ -14,30 +14,32 @@ entity dmls_block is
     port (
         clk_i        : in  std_logic;
         reset_i      : in  std_logic;
-        dmls_ctrl_i  : in  std_logic_vector(1           downto 0);
-        dmls_dtype_i : in  std_logic_vector(2           downto 0);
-        dmst_data_i  : in  std_logic_vector(XLEN-1      downto 0);
-        arith_res_i  : in  std_logic_vector(XLEN-1      downto 0);
-        data_dat_i  : in  std_logic_vector(XLEN-1      downto 0);
-        data_ack_i  : in  std_logic;
-        data_err_i  : in  std_logic;
+        dmls_ctrl_i  : in  std_logic_vector(1      downto 0);
+        dmls_dtype_i : in  std_logic_vector(2      downto 0);
+        dmst_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+        arith_res_i  : in  std_logic_vector(XLEN-1 downto 0);
+        data_dat_i   : in  std_logic_vector(XLEN-1 downto 0);
+        data_ack_i   : in  std_logic;
+        data_err_i   : in  std_logic;
         data_stall_i : in  std_logic;
-        data_cyc_o   : out std_logic;
-        data_stb_o   : out std_logic;
+
+        dmls_ready_o : out std_logic;
+        dmld_data_o  : out std_logic_vector(XLEN-1 downto 0);
         dmld_malgn_o : out std_logic;
         dmld_fault_o : out std_logic;
         dmst_malgn_o : out std_logic;
         dmst_fault_o : out std_logic;
-        data_dat_o  : out std_logic_vector(XLEN-1      downto 0);
-        data_adr_o  : out std_logic_vector(XLEN-1      downto 2);
-        data_sel_o : out std_logic_vector(3           downto 0);
-        data_we_o  : out std_logic;
-        dmls_ready_o : out std_logic;
-        dmld_data_o  : out std_logic_vector(XLEN-1      downto 0)
+
+        data_cyc_o   : out std_logic;
+        data_stb_o   : out std_logic;
+        data_we_o    : out std_logic;
+        data_sel_o   : out std_logic_vector(3      downto 0);
+        data_adr_o   : out std_logic_vector(XLEN-1 downto 2);
+        data_dat_o   : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity dmls_block;
 
-architecture dmls_block_arch of dmls_block is
+architecture rtl of dmls_block is
 
     type state_t is (IDLE, REQUEST, WACCESS, DONE);
     signal state : state_t;
@@ -53,7 +55,6 @@ architecture dmls_block_arch of dmls_block is
 
     signal addr_base   : std_logic_vector(1 downto 0);
     signal addr_base_wr : std_logic_vector(1 downto 0);
-
 
     signal data_adr_reg : std_logic_vector(XLEN-1 downto 0);
     signal data_dat_int : std_logic_vector(XLEN-1 downto 0);
@@ -313,4 +314,4 @@ begin
     dmls_ready_o <= '1' when state = DONE or (state = IDLE and dmrd_en = '0' and dmwr_en = '0') else '0';
     dmld_data_o  <= dmld_data_reg;
 
-end architecture dmls_block_arch;
+end architecture rtl;

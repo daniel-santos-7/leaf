@@ -29,12 +29,12 @@ entity br_detector is
     );
 end entity br_detector;
 
-architecture br_detector_arch of br_detector is
+architecture rtl of br_detector is
 
     signal equal:         std_logic;
     signal less:          std_logic;
     signal less_unsigned: std_logic;
-    signal branch_i:      std_logic;
+    signal branch:      std_logic;
 
     signal taken_int  : std_logic;
     signal target_int : std_logic_vector(XLEN-1 downto 0);
@@ -56,19 +56,19 @@ begin
     exec: process(mode_i, equal, less, less_unsigned)
     begin
         case mode_i is
-            when EQ_BD_MODE  => branch_i <= equal;
-            when NE_BD_MODE  => branch_i <= not(equal);
-            when LT_BD_MODE  => branch_i <= less;
-            when GE_BD_MODE  => branch_i <= not(less) or equal;
-            when LTU_BD_MODE => branch_i <= less_unsigned;
-            when GEU_BD_MODE => branch_i <= not(less_unsigned) or equal;
-            when others      => branch_i <= '0';
+            when EQ_BD_MODE  => branch <= equal;
+            when NE_BD_MODE  => branch <= not(equal);
+            when LT_BD_MODE  => branch <= less;
+            when GE_BD_MODE  => branch <= not(less) or equal;
+            when LTU_BD_MODE => branch <= less_unsigned;
+            when GEU_BD_MODE => branch <= not(less_unsigned) or equal;
+            when others      => branch <= '0';
         end case;
     end process exec;
 
-    imrd_malgn_o <= arith_res_i(1) and ((branch_i and en_i) or jmp_i);
+    imrd_malgn_o <= arith_res_i(1) and ((branch and en_i) or jmp_i);
 
-    taken_int   <= (branch_i and en_i) or jmp_i or trap_taken_i;
+    taken_int   <= (branch and en_i) or jmp_i or trap_taken_i;
     target_int  <= trap_target_i when trap_taken_i = '1' else arith_res_i(XLEN-1 downto 1) & b"0";
 
     -- Clearing on the acknowledge takes priority over capturing: a redirect
@@ -90,4 +90,4 @@ begin
     taken_o  <= taken_int or taken_reg;
     target_o <= target_int when taken_int = '1' else target_reg;
 
-end architecture br_detector_arch;
+end architecture rtl;

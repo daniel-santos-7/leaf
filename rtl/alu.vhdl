@@ -29,7 +29,7 @@ entity alu is
     );
 end entity alu;
 
-architecture alu_arch of alu is
+architecture rtl of alu is
 
     signal arith_op   :   std_logic;
     signal arith_opd0 : std_logic_vector(XLEN-1 downto 0);
@@ -161,4 +161,4 @@ begin
     -- pc_i is word-aligned, so +4 is an increment of the word address
     pc_next_o   <= std_logic_vector(unsigned(pc_i(XLEN-1 downto 2)) + 1) & b"00";
 
-end architecture alu_arch;
+end architecture rtl;

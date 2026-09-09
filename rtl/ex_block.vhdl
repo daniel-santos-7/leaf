@@ -43,7 +43,6 @@ entity ex_block is
         csrwr_en_i     : in  std_logic;
 
         ready_o        : out std_logic;
-        flush_o        : out std_logic;
         taken_o        : out std_logic;
         target_o       : out std_logic_vector(XLEN-1 downto 0);
         res_o          : out std_logic_vector(XLEN-1 downto 0);
@@ -73,7 +72,7 @@ entity ex_block is
     );
 end entity ex_block;
 
-architecture ex_block_arch of ex_block is
+architecture rtl of ex_block is
 
     signal alu_res       : std_logic_vector(XLEN-1 downto 0);
     signal alu_arith_res : std_logic_vector(XLEN-1 downto 0);
@@ -207,7 +206,6 @@ begin
     );
 
     ready_o      <= dmls_block_dmls_ready;
-    flush_o      <= br_detector_taken;
     taken_o      <= br_detector_taken;
     target_o     <= br_detector_target;
     res_o        <= alu_res;
@@ -231,4 +229,4 @@ begin
     data_adr_o   <= dmls_block_data_adr;
     data_dat_o   <= dmls_block_data_dat;
 
-end architecture ex_block_arch;
+end architecture rtl;

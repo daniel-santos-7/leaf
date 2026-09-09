@@ -41,28 +41,6 @@ package leaf_tb_pkg is
 
     procedure write_memory (dump_file : in string; memory : in memory_array);
 
-    component wb_ram is
-        generic (
-            PROGRAM  : string;
-            DUMP_FILE  : string
-        );
-        port (
-            clk_i : in  std_logic;
-            rst_i : in  std_logic;
-            dat_i : in  std_logic_vector(31 downto 0);
-            cyc_i : in  std_logic;
-            stb_i : in  std_logic;
-            we_i  : in  std_logic;
-            sel_i : in  std_logic_vector(3  downto 0);
-            adr_i : in  std_logic_vector(31 downto 2);
-            ack_o : out std_logic;
-            dat_o : out std_logic_vector(31 downto 0);
-            wr_mem_i : in std_logic;
-            rd_mem_i : in std_logic;
-            halt_o   : out std_logic
-        );
-    end component wb_ram;
-
     component wb_ram_dual is
         generic (
             PROGRAM   : string;

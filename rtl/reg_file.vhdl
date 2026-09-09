@@ -32,7 +32,7 @@ entity reg_file is
     );
 end entity reg_file;
 
-architecture reg_file_arch of reg_file is
+architecture rtl of reg_file is
 
     constant EMBEDDED : boolean := SIZE = 16;
 
@@ -123,4 +123,4 @@ begin
     rd_data0_o <= rd_data0_reg;
     rd_data1_o <= rd_data1_reg;
 
-end architecture reg_file_arch;
+end architecture rtl;

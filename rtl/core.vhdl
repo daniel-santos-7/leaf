@@ -83,9 +83,9 @@ architecture rtl of core is
     signal id_stage_ebreak      : std_logic;
     signal id_stage_mret        : std_logic;
     signal id_stage_wfi         : std_logic;
-    signal id_stage_exi_trap   : std_logic;
-    signal id_stage_tmi_trap   : std_logic;
-    signal id_stage_swi_trap   : std_logic;
+    signal id_stage_exi_trap    : std_logic;
+    signal id_stage_tmi_trap    : std_logic;
+    signal id_stage_swi_trap    : std_logic;
     signal id_stage_regwr_en    : std_logic;
     signal id_stage_csrwr_en    : std_logic;
     signal id_stage_rd_data0    : std_logic_vector(XLEN-1 downto 0);
@@ -101,9 +101,9 @@ architecture rtl of core is
     signal id_stage_cop_we      : std_logic;
 
     signal ex_block_ready      : std_logic;
+    -- The redirect: if_stage refetches from it, id_stage squashes on it.
     signal ex_block_taken      : std_logic;
     signal ex_block_target     : std_logic_vector(XLEN-1 downto 0);
-    signal ex_block_flush      : std_logic;
     signal ex_block_res        : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_pc_next    : std_logic_vector(XLEN-1 downto 0);
     signal ex_block_csrwr_data : std_logic_vector(XLEN-1 downto 0);
@@ -181,7 +181,7 @@ begin
         cop_adr_o     => id_stage_cop_adr,
         cop_dat_o     => id_stage_cop_dat,
         cop_we_o      => id_stage_cop_we,
-        flush_i       => ex_block_flush,
+        flush_i       => ex_block_taken,
         ready_i       => ex_block_ready,
         ready_o       => id_stage_ready,
         func3_o       => id_stage_func3,
@@ -266,8 +266,7 @@ begin
         res_o          => ex_block_res,
         pc_next_o      => ex_block_pc_next,
         csrwr_data_o   => ex_block_csrwr_data,
-        ready_o        => ex_block_ready,
-        flush_o        => ex_block_flush
+        ready_o        => ex_block_ready
     );
 
     retire_o     <= ex_block_retire;

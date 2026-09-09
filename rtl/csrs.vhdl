@@ -107,7 +107,7 @@ begin
     cop_sel_rd <= '1' when rw_addr_i(11 downto 6) = b"011111" else '0';
     cop_sel_wr <= '1' when wr_addr_i(11 downto 6) = b"011111" else '0';
 
-    runit: rd_data_bypassed <= wr_data_i when (wr_en_i = '1' and wr_addr_i = rw_addr_i) else rd_data_int;
+    rd_data_bypassed <= wr_data_i when (wr_en_i = '1' and wr_addr_i = rw_addr_i) else rd_data_int;
 
     read_csr: process(rw_addr_i, mstatus_mie, mstatus_mpie, mie_meie, mie_mtie, mie_msie, mtvec_base, mscratch, mepc, mcause_int, mcause_exc, mtval, mip_meip, mip_mtip, mip_msip, cycle_i, timer_i, instret_i, cop_sel_rd, cop_dat_i)
     begin

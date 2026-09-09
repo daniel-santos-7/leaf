@@ -415,7 +415,6 @@ package leaf_pkg is
             csrwr_en_i     : in  std_logic;
 
             ready_o        : out std_logic;
-            flush_o        : out std_logic;
             taken_o        : out std_logic;
             target_o       : out std_logic_vector(XLEN-1 downto 0);
             res_o          : out std_logic_vector(XLEN-1 downto 0);
@@ -448,26 +447,28 @@ package leaf_pkg is
         port (
             clk_i        : in  std_logic;
             reset_i      : in  std_logic;
-            dmls_ctrl_i  : in  std_logic_vector(1           downto 0);
-            dmls_dtype_i : in  std_logic_vector(2           downto 0);
-            dmst_data_i  : in  std_logic_vector(XLEN-1      downto 0);
-            arith_res_i  : in  std_logic_vector(XLEN-1      downto 0);
-            data_dat_i  : in  std_logic_vector(XLEN-1      downto 0);
-            data_ack_i  : in  std_logic;
-            data_err_i  : in  std_logic;
+            dmls_ctrl_i  : in  std_logic_vector(1      downto 0);
+            dmls_dtype_i : in  std_logic_vector(2      downto 0);
+            dmst_data_i  : in  std_logic_vector(XLEN-1 downto 0);
+            arith_res_i  : in  std_logic_vector(XLEN-1 downto 0);
+            data_dat_i   : in  std_logic_vector(XLEN-1 downto 0);
+            data_ack_i   : in  std_logic;
+            data_err_i   : in  std_logic;
             data_stall_i : in  std_logic;
+
+            dmls_ready_o : out std_logic;
+            dmld_data_o  : out std_logic_vector(XLEN-1 downto 0);
             dmld_malgn_o : out std_logic;
             dmld_fault_o : out std_logic;
             dmst_malgn_o : out std_logic;
             dmst_fault_o : out std_logic;
+
             data_cyc_o   : out std_logic;
             data_stb_o   : out std_logic;
-            data_dat_o  : out std_logic_vector(XLEN-1      downto 0);
-            data_adr_o  : out std_logic_vector(XLEN-1      downto 2);
-            data_sel_o : out std_logic_vector(3           downto 0);
-            data_we_o  : out std_logic;
-            dmls_ready_o : out std_logic;
-            dmld_data_o  : out std_logic_vector(XLEN-1      downto 0)
+            data_we_o    : out std_logic;
+            data_sel_o   : out std_logic_vector(3      downto 0);
+            data_adr_o   : out std_logic_vector(XLEN-1 downto 2);
+            data_dat_o   : out std_logic_vector(XLEN-1 downto 0)
         );
     end component dmls_block;
 
@@ -579,41 +580,5 @@ package leaf_pkg is
             ready_i  : in  std_logic
         );
     end component fifo_buffer;
-
-    component wb_arbiter is
-        port (
-            clk_i    : in  std_logic;
-            rst_i    : in  std_logic;
-
-            inst_cyc_i : in  std_logic;
-            inst_stb_i : in  std_logic;
-            inst_adr_i : in  std_logic_vector(XLEN-1 downto 2);
-            inst_ack_o : out std_logic;
-            inst_err_o : out std_logic;
-
-            data_cyc_i : in  std_logic;
-            data_stb_i : in  std_logic;
-            data_adr_i : in  std_logic_vector(XLEN-1 downto 2);
-            data_sel_i : in  std_logic_vector(3 downto 0);
-            data_we_i  : in  std_logic;
-            data_dat_i : in  std_logic_vector(XLEN-1 downto 0);
-            data_ack_o : out std_logic;
-            data_err_o : out std_logic;
-
-            cyc_o   : out std_logic;
-            stb_o   : out std_logic;
-            adr_o   : out std_logic_vector(XLEN-1 downto 2);
-            sel_o   : out std_logic_vector(3 downto 0);
-            we_o    : out std_logic;
-            dat_o   : out std_logic_vector(XLEN-1 downto 0);
-            ack_i   : in  std_logic;
-            err_i   : in  std_logic;
-            dat_i   : in  std_logic_vector(XLEN-1 downto 0);
-            inst_dat_o : out std_logic_vector(XLEN-1 downto 0);
-            data_dat_o : out std_logic_vector(XLEN-1 downto 0);
-            inst_stall_o : out std_logic;
-            data_stall_o : out std_logic
-        );
-    end component wb_arbiter;
 
 end package leaf_pkg;
