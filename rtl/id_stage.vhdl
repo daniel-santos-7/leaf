@@ -103,16 +103,14 @@ architecture rtl of id_stage is
     signal reg_file_rd_data0 : std_logic_vector(XLEN-1 downto 0);
     signal reg_file_rd_data1 : std_logic_vector(XLEN-1 downto 0);
 
-    -- csrs outputs. The interrupt state goes out raw -- one enable and one
-    -- pending bit per cause plus the global enable -- and main_ctrl arms from
-    -- it beside the rest of the ID-time causes.
-    signal csrs_mie_meie    : std_logic;
-    signal csrs_mie_mtie    : std_logic;
-    signal csrs_mie_msie    : std_logic;
-    signal csrs_mip_meip    : std_logic;
-    signal csrs_mip_mtip    : std_logic;
-    signal csrs_mip_msip    : std_logic;
-    signal csrs_mstatus_mie : std_logic;
+    -- csrs outputs. csrs arms and registers the interrupt itself, qualifying
+    -- it with main_ctrl's id_valid; main_ctrl only reads back the wfi wake and
+    -- the decode squash.
+    signal csrs_int_pend    : std_logic;
+    signal csrs_int_taken   : std_logic;
+    signal csrs_exi_trap    : std_logic;
+    signal csrs_tmi_trap    : std_logic;
+    signal csrs_swi_trap    : std_logic;
     signal csrs_mepc_reg    : std_logic_vector(XLEN-1 downto 2);
     signal csrs_mtvec_reg   : std_logic_vector(XLEN-1 downto 2);
     signal csrs_csrrd_data  : std_logic_vector(XLEN-1 downto 0);
@@ -129,9 +127,7 @@ architecture rtl of id_stage is
     signal main_ctrl_ebreak      : std_logic;
     signal main_ctrl_mret        : std_logic;
     signal main_ctrl_wfi         : std_logic;
-    signal main_ctrl_exi_trap    : std_logic;
-    signal main_ctrl_tmi_trap    : std_logic;
-    signal main_ctrl_swi_trap    : std_logic;
+    signal main_ctrl_id_valid    : std_logic;
     signal main_ctrl_retire      : std_logic;
 
 begin
@@ -144,25 +140,18 @@ begin
         valid_i        => valid_i,
         stale_i        => stale_i,
         flush_i        => flush_i,
-        mie_meie_i     => csrs_mie_meie,
-        mie_mtie_i     => csrs_mie_mtie,
-        mie_msie_i     => csrs_mie_msie,
-        mip_meip_i     => csrs_mip_meip,
-        mip_mtip_i     => csrs_mip_mtip,
-        mip_msip_i     => csrs_mip_msip,
-        mstatus_mie_i  => csrs_mstatus_mie,
+        int_pend_i     => csrs_int_pend,
+        int_taken_i    => csrs_int_taken,
         exc_taken_i    => exc_taken_i,
         ready_i        => ready_i,
         pipe_en_o      => main_ctrl_pipe_en,
+        id_valid_o     => main_ctrl_id_valid,
         instr_err_o    => main_ctrl_instr_err,
         fetch_fault_o  => main_ctrl_fetch_fault,
         ecall_o        => main_ctrl_ecall,
         ebreak_o       => main_ctrl_ebreak,
         mret_o         => main_ctrl_mret,
         wfi_o          => main_ctrl_wfi,
-        exi_trap_o     => main_ctrl_exi_trap,
-        tmi_trap_o     => main_ctrl_tmi_trap,
-        swi_trap_o     => main_ctrl_swi_trap,
         retire_o       => main_ctrl_retire,
         func3_o        => main_ctrl_func3,
         branch_op_o    => main_ctrl_branch_op,
@@ -211,6 +200,7 @@ begin
         mepc_i        => mepc_i,
         mret_i        => main_ctrl_mret,
         exc_taken_i   => exc_taken_i,
+        id_valid_i    => main_ctrl_id_valid,
         wr_en_i       => csrwr_en_i,
         wr_addr_i     => main_ctrl_csrs_addr,
         rw_addr_i     => instr_i(31 downto 20),
@@ -224,13 +214,11 @@ begin
         cop_adr_o     => csrs_cop_adr,
         cop_dat_o     => csrs_cop_dat,
         cop_we_o      => csrs_cop_we,
-        mie_meie_o    => csrs_mie_meie,
-        mie_mtie_o    => csrs_mie_mtie,
-        mie_msie_o    => csrs_mie_msie,
-        mip_meip_o    => csrs_mip_meip,
-        mip_mtip_o    => csrs_mip_mtip,
-        mip_msip_o    => csrs_mip_msip,
-        mstatus_mie_o => csrs_mstatus_mie,
+        int_pend_o    => csrs_int_pend,
+        int_taken_o   => csrs_int_taken,
+        exi_trap_o    => csrs_exi_trap,
+        tmi_trap_o    => csrs_tmi_trap,
+        swi_trap_o    => csrs_swi_trap,
         mepc_reg_o    => csrs_mepc_reg,
         mtvec_reg_o   => csrs_mtvec_reg,
         csrrd_data_o  => csrs_csrrd_data,
@@ -251,9 +239,9 @@ begin
     ebreak_o      <= main_ctrl_ebreak;
     mret_o        <= main_ctrl_mret;
     wfi_o         <= main_ctrl_wfi;
-    exi_trap_o    <= main_ctrl_exi_trap;
-    tmi_trap_o    <= main_ctrl_tmi_trap;
-    swi_trap_o    <= main_ctrl_swi_trap;
+    exi_trap_o    <= csrs_exi_trap;
+    tmi_trap_o    <= csrs_tmi_trap;
+    swi_trap_o    <= csrs_swi_trap;
     regwr_en_o    <= main_ctrl_regwr_en;
     csrwr_en_o    <= main_ctrl_csrwr_en;
     rd_data0_o    <= reg_file_rd_data0;

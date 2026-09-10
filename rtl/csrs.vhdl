@@ -32,6 +32,11 @@ entity csrs is
         mepc_i        : in  std_logic_vector(XLEN-1 downto 2);
         mret_i        : in  std_logic;
         exc_taken_i   : in  std_logic;
+        -- main_ctrl's "the ID slot holds a real instruction". It qualifies the
+        -- interrupt arm below: the pc registered beside it tracks the ID slot
+        -- whether or not it decoded, so arming on a stale or flushed slot
+        -- stacks a wrong-path pc. Covered by verif/tests/int_mret_shadow.
+        id_valid_i    : in  std_logic;
         wr_en_i       : in  std_logic;
         wr_addr_i     : in  std_logic_vector(11 downto 0);
         rw_addr_i     : in  std_logic_vector(11 downto 0);
@@ -45,17 +50,17 @@ entity csrs is
         cop_adr_o     : out std_logic_vector(5 downto 0);
         cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o      : out std_logic;
-        -- The interrupt state itself, for main_ctrl to arm from: the enable
-        -- and pending bit of each cause, plus the global enable. The mie and
-        -- mstatus lines are the write-forwarded copies, so a csrrs that sets
-        -- one arms the interrupt in the cycle it commits, not one later.
-        mie_meie_o    : out std_logic;
-        mie_mtie_o    : out std_logic;
-        mie_msie_o    : out std_logic;
-        mip_meip_o    : out std_logic;
-        mip_mtip_o    : out std_logic;
-        mip_msip_o    : out std_logic;
-        mstatus_mie_o : out std_logic;
+        -- The wfi wake and the decode squash. They differ only by mstatus.MIE,
+        -- which the wake must ignore per the spec -- the reason both cross
+        -- rather than the enable itself. Covered by verif/tests/wfi_mie0.
+        int_pend_o    : out std_logic;
+        int_taken_o   : out std_logic;
+        -- The armed interrupt, one cause per line, registered onto ID/EX.
+        -- Nothing here is ranked or ORed: trap_ctrl does that, so the code and
+        -- mcause's interrupt bit come from the same three signals.
+        exi_trap_o    : out std_logic;
+        tmi_trap_o    : out std_logic;
+        swi_trap_o    : out std_logic;
         -- The two redirect candidates, registered onto ID/EX. trap_ctrl picks
         -- between them with the same mret it drives taken_o from, so the whole
         -- redirect -- taken and target alike -- is decided there.
@@ -97,10 +102,22 @@ architecture rtl of csrs is
     signal mie_msie_bypassed    : std_logic;
     signal mstatus_mie_bypassed : std_logic;
 
+    signal exi_pend  : std_logic;
+    signal tmi_pend  : std_logic;
+    signal swi_pend  : std_logic;
+    signal int_pend  : std_logic;
+    signal irq_arm   : std_logic;
+    signal exi_trap  : std_logic;
+    signal tmi_trap  : std_logic;
+    signal swi_trap  : std_logic;
+
     signal mepc_reg       : std_logic_vector(XLEN-1 downto 2);
     signal mtvec_base_reg : std_logic_vector(XLEN-1 downto 2);
     signal csrrd_data_reg : std_logic_vector(XLEN-1 downto 0);
     signal pc_reg         : std_logic_vector(XLEN-1 downto 2);
+    signal exi_trap_reg   : std_logic;
+    signal tmi_trap_reg   : std_logic;
+    signal swi_trap_reg   : std_logic;
 
 begin
 
@@ -259,11 +276,17 @@ begin
                 mtvec_base_reg <= (others => '0');
                 csrrd_data_reg <= (others => '0');
                 pc_reg         <= (others => '0');
+                exi_trap_reg   <= '0';
+                tmi_trap_reg   <= '0';
+                swi_trap_reg   <= '0';
             elsif pipe_en_i = '1' then
                 mepc_reg       <= mepc_bypassed;
                 mtvec_base_reg <= mtvec_base_bypassed;
                 csrrd_data_reg <= rd_data_bypassed;
                 pc_reg         <= pc_i;
+                exi_trap_reg   <= exi_trap;
+                tmi_trap_reg   <= tmi_trap;
+                swi_trap_reg   <= swi_trap;
             end if;
         end if;
     end process pipeline_reg;
@@ -275,16 +298,34 @@ begin
     mepc_bypassed        <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MEPC)  else mepc;
     mtvec_base_bypassed  <= wr_data_i(XLEN-1 downto 2) when (wr_en_i = '1' and wr_addr_i = CSR_ADDR_MTVEC) else mtvec_base;
 
+    -- One pending line per cause, carrying its own mie bit and nothing else.
+    -- mie is the write-forwarded copy, so a csrrs that sets a bit arms the
+    -- interrupt in the cycle it commits and not one later; mip is not, being
+    -- unwritable by software.
+    exi_pend  <= mie_meie_bypassed and mip_meip;
+    tmi_pend  <= mie_mtie_bypassed and mip_mtip;
+    swi_pend  <= mie_msie_bypassed and mip_msip;
+
+    -- mstatus.MIE is added to int_taken and to the arms, and never to int_pend
+    -- -- the wfi wake reads that one and must ignore the global enable.
+    int_pend  <= exi_pend or tmi_pend or swi_pend;
+
+    -- The one-shot: mstatus.MIE only clears at the edge exc_taken_i commits
+    -- the trap, so the causes above are still up through that cycle and the
+    -- trap would commit twice. Covered by verif/tests/wfi_timer.
+    irq_arm   <= mstatus_mie_bypassed and not exc_taken_i and id_valid_i;
+    exi_trap  <= exi_pend and irq_arm;
+    tmi_trap  <= tmi_pend and irq_arm;
+    swi_trap  <= swi_pend and irq_arm;
+
     cop_we_o        <= wr_en_i and cop_sel_wr;
     cop_adr_o       <= wr_addr_i(5 downto 0) when (wr_en_i and cop_sel_wr) = '1' else rw_addr_i(5 downto 0);
     cop_dat_o       <= wr_data_i;
-    mie_meie_o      <= mie_meie_bypassed;
-    mie_mtie_o      <= mie_mtie_bypassed;
-    mie_msie_o      <= mie_msie_bypassed;
-    mip_meip_o      <= mip_meip;
-    mip_mtip_o      <= mip_mtip;
-    mip_msip_o      <= mip_msip;
-    mstatus_mie_o   <= mstatus_mie_bypassed;
+    int_pend_o      <= int_pend;
+    int_taken_o     <= int_pend and mstatus_mie_bypassed;
+    exi_trap_o      <= exi_trap_reg;
+    tmi_trap_o      <= tmi_trap_reg;
+    swi_trap_o      <= swi_trap_reg;
     mepc_reg_o      <= mepc_reg;
     mtvec_reg_o     <= mtvec_base_reg;
     csrrd_data_o    <= csrrd_data_reg;
