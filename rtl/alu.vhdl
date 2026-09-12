@@ -19,7 +19,7 @@ entity alu is
         -- One bit per operand: bit 0 selects/gates opd0, bit 1 opd1.
         opd_src_sel_i  : in  std_logic_vector(1        downto 0);
         opd_pass_i     : in  std_logic_vector(1        downto 0);
-        op_i           : in  std_logic_vector(5        downto 0);
+        op_i           : in  std_logic_vector(4        downto 0);
         res_o          : out std_logic_vector(XLEN-1 downto 0);
         arith_res_o    : out std_logic_vector(XLEN-1 downto 0);
         -- pc+4: the JAL/JALR link address and the mepc a wfi trap stacks. For
@@ -31,35 +31,29 @@ end entity alu;
 
 architecture rtl of alu is
 
-    signal arith_op   :   std_logic;
-    signal arith_opd0 : std_logic_vector(XLEN-1 downto 0);
-    signal arith_opd1 : std_logic_vector(XLEN-1 downto 0);
+    signal arith_op   : std_logic;
     signal arith_res  : std_logic_vector(XLEN-1 downto 0);
 
-    signal comp_en     : std_logic;
-    signal comp_op     : std_logic;
-    signal comp_opd0   : std_logic;
-    signal comp_opd1   : std_logic;
-    signal comp_opd2   : std_logic;
-    signal comp_bypass : std_logic_vector(XLEN-1 downto 0);
-    signal comp_res    : std_logic_vector(XLEN-1 downto 0);
+    signal comp_op   : std_logic;
+    signal comp_bit  : std_logic;
+    signal comp_res  : std_logic_vector(XLEN-1 downto 0);
 
-    signal logic_op     : std_logic_vector(1        downto 0);
-    signal logic_opd0   : std_logic_vector(XLEN-1 downto 0);
-    signal logic_opd1   : std_logic_vector(XLEN-1 downto 0);
-    signal logic_bypass : std_logic_vector(XLEN-1 downto 0);
-    signal logic_res    : std_logic_vector(XLEN-1 downto 0);
+    signal logic_op   : std_logic_vector(1      downto 0);
+    signal logic_res  : std_logic_vector(XLEN-1 downto 0);
 
-    signal shifter_op     : std_logic_vector(1        downto 0);
-    signal shifter_opd    : std_logic_vector(XLEN-1 downto 0);
-    signal shifter_shamt  : std_logic_vector(4        downto 0);
-    signal shifter_bypass : std_logic_vector(XLEN-1 downto 0);
-    signal shifter_res    : std_logic_vector(XLEN-1 downto 0);
+    signal shifter_op    : std_logic_vector(1      downto 0);
+    signal shifter_src   : std_logic_vector(XLEN-1 downto 0);
+    signal shifter_fill  : std_logic;
+    signal shifter_shr   : std_logic_vector(XLEN   downto 0);
+    signal shifter_res   : std_logic_vector(XLEN-1 downto 0);
 
-    signal opd0      : std_logic_vector(XLEN-1 downto 0);
-    signal opd1      : std_logic_vector(XLEN-1 downto 0);
-    signal gtd_opd0  : std_logic_vector(XLEN-1 downto 0);
-    signal gtd_opd1  : std_logic_vector(XLEN-1 downto 0);
+    signal opd0     : std_logic_vector(XLEN-1 downto 0);
+    signal opd1     : std_logic_vector(XLEN-1 downto 0);
+    signal gtd_opd0 : std_logic_vector(XLEN-1 downto 0);
+    signal gtd_opd1 : std_logic_vector(XLEN-1 downto 0);
+
+    signal res_sel  : std_logic_vector(1      downto 0);
+    signal res      : std_logic_vector(XLEN-1 downto 0);
 
 begin
 
@@ -68,95 +62,85 @@ begin
     gtd_opd0 <= opd0 and (XLEN-1 downto 0 => opd_pass_i(0));
     gtd_opd1 <= opd1 and (XLEN-1 downto 0 => opd_pass_i(1));
 
-    arith_op   <= op_i(4) or op_i(5);
-    arith_opd0 <= gtd_opd0;
-    arith_opd1 <= gtd_opd1;
+    -- The low two bits are shared: only the unit res_sel names reads them.
+    res_sel    <= op_i(4 downto 3);
+    arith_op   <= op_i(2);
+    comp_op    <= op_i(0);
+    logic_op   <= op_i(1 downto 0);
+    shifter_op <= op_i(1 downto 0);
 
-    comp_en     <= op_i(5);
-    comp_op     <= op_i(4);
-    comp_opd0   <= gtd_opd0(XLEN-1);
-    comp_opd1   <= gtd_opd1(XLEN-1);
-    comp_opd2   <= arith_res(XLEN-1);
-    comp_bypass <= arith_res;
-
-    logic_op     <= op_i(3 downto 2);
-    logic_opd0   <= gtd_opd0;
-    logic_opd1   <= gtd_opd1;
-    logic_bypass <= comp_res;
-
-    shifter_op     <= op_i(1 downto 0);
-    shifter_opd    <= gtd_opd0;
-    shifter_shamt  <= gtd_opd1(4 downto 0);
-    shifter_bypass <= logic_res;
-
-    arith_unit: process(arith_op, arith_opd0, arith_opd1)
-        variable a_opd0 : std_logic_vector(XLEN-1 downto 0);
-        variable a_opd1 : std_logic_vector(XLEN-1 downto 0);
-        variable cin    : std_logic_vector(0          downto 0);
+    arith_unit: process(arith_op, gtd_opd0, gtd_opd1)
+        variable neg : std_logic_vector(XLEN-1 downto 0);
+        variable cin : unsigned(0        downto 0);
     begin
-        if arith_op = '1' then
-            a_opd0 := arith_opd0;
-            a_opd1 := not arith_opd1;
-            cin(0) := '1';
-        else
-            a_opd0 := arith_opd0;
-            a_opd1 := arith_opd1;
-            cin(0) := '0';
-        end if;
-        arith_res <= std_logic_vector(unsigned(a_opd0) + unsigned(a_opd1) + unsigned(cin));
+        -- sub is the ones' complement plus a carry-in of one
+        neg := gtd_opd1 xor (XLEN-1 downto 0 => arith_op);
+        cin := (0 => arith_op);
+
+        arith_res <= std_logic_vector(unsigned(gtd_opd0) + unsigned(neg) + cin);
     end process arith_unit;
 
-    comparator: process(comp_en, comp_op, comp_opd0, comp_opd1, comp_opd2, comp_bypass)
-        variable comp_res_i : std_logic;
+    comparator: process(comp_op, gtd_opd0, gtd_opd1, arith_res)
     begin
-        if comp_opd0 = comp_opd1 then
-            comp_res_i := comp_opd2;
+        if gtd_opd0(XLEN-1) = gtd_opd1(XLEN-1) then
+            -- equal signs cannot overflow the subtraction, so its sign answers
+            comp_bit <= arith_res(XLEN-1);
         else
-            if comp_op = '0' then
-                comp_res_i := comp_opd0 and not comp_opd1;
-            else
-                comp_res_i := not comp_opd0 and comp_opd1;
-            end if;
-        end if;
-
-        if comp_en = '1' then
-            comp_res <= (0 => comp_res_i, others => '0');
-        else
-            comp_res <= comp_bypass;
+            -- signs differ: opd0's sign is the signed answer, its inverse
+            -- the unsigned one
+            comp_bit <= gtd_opd0(XLEN-1) xor comp_op;
         end if;
     end process comparator;
 
-    logic_unit: process(logic_op, logic_opd0, logic_opd1, logic_bypass)
-        constant LOGIC_XOR : std_logic_vector(1 downto 0) := b"00";
-        constant LOGIC_OR  : std_logic_vector(1 downto 0) := b"01";
-        constant LOGIC_AND : std_logic_vector(1 downto 0) := b"10";
+    comp_res <= (0 => comp_bit, others => '0');
+
+    logic_unit: process(logic_op, gtd_opd0, gtd_opd1)
     begin
         case logic_op is
-            when LOGIC_XOR => logic_res <= logic_opd0 xor logic_opd1;
-            when LOGIC_OR  => logic_res <= logic_opd0 or logic_opd1;
-            when LOGIC_AND => logic_res <= logic_opd0 and logic_opd1;
-            when others    => logic_res <= logic_bypass;
+            when ALU_LOGIC_XOR => logic_res <= gtd_opd0 xor gtd_opd1;
+            when ALU_LOGIC_OR  => logic_res <= gtd_opd0 or  gtd_opd1;
+            when ALU_LOGIC_AND => logic_res <= gtd_opd0 and gtd_opd1;
+            -- the encoding never produces b"11"
+            when others        => logic_res <= (others => '0');
         end case;
     end process logic_unit;
 
-    shifter: process(shifter_op, shifter_opd, shifter_shamt, shifter_bypass)
-        variable shamt: integer range 0 to 31;
+    -- One right shifter serves the three: sll reverses operand and result, sra
+    -- fills from the sign bit. A shift_left beside it costs a second barrel.
+    shifter_shr <= std_logic_vector(shift_right(signed(shifter_fill & shifter_src),
+                                                to_integer(unsigned(gtd_opd1(4 downto 0)))));
 
-        constant SHIFTER_SLL: std_logic_vector(1 downto 0) := b"00";
-        constant SHIFTER_SRL: std_logic_vector(1 downto 0) := b"01";
-        constant SHIFTER_SRA: std_logic_vector(1 downto 0) := b"10";
+    shifter: process(shifter_op, gtd_opd0, shifter_shr)
     begin
-        shamt := to_integer(unsigned(shifter_shamt));
-
         case shifter_op is
-            when SHIFTER_SLL => shifter_res <= std_logic_vector(shift_left(unsigned(shifter_opd), shamt));
-            when SHIFTER_SRL => shifter_res <= std_logic_vector(shift_right(unsigned(shifter_opd), shamt));
-            when SHIFTER_SRA => shifter_res <= std_logic_vector(shift_right(signed(shifter_opd), shamt));
-            when others      => shifter_res <= shifter_bypass;
+            when ALU_SHIFT_SLL =>
+                for i in 0 to XLEN-1 loop
+                    shifter_src(i) <= gtd_opd0(XLEN-1 - i);
+                    shifter_res(i) <= shifter_shr(XLEN-1 - i);
+                end loop;
+                shifter_fill <= '0';
+            when ALU_SHIFT_SRA =>
+                shifter_src  <= gtd_opd0;
+                shifter_fill <= gtd_opd0(XLEN-1);
+                shifter_res  <= shifter_shr(XLEN-1 downto 0);
+            when others =>
+                shifter_src  <= gtd_opd0;
+                shifter_fill <= '0';
+                shifter_res  <= shifter_shr(XLEN-1 downto 0);
         end case;
     end process shifter;
 
-    res_o       <= shifter_res;
+    result_mux: process(res_sel, comp_res, shifter_res, logic_res, arith_res)
+    begin
+        case res_sel is
+            when ALU_RES_COMP  => res <= comp_res;
+            when ALU_RES_SHIFT => res <= shifter_res;
+            when ALU_RES_LOGIC => res <= logic_res;
+            when others        => res <= arith_res;
+        end case;
+    end process result_mux;
+
+    res_o       <= res;
     arith_res_o <= arith_res;
     -- pc_i is word-aligned, so +4 is an increment of the word address
     pc_next_o   <= std_logic_vector(unsigned(pc_i(XLEN-1 downto 2)) + 1) & b"00";

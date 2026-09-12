@@ -24,7 +24,7 @@ entity ex_block is
         opd_src_sel_i  : in  std_logic_vector(1  downto 0);
         opd_pass_i     : in  std_logic_vector(1  downto 0);
         branch_op_i    : in  std_logic_vector(1  downto 0);
-        alu_op_i       : in  std_logic_vector(5  downto 0);
+        alu_op_i       : in  std_logic_vector(4  downto 0);
         dmls_ctrl_i    : in  std_logic_vector(1  downto 0);
         redirect_ack_i : in  std_logic;
 

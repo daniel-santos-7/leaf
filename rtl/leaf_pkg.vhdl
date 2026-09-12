@@ -52,16 +52,53 @@ package leaf_pkg is
 
     -- ALU op --
 
-    constant ALU_ADD  : std_logic_vector(5 downto 0) := b"001111";
-    constant ALU_SLL  : std_logic_vector(5 downto 0) := b"001100";
-    constant ALU_SLT  : std_logic_vector(5 downto 0) := b"101111";
-    constant ALU_SLTU : std_logic_vector(5 downto 0) := b"111111";
-    constant ALU_XOR  : std_logic_vector(5 downto 0) := b"000011";
-    constant ALU_SRL  : std_logic_vector(5 downto 0) := b"001101";
-    constant ALU_OR   : std_logic_vector(5 downto 0) := b"000111";
-    constant ALU_AND  : std_logic_vector(5 downto 0) := b"001011";
-    constant ALU_SUB  : std_logic_vector(5 downto 0) := b"011111";
-    constant ALU_SRA  : std_logic_vector(5 downto 0) := b"001110";
+    -- The alu reads this word as fields, with no decoding of its own:
+    --   op(4 downto 3) res_sel   op(2) arith op   op(1 downto 0) unit op
+    -- The comparator, the logic unit and the shifter never answer at the same
+    -- time, so they share the unit field.
+
+    constant ALU_RES_ARITH : std_logic_vector(1 downto 0) := b"00";
+    constant ALU_RES_COMP  : std_logic_vector(1 downto 0) := b"01";
+    constant ALU_RES_LOGIC : std_logic_vector(1 downto 0) := b"10";
+    constant ALU_RES_SHIFT : std_logic_vector(1 downto 0) := b"11";
+
+    constant ALU_PLUS      : std_logic := '0';
+    constant ALU_MINUS     : std_logic := '1';
+
+    constant ALU_SIGNED    : std_logic_vector(1 downto 0) := b"00";
+    constant ALU_UNSIGNED  : std_logic_vector(1 downto 0) := b"01";
+
+    constant ALU_LOGIC_XOR : std_logic_vector(1 downto 0) := b"00";
+    constant ALU_LOGIC_OR  : std_logic_vector(1 downto 0) := b"01";
+    constant ALU_LOGIC_AND : std_logic_vector(1 downto 0) := b"10";
+
+    constant ALU_SHIFT_SLL : std_logic_vector(1 downto 0) := b"00";
+    constant ALU_SHIFT_SRL : std_logic_vector(1 downto 0) := b"01";
+    constant ALU_SHIFT_SRA : std_logic_vector(1 downto 0) := b"10";
+
+    -- add and sub leave the shared field to no one
+    constant ALU_UNIT_NONE : std_logic_vector(1 downto 0) := b"00";
+
+    constant ALU_ADD  : std_logic_vector(4 downto 0) :=
+        ALU_RES_ARITH & ALU_PLUS  & ALU_UNIT_NONE;
+    constant ALU_SUB  : std_logic_vector(4 downto 0) :=
+        ALU_RES_ARITH & ALU_MINUS & ALU_UNIT_NONE;
+    constant ALU_SLT  : std_logic_vector(4 downto 0) :=
+        ALU_RES_COMP  & ALU_MINUS & ALU_SIGNED;
+    constant ALU_SLTU : std_logic_vector(4 downto 0) :=
+        ALU_RES_COMP  & ALU_MINUS & ALU_UNSIGNED;
+    constant ALU_XOR  : std_logic_vector(4 downto 0) :=
+        ALU_RES_LOGIC & ALU_PLUS  & ALU_LOGIC_XOR;
+    constant ALU_OR   : std_logic_vector(4 downto 0) :=
+        ALU_RES_LOGIC & ALU_PLUS  & ALU_LOGIC_OR;
+    constant ALU_AND  : std_logic_vector(4 downto 0) :=
+        ALU_RES_LOGIC & ALU_PLUS  & ALU_LOGIC_AND;
+    constant ALU_SLL  : std_logic_vector(4 downto 0) :=
+        ALU_RES_SHIFT & ALU_PLUS  & ALU_SHIFT_SLL;
+    constant ALU_SRL  : std_logic_vector(4 downto 0) :=
+        ALU_RES_SHIFT & ALU_PLUS  & ALU_SHIFT_SRL;
+    constant ALU_SRA  : std_logic_vector(4 downto 0) :=
+        ALU_RES_SHIFT & ALU_PLUS  & ALU_SHIFT_SRA;
 
     -- imm types --
 
@@ -150,7 +187,7 @@ package leaf_pkg is
             retire_o       : out std_logic;
             func3_o        : out std_logic_vector(2  downto 0);
             branch_op_o    : out std_logic_vector(1  downto 0);
-            alu_op_o       : out std_logic_vector(5  downto 0);
+            alu_op_o       : out std_logic_vector(4  downto 0);
             dmls_ctrl_o    : out std_logic_vector(1  downto 0);
             imm_o          : out std_logic_vector(XLEN-1 downto 0);
             opd_src_sel_o  : out std_logic_vector(1  downto 0);
@@ -309,7 +346,7 @@ package leaf_pkg is
 
             func3_o       : out std_logic_vector(2  downto 0);
             branch_op_o   : out std_logic_vector(1  downto 0);
-            alu_op_o      : out std_logic_vector(5  downto 0);
+            alu_op_o      : out std_logic_vector(4  downto 0);
             dmls_ctrl_o   : out std_logic_vector(1  downto 0);
             mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
             mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
@@ -348,7 +385,7 @@ package leaf_pkg is
             immwr_data_i   : in  std_logic_vector(XLEN-1 downto 0);
             opd_src_sel_i  : in  std_logic_vector(1  downto 0);
             opd_pass_i     : in  std_logic_vector(1  downto 0);
-            op_i           : in  std_logic_vector(5        downto 0);
+            op_i           : in  std_logic_vector(4        downto 0);
             res_o          : out std_logic_vector(XLEN-1 downto 0);
             arith_res_o    : out std_logic_vector(XLEN-1 downto 0);
             pc_next_o      : out std_logic_vector(XLEN-1 downto 0)
@@ -389,7 +426,7 @@ package leaf_pkg is
             opd_src_sel_i  : in  std_logic_vector(1  downto 0);
             opd_pass_i     : in  std_logic_vector(1  downto 0);
             branch_op_i    : in  std_logic_vector(1  downto 0);
-            alu_op_i       : in  std_logic_vector(5  downto 0);
+            alu_op_i       : in  std_logic_vector(4  downto 0);
             dmls_ctrl_i    : in  std_logic_vector(1  downto 0);
             redirect_ack_i : in  std_logic;
             instr_err_i    : in  std_logic;

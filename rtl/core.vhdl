@@ -70,7 +70,7 @@ architecture rtl of core is
     signal id_stage_ready       : std_logic;
     signal id_stage_func3       : std_logic_vector(2  downto 0);
     signal id_stage_branch_op   : std_logic_vector(1  downto 0);
-    signal id_stage_alu_op      : std_logic_vector(5  downto 0);
+    signal id_stage_alu_op      : std_logic_vector(4  downto 0);
     signal id_stage_dmls_ctrl   : std_logic_vector(1  downto 0);
     -- The redirect candidates, not the pc to stack: ex_block_mepc below runs
     -- the other way, from trap_ctrl back into csrs.

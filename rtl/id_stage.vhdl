@@ -49,7 +49,7 @@ entity id_stage is
 
         func3_o       : out std_logic_vector(2  downto 0);
         branch_op_o   : out std_logic_vector(1  downto 0);
-        alu_op_o      : out std_logic_vector(5  downto 0);
+        alu_op_o      : out std_logic_vector(4  downto 0);
         dmls_ctrl_o   : out std_logic_vector(1  downto 0);
         mepc_reg_o    : out std_logic_vector(XLEN-1 downto 2);
         mtvec_reg_o   : out std_logic_vector(XLEN-1 downto 2);
@@ -88,7 +88,7 @@ architecture rtl of id_stage is
     -- main_ctrl registered (pipeline) outputs
     signal main_ctrl_func3       : std_logic_vector(2  downto 0);
     signal main_ctrl_branch_op   : std_logic_vector(1  downto 0);
-    signal main_ctrl_alu_op      : std_logic_vector(5  downto 0);
+    signal main_ctrl_alu_op      : std_logic_vector(4  downto 0);
     signal main_ctrl_dmls_ctrl   : std_logic_vector(1  downto 0);
     signal main_ctrl_imm         : std_logic_vector(XLEN-1 downto 0);
     signal main_ctrl_opd_src_sel : std_logic_vector(1  downto 0);

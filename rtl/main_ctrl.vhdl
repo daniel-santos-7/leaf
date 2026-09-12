@@ -45,7 +45,7 @@ entity main_ctrl is
         -- Registered (pipeline) outputs.
         func3_o        : out std_logic_vector(2  downto 0);
         branch_op_o    : out std_logic_vector(1  downto 0);
-        alu_op_o       : out std_logic_vector(5  downto 0);
+        alu_op_o       : out std_logic_vector(4  downto 0);
         dmls_ctrl_o    : out std_logic_vector(1  downto 0);
         imm_o          : out std_logic_vector(XLEN-1 downto 0);
         opd_src_sel_o  : out std_logic_vector(1  downto 0);
@@ -85,7 +85,7 @@ architecture rtl of main_ctrl is
     signal pipe_en   : std_logic;
 
     signal branch_op     : std_logic_vector(1  downto 0);
-    signal alu_op        : std_logic_vector(5  downto 0);
+    signal alu_op        : std_logic_vector(4  downto 0);
     signal dmls_ctrl     : std_logic_vector(1  downto 0);
     signal imm           : std_logic_vector(XLEN-1 downto 0);
     -- One bit per operand: bit 0 drives opd0, bit 1 opd1 (see alu.vhdl).
@@ -96,7 +96,7 @@ architecture rtl of main_ctrl is
 
     signal func3_reg        : std_logic_vector(2  downto 0);
     signal branch_op_reg    : std_logic_vector(1  downto 0);
-    signal alu_op_reg       : std_logic_vector(5  downto 0);
+    signal alu_op_reg       : std_logic_vector(4  downto 0);
     signal dmls_ctrl_reg    : std_logic_vector(1  downto 0);
     signal imm_reg          : std_logic_vector(XLEN-1 downto 0);
     signal opd_src_sel_reg  : std_logic_vector(1 downto 0);
