@@ -20,7 +20,7 @@ entity counters is
     );
 end entity counters;
 
-architecture counters_arch of counters is
+architecture rtl of counters is
 
     signal cycle_reg   : unsigned(63 downto 0);
     signal timer_reg   : unsigned(63 downto 0);
@@ -65,4 +65,4 @@ begin
     timer_o   <= std_logic_vector(timer_reg);
     instret_o <= std_logic_vector(instret_reg);
 
-end architecture counters_arch;
+end architecture rtl;

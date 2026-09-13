@@ -13,7 +13,7 @@ use std.textio.all;
 
 package leaf_tb_pkg is
 
-    constant CLK_PERIOD: time := 20 ns;
+    constant CLK_PERIOD: time := 10 ns;
 
     -- Reset address = 0x80000000 --
     constant RESET_ADDR : std_logic_vector(31 downto 0) := x"80000000";
@@ -41,27 +41,56 @@ package leaf_tb_pkg is
 
     procedure write_memory (dump_file : in string; memory : in memory_array);
 
-    component wb_ram is
+    component wb_ram_dual is
         generic (
-            PROGRAM  : string;
-            DUMP_FILE  : string
+            PROGRAM   : string;
+            DUMP_FILE : string
         );
         port (
             clk_i : in  std_logic;
             rst_i : in  std_logic;
-            dat_i : in  std_logic_vector(31 downto 0);
-            cyc_i : in  std_logic;
-            stb_i : in  std_logic;
-            we_i  : in  std_logic;
-            sel_i : in  std_logic_vector(3  downto 0);
-            adr_i : in  std_logic_vector(31 downto 0);
-            ack_o : out std_logic;
-            dat_o : out std_logic_vector(31 downto 0);
+
+            inst_cyc_i : in  std_logic;
+            inst_stb_i : in  std_logic;
+            inst_adr_i : in  std_logic_vector(31 downto 2);
+            inst_dat_o : out std_logic_vector(31 downto 0);
+            inst_ack_o : out std_logic;
+
+            data_cyc_i : in  std_logic;
+            data_stb_i : in  std_logic;
+            data_adr_i : in  std_logic_vector(31 downto 2);
+            data_sel_i : in  std_logic_vector(3 downto 0);
+            data_we_i  : in  std_logic;
+            data_dat_i : in  std_logic_vector(31 downto 0);
+            data_dat_o : out std_logic_vector(31 downto 0);
+            data_ack_o : out std_logic;
+
             wr_mem_i : in std_logic;
             rd_mem_i : in std_logic;
             halt_o   : out std_logic
         );
-    end component wb_ram;
+    end component wb_ram_dual;
+
+    component wb_clint is
+        generic (
+            RTC_DIV : positive := 8
+        );
+        port (
+            clk_i : in  std_logic;
+            rst_i : in  std_logic;
+
+            cyc_i : in  std_logic;
+            stb_i : in  std_logic;
+            we_i  : in  std_logic;
+            adr_i : in  std_logic_vector(31 downto 2);
+            dat_i : in  std_logic_vector(31 downto 0);
+            dat_o : out std_logic_vector(31 downto 0);
+            sel_o : out std_logic;
+
+            sw_irq_o : out std_logic;
+            tm_irq_o : out std_logic
+        );
+    end component wb_clint;
 
 end package leaf_tb_pkg;
 
@@ -151,7 +180,7 @@ package body leaf_tb_pkg is
         variable data : std_logic_vector(31 downto 0);
 
     begin
-        file_open(dump, DUMP_FILE, write_mode);
+        file_open(dump, dump_file, write_mode);
         for addr in memory'range loop
             data := memory(addr);
             hwrite(word, data(31 downto 24));

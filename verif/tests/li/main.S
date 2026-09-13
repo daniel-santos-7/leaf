@@ -52,3 +52,4 @@ _start:
     test_li_walking_ones
     test_li_walking_zeros
     call finish_test
+1:  j    1b

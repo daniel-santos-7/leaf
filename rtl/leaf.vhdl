@@ -21,95 +21,42 @@ entity leaf is
         ex_irq_i    : in  std_logic;
         sw_irq_i    : in  std_logic;
         tm_irq_i    : in  std_logic;
-        ack_i       : in  std_logic;
-        err_i       : in  std_logic;
-        dat_i       : in  std_logic_vector(XLEN-1 downto 0);
         cop_dat_i   : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
         cop_adr_o   : out std_logic_vector(5 downto 0);
         cop_dat_o   : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o    : out std_logic;
-        cyc_o       : out std_logic;
-        stb_o       : out std_logic;
-        we_o        : out std_logic;
-        sel_o       : out std_logic_vector(3         downto 0);
-        adr_o       : out std_logic_vector(XLEN-1 downto 0);
-        dat_o       : out std_logic_vector(XLEN-1 downto 0)
+
+        -- Instruction Wishbone master
+        inst_cyc_o  : out std_logic;
+        inst_stb_o  : out std_logic;
+        inst_adr_o  : out std_logic_vector(XLEN-1 downto 2);
+        inst_dat_i  : in  std_logic_vector(XLEN-1 downto 0);
+        inst_ack_i  : in  std_logic;
+        inst_err_i  : in  std_logic;
+        inst_stall_i : in  std_logic;
+
+        -- Data Wishbone master
+        data_cyc_o  : out std_logic;
+        data_stb_o  : out std_logic;
+        data_we_o   : out std_logic;
+        data_sel_o  : out std_logic_vector(3 downto 0);
+        data_adr_o  : out std_logic_vector(XLEN-1 downto 2);
+        data_dat_o  : out std_logic_vector(XLEN-1 downto 0);
+        data_dat_i  : in  std_logic_vector(XLEN-1 downto 0);
+        data_ack_i  : in  std_logic;
+        data_err_i  : in  std_logic;
+        data_stall_i : in  std_logic
     );
 end entity leaf;
 
 architecture rtl of leaf is
 
-    -- internal clock and reset --
-
-    signal clk_en : std_logic;
-    signal clk    : std_logic;
-    signal reset  : std_logic;
-
-    -- instruction memory signals --
-
-    signal imrd_en   : std_logic;
-    signal imrd_addr : std_logic_vector(XLEN-1 downto 0);
-    signal imrd_data : std_logic_vector(XLEN-1 downto 0);
-
-    -- data memory signals --
-
-    signal dmrd_en   : std_logic;
-    signal dmwr_en   : std_logic;
-    signal dmwr_be   : std_logic_vector(3  downto 0);
-    signal dmrw_addr : std_logic_vector(XLEN-1 downto 0);
-    signal dmrd_data : std_logic_vector(XLEN-1 downto 0);
-    signal dmwr_data : std_logic_vector(XLEN-1 downto 0);
-
-    -- errors --
-
-    signal imrd_err : std_logic;
-    signal dmrd_err : std_logic;
-    signal dmwr_err : std_logic;
-
-    -- counters --
-
     signal cycle   : std_logic_vector(63 downto 0);
     signal timer   : std_logic_vector(63 downto 0);
     signal instret : std_logic_vector(63 downto 0);
-
-    -- retire signal (core -> counters) --
-
-    signal retire : std_logic;
-    signal core_cop_we : std_logic;
+    signal retire  : std_logic;
 
 begin
-
-    -- leaf wishbone master interface --
-
-    leaf_master: wb_ctrl port map (
-        clk_i       => clk_i,
-        rst_i       => rst_i,
-        imrd_en_i   => imrd_en,
-        dmrd_en_i   => dmrd_en,
-        dmwr_en_i   => dmwr_en,
-        ack_i       => ack_i,
-        err_i       => err_i,
-        dat_i       => dat_i,
-        dmwr_be_i   => dmwr_be,
-        imrd_addr_i => imrd_addr,
-        dmrw_addr_i => dmrw_addr,
-        dmwr_data_i => dmwr_data,
-        cyc_o       => cyc_o,
-        stb_o       => stb_o,
-        we_o        => we_o,
-        clk_en_o    => clk_en,
-        reset_o     => reset,
-        imrd_err_o  => imrd_err,
-        dmrd_err_o  => dmrd_err,
-        dmwr_err_o  => dmwr_err,
-        sel_o       => sel_o,
-        adr_o       => adr_o,
-        dat_o       => dat_o,
-        imrd_data_o => imrd_data,
-        dmrd_data_o => dmrd_data
-    );
-
-    -- counters --
 
     leaf_counters: counters port map (
         clk_i     => clk_i,
@@ -120,49 +67,45 @@ begin
         instret_o => instret
     );
 
-    -- clock gating --
-
-    leaf_clk_ctrl: clk_ctrl port map (
-        clk_i  => clk_i,
-        rst_i  => rst_i,
-        clk_en => clk_en,
-        clk    => clk
-    );
-
-    -- leaf core --
-
     leaf_core: core generic map (
         RESET_ADDR    => RESET_ADDR,
         CSRS_MHART_ID => CSRS_MHART_ID,
         REG_FILE_SIZE => REG_FILE_SIZE
     ) port map (
-        clk_i       => clk,
-        reset_i     => reset,
-        ex_irq_i    => ex_irq_i,
-        sw_irq_i    => sw_irq_i,
-        tm_irq_i    => tm_irq_i,
-        imrd_err_i  => imrd_err,
-        dmrd_err_i  => dmrd_err,
-        dmwr_err_i  => dmwr_err,
-        imrd_data_i => imrd_data,
-        dmrd_data_i => dmrd_data,
-        cycle_i     => cycle,
-        timer_i     => timer,
-        instret_i   => instret,
-        cop_dat_i   => cop_dat_i,
-        cop_adr_o   => cop_adr_o,
-        cop_dat_o   => cop_dat_o,
-        cop_we_o    => core_cop_we,
-        retire_o    => retire,
-        imrd_en_o   => imrd_en,
-        dmrd_en_o   => dmrd_en,
-        dmwr_en_o   => dmwr_en,
-        dmwr_be_o   => dmwr_be,
-        imrd_addr_o => imrd_addr,
-        dmrw_addr_o => dmrw_addr,
-        dmwr_data_o => dmwr_data
-    );
+        clk_i        => clk_i,
+        reset_i      => rst_i,
+        ex_irq_i     => ex_irq_i,
+        sw_irq_i     => sw_irq_i,
+        tm_irq_i     => tm_irq_i,
 
-    cop_we_o <= core_cop_we and clk_en;
+        cycle_i      => cycle,
+        timer_i      => timer,
+        instret_i    => instret,
+        retire_o     => retire,
+
+        cop_dat_i    => cop_dat_i,
+        cop_adr_o    => cop_adr_o,
+        cop_dat_o    => cop_dat_o,
+        cop_we_o     => cop_we_o,
+
+        inst_cyc_o   => inst_cyc_o,
+        inst_stb_o   => inst_stb_o,
+        inst_adr_o   => inst_adr_o,
+        inst_dat_i   => inst_dat_i,
+        inst_ack_i   => inst_ack_i,
+        inst_err_i   => inst_err_i,
+        inst_stall_i => inst_stall_i,
+
+        data_cyc_o   => data_cyc_o,
+        data_stb_o   => data_stb_o,
+        data_we_o    => data_we_o,
+        data_sel_o   => data_sel_o,
+        data_adr_o   => data_adr_o,
+        data_dat_o   => data_dat_o,
+        data_dat_i   => data_dat_i,
+        data_ack_i   => data_ack_i,
+        data_err_i   => data_err_i,
+        data_stall_i => data_stall_i
+    );
 
 end architecture rtl;

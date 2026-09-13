@@ -43,3 +43,4 @@ _start:
     test_sltiu_case_group 0x80000000
     test_sltiu_case_group 0x7FFFFFFF
     call finish_test
+1:  j    1b

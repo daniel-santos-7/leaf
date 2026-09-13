@@ -8,6 +8,7 @@ _start:
     li a0, 10
     ecall
     call finish_test
+1:  j    1b
 
 trap_handler:
     csrr t0, mepc
