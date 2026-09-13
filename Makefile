@@ -49,5 +49,5 @@ run: $(WORK_DIR)/.make $(PROGRAM)
 synthesis: $(WORK_DIR)/$(RTL_TOP).rpt
 
 clean:
-	$(SIM) clean --workdir=$(WORK_DIR)
+	@$(SIM) clean --workdir=$(WORK_DIR)
 	@rm -rf $(WORK_DIR)
