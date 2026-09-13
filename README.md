@@ -85,11 +85,12 @@ Every test is built twice — once for Leaf and once for Spike — and Leaf's
 register dump is diffed against the Spike signature.
 
 ```bash
-make -C verif/tests list             # list test names
 make -C verif/tests/<test> run-leaf  # Leaf only (fastest)
 make -C verif/tests/<test> run       # Leaf + Spike
 make -C verif/tests/<test> compare   # run + diff
+make -C verif/tests run              # every test
 make -C verif/tests compare          # every test
+make -C verif/tests clean            # every test's build products
 ```
 
 To add a test, create `verif/tests/<name>/main.s` (include

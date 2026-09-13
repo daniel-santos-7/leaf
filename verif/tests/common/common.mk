@@ -59,7 +59,8 @@ $(APP_OUT).leaf.debug: $(APP_OUT).leaf.elf
 	$(RISCV_OBJDUMP) $^ --source > $@
 
 $(APP_OUT).leaf.dump: $(APP_OUT).leaf.bin
-	@$(MAKE) -C ../../../ run PROGRAM=$(CURDIR)/$< DUMP_FILE=$(CURDIR)/$@
+	@$(MAKE) --no-print-directory -C ../../../ run \
+		PROGRAM=$(CURDIR)/$< DUMP_FILE=$(CURDIR)/$@
 
 $(APP_OUT).spike.elf: $(APP_SRC) $(COMMON_DIR)/common.S $(COMMON_DIR)/spike.S $(COMMON_DIR)/spike.ld
 	$(RISCV_GCC) $(RISCV_GCC_OPTS) -T $(COMMON_DIR)/spike.ld $(APP_SRC) $(COMMON_DIR)/common.S $(COMMON_DIR)/spike.S -o $@
