@@ -50,3 +50,4 @@ _start:
     test_lui_walking_ones
     test_lui_walking_zeros
     call finish_test
+1:  j    1b
