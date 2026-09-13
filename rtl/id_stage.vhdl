@@ -79,7 +79,11 @@ entity id_stage is
         cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
         cop_adr_o     : out std_logic_vector(5      downto 0);
         cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
-        cop_we_o      : out std_logic
+        cop_we_o      : out std_logic;
+
+        rf_wr_en_o    : out std_logic;
+        rf_wr_addr_o  : out std_logic_vector(4      downto 0);
+        rf_wr_data_o  : out std_logic_vector(XLEN-1 downto 0)
     );
 end entity id_stage;
 
@@ -256,5 +260,25 @@ begin
     cop_adr_o     <= csrs_cop_adr;
     cop_dat_o     <= csrs_cop_dat;
     cop_we_o      <= csrs_cop_we;
+
+    -- Register-file write snoop tap for coprocessor CSR blocks (e.g. WGEN):
+    -- broadcasts the same (we, addr, data) that reg_file's own write port
+    -- sees, so a peripheral can mirror any GPR it's pointed at without the
+    -- register file needing extra read ports (which cost a full read-mux
+    -- per port and synthesized very poorly). Replicates the write-data mux
+    -- driving id_stage_reg_file, since that value isn't otherwise exposed.
+    rf_wr_en_o    <= regwr_en_i;
+    rf_wr_addr_o  <= main_ctrl_regwr_addr;
+
+    rf_wr_data_mux: process(main_ctrl_regwr_sel, exec_res_i, dmld_data_i, pc_next_i, csrs_csrrd_data)
+    begin
+        case main_ctrl_regwr_sel is
+            when b"00"  => rf_wr_data_o <= exec_res_i;
+            when b"01"  => rf_wr_data_o <= dmld_data_i;
+            when b"10"  => rf_wr_data_o <= pc_next_i;
+            when b"11"  => rf_wr_data_o <= csrs_csrrd_data;
+            when others => rf_wr_data_o <= (others => '-');
+        end case;
+    end process rf_wr_data_mux;
 
 end architecture rtl;

@@ -32,6 +32,10 @@ entity core is
         cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
         cop_we_o     : out std_logic;
 
+        rf_wr_en_o   : out std_logic;
+        rf_wr_addr_o : out std_logic_vector(4      downto 0);
+        rf_wr_data_o : out std_logic_vector(XLEN-1 downto 0);
+
         inst_cyc_o   : out std_logic;
         inst_stb_o   : out std_logic;
         inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
@@ -99,6 +103,10 @@ architecture rtl of core is
     signal id_stage_cop_adr     : std_logic_vector(5      downto 0);
     signal id_stage_cop_dat     : std_logic_vector(XLEN-1 downto 0);
     signal id_stage_cop_we      : std_logic;
+
+    signal id_stage_rf_wr_en    : std_logic;
+    signal id_stage_rf_wr_addr  : std_logic_vector(4      downto 0);
+    signal id_stage_rf_wr_data  : std_logic_vector(XLEN-1 downto 0);
 
     signal ex_block_ready      : std_logic;
     -- The redirect: if_stage refetches from it, id_stage squashes on it.
@@ -181,6 +189,9 @@ begin
         cop_adr_o     => id_stage_cop_adr,
         cop_dat_o     => id_stage_cop_dat,
         cop_we_o      => id_stage_cop_we,
+        rf_wr_en_o    => id_stage_rf_wr_en,
+        rf_wr_addr_o  => id_stage_rf_wr_addr,
+        rf_wr_data_o  => id_stage_rf_wr_data,
         flush_i       => ex_block_taken,
         ready_i       => ex_block_ready,
         ready_o       => id_stage_ready,
@@ -274,6 +285,10 @@ begin
     cop_adr_o    <= id_stage_cop_adr;
     cop_dat_o    <= id_stage_cop_dat;
     cop_we_o     <= id_stage_cop_we;
+
+    rf_wr_en_o   <= id_stage_rf_wr_en;
+    rf_wr_addr_o <= id_stage_rf_wr_addr;
+    rf_wr_data_o <= id_stage_rf_wr_data;
 
     inst_cyc_o   <= if_stage_inst_cyc;
     inst_stb_o   <= if_stage_inst_stb;

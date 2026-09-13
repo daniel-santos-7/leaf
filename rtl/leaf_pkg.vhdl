@@ -373,7 +373,11 @@ package leaf_pkg is
             cop_dat_i     : in  std_logic_vector(XLEN-1 downto 0) := (others => '0');
             cop_adr_o     : out std_logic_vector(5      downto 0);
             cop_dat_o     : out std_logic_vector(XLEN-1 downto 0);
-            cop_we_o      : out std_logic
+            cop_we_o      : out std_logic;
+
+            rf_wr_en_o    : out std_logic;
+            rf_wr_addr_o  : out std_logic_vector(4      downto 0);
+            rf_wr_data_o  : out std_logic_vector(XLEN-1 downto 0)
         );
     end component id_stage;
 
@@ -524,6 +528,10 @@ package leaf_pkg is
             cop_dat_o    : out std_logic_vector(XLEN-1 downto 0);
             cop_we_o     : out std_logic;
 
+            rf_wr_en_o   : out std_logic;
+            rf_wr_addr_o : out std_logic_vector(4      downto 0);
+            rf_wr_data_o : out std_logic_vector(XLEN-1 downto 0);
+
             inst_cyc_o   : out std_logic;
             inst_stb_o   : out std_logic;
             inst_adr_o   : out std_logic_vector(XLEN-1 downto 2);
@@ -561,6 +569,10 @@ package leaf_pkg is
             cop_adr_o   : out std_logic_vector(5 downto 0);
             cop_dat_o   : out std_logic_vector(XLEN-1 downto 0);
             cop_we_o    : out std_logic;
+
+            rf_wr_en_o  : out std_logic;
+            rf_wr_addr_o : out std_logic_vector(4      downto 0);
+            rf_wr_data_o : out std_logic_vector(XLEN-1 downto 0);
 
             inst_cyc_o  : out std_logic;
             inst_stb_o  : out std_logic;
